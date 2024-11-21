@@ -17,13 +17,13 @@ func UpdateController(metricsService metrics.IMetrics) func(http.ResponseWriter,
 
 		metricName := req.PathValue("metricName")
 		if len(metricName) == 0 {
-			http.Error(w, err.Error(), http.StatusNotFound)
+			http.Error(w, "empty metric name", http.StatusNotFound)
 			return
 		}
 
 		metricValue := req.PathValue("metricValue")
 		if len(metricValue) == 0 {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, "empty metric value", http.StatusBadRequest)
 			return
 		}
 
