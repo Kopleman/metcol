@@ -1,6 +1,6 @@
 module github.com/Kopleman/metcol
 
-go 1.23.3
+go 1.22.9
 
 require github.com/stretchr/testify v1.9.0
 
