@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"errors"
-	"fmt"
 	"github.com/Kopleman/metcol/internal/store"
 	"strconv"
 )
@@ -92,7 +91,6 @@ func ValidateMetricsValue(metricType MetricType, value any) bool {
 }
 
 func ParseMetricType(typeAsString string) (MetricType, error) {
-	fmt.Println(typeAsString)
 	switch typeAsString {
 	case string(CounterMetricType):
 		return CounterMetricType, nil
