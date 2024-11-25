@@ -1,4 +1,4 @@
-package metrics_collector
+package metricscollector
 
 import "github.com/Kopleman/metcol/internal/metrics"
 

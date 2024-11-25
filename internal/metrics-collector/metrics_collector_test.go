@@ -1,4 +1,4 @@
-package metrics_collector
+package metricscollector
 
 import (
 	"fmt"
@@ -8,18 +8,18 @@ import (
 	"testing"
 )
 
-type mockHttp struct {
+type mockHTTP struct {
 	postCallCount int
 }
 
-func (m *mockHttp) Post(_, _ string, _ io.Reader) ([]byte, error) {
+func (m *mockHTTP) Post(_, _ string, _ io.Reader) ([]byte, error) {
 	m.postCallCount++
 	return make([]byte, 0), nil
 }
 
 func TestMetricsCollector_CollectMetrics(t *testing.T) {
 	type fields struct {
-		client htttp_client.IHttpClient
+		client htttp_client.IHTTPClient
 	}
 
 	tests := []struct {
@@ -29,12 +29,12 @@ func TestMetricsCollector_CollectMetrics(t *testing.T) {
 	}{
 		{
 			name:      "run 1",
-			fields:    fields{&mockHttp{}},
+			fields:    fields{&mockHTTP{}},
 			numOfRuns: 1,
 		},
 		{
 			name:      "run 2",
-			fields:    fields{&mockHttp{}},
+			fields:    fields{&mockHTTP{}},
 			numOfRuns: 1,
 		},
 	}
@@ -58,9 +58,9 @@ func TestMetricsCollector_CollectMetrics(t *testing.T) {
 }
 
 func TestMetricsCollector_SendMetrics(t *testing.T) {
-	mockClient := &mockHttp{}
+	mockClient := &mockHTTP{}
 	type fields struct {
-		client htttp_client.IHttpClient
+		client htttp_client.IHTTPClient
 	}
 
 	tests := []struct {

@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	httpClient := httpclient.NewHttpClient("http://localhost:8080/update/")
+	httpClient := httpclient.NewHTTPClient("http://localhost:8080/update/")
 	collector := metricscollector.NewMetricsCollector(httpClient)
 	now := time.Now()
 

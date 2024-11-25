@@ -1,4 +1,4 @@
-package http_client
+package httpclient
 
 import (
 	"errors"
@@ -6,14 +6,14 @@ import (
 	"net/http"
 )
 
-type IHttpClient interface {
+type IHTTPClient interface {
 	Post(url, contentType string, body io.Reader) ([]byte, error)
 }
 
-func (c *HttpClient) Post(url, contentType string, body io.Reader) ([]byte, error) {
-	finalUrl := c.BaseURL + url
+func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, error) {
+	finalURL := c.BaseURL + url
 	var respBody []byte
-	res, err := c.client.Post(finalUrl, contentType, body)
+	res, err := c.client.Post(finalURL, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -26,13 +26,13 @@ func (c *HttpClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 	return respBody, err
 }
 
-type HttpClient struct {
+type HTTPClient struct {
 	BaseURL string
 	client  *http.Client
 }
 
-func NewHttpClient(baseURL string) IHttpClient {
-	return &HttpClient{
+func NewHTTPClient(baseURL string) IHTTPClient {
+	return &HTTPClient{
 		BaseURL: baseURL,
 		client:  &http.Client{},
 	}
