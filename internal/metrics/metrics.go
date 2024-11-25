@@ -77,19 +77,6 @@ func (m *Metrics) Get(metricType MetricType, name string) (any, error) {
 	return m.store.Read(storeKey)
 }
 
-func ValidateMetricsValue(metricType MetricType, value any) bool {
-	switch metricType {
-	case CounterMetricType:
-		_, ok := value.(int64)
-		return ok
-	case GougeMetricType:
-		_, ok := value.(float64)
-		return ok
-	default:
-		return false
-	}
-}
-
 func ParseMetricType(typeAsString string) (MetricType, error) {
 	switch typeAsString {
 	case string(CounterMetricType):

@@ -12,7 +12,7 @@ type mockHttp struct {
 	postCallCount int
 }
 
-func (m *mockHttp) Post(url, contentType string, body io.Reader) ([]byte, error) {
+func (m *mockHttp) Post(_, _ string, _ io.Reader) ([]byte, error) {
 	m.postCallCount++
 	return make([]byte, 0), nil
 }
