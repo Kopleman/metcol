@@ -1,8 +1,8 @@
-package metrics_collector
+package metricscollector
 
 import (
 	"bytes"
-	htttp_client "github.com/Kopleman/metcol/internal/http-client"
+	htttpclient "github.com/Kopleman/metcol/internal/http-client"
 	metcolMetrics "github.com/Kopleman/metcol/internal/metrics"
 	"math/rand/v2"
 	"runtime"
@@ -17,10 +17,10 @@ type IMetricsCollector interface {
 
 type MetricsCollector struct {
 	currentMetricState map[string]MetricItem
-	client             htttp_client.IHttpClient
+	client             htttpclient.IHTTPClient
 }
 
-func NewMetricsCollector(client htttp_client.IHttpClient) IMetricsCollector {
+func NewMetricsCollector(client htttpclient.IHTTPClient) IMetricsCollector {
 	baseState := map[string]MetricItem{
 		"PollCount": {
 			value:      "0",
