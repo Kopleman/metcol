@@ -4,15 +4,34 @@ import (
 	"errors"
 	"github.com/Kopleman/metcol/internal/store"
 	"strconv"
+	"strings"
 )
 
 type IMetrics interface {
 	SetMetric(metricType MetricType, name string, value string) error
-	Get(metricType MetricType, name string) (any, error)
+	GetValueAsString(metricType MetricType, name string) (string, error)
+	GetAllValuesAsString() (map[string]string, error)
 }
 
 func (m *Metrics) buildStoreKey(name string, metricType MetricType) string {
 	return name + "-" + string(metricType)
+}
+
+func (m *Metrics) parseStoreKey(key string) (string, MetricType, error) {
+	parts := strings.Split(key, "-")
+	if len(parts) != 2 {
+		return "", UnknownMetricType, ErrStoreKeyParse
+	}
+
+	typeAsString := parts[1]
+	switch typeAsString {
+	case string(CounterMetricType):
+		return parts[0], CounterMetricType, nil
+	case string(GougeMetricType):
+		return parts[0], GougeMetricType, nil
+	default:
+		return parts[0], UnknownMetricType, ErrUnknownMetricType
+	}
 }
 
 func (m *Metrics) SetGauge(name string, value float64) error {
@@ -72,9 +91,52 @@ func (m *Metrics) SetMetric(metricType MetricType, name string, value string) er
 	}
 }
 
-func (m *Metrics) Get(metricType MetricType, name string) (any, error) {
+func (m *Metrics) GetValueAsString(metricType MetricType, name string) (string, error) {
 	storeKey := m.buildStoreKey(name, metricType)
-	return m.store.Read(storeKey)
+	value, err := m.store.Read(storeKey)
+	if err != nil {
+		return "", err
+	}
+
+	return m.convertMetricValueToString(metricType, value)
+}
+
+func (m *Metrics) GetAllValuesAsString() (map[string]string, error) {
+	dataToReturn := make(map[string]string)
+	allMetrics := m.store.GetAll()
+
+	for metricKey, metricValue := range allMetrics {
+		metricName, metricType, err := m.parseStoreKey(metricKey)
+		if err != nil {
+			return dataToReturn, err
+		}
+		valueAsString, err := m.convertMetricValueToString(metricType, metricValue)
+		if err != nil {
+			return dataToReturn, err
+		}
+		dataToReturn[metricName] = valueAsString
+	}
+
+	return dataToReturn, nil
+}
+
+func (m *Metrics) convertMetricValueToString(metricType MetricType, value any) (string, error) {
+	switch metricType {
+	case CounterMetricType:
+		typedValue, ok := value.(int64)
+		if !ok {
+			return "", ErrCounterValueParse
+		}
+		return strconv.FormatInt(typedValue, 10), nil
+	case GougeMetricType:
+		typedValue, ok := value.(float64)
+		if !ok {
+			return "", ErrGougeValueParse
+		}
+		return strconv.FormatFloat(typedValue, 'f', -1, 64), nil
+	default:
+		return "", ErrUnknownMetricType
+	}
 }
 
 func ParseMetricType(typeAsString string) (MetricType, error) {

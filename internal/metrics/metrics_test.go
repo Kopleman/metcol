@@ -162,22 +162,22 @@ func TestMetrics_Get(t *testing.T) {
 	}{
 		{
 			name:   "get gauge metric",
-			fields: fields{db: map[string]any{"foo-gauge": 1}},
+			fields: fields{db: map[string]any{"foo-gauge": float64(1)}},
 			args: args{
 				metricType: "gauge",
 				name:       "foo",
 			},
-			want:    1,
+			want:    "1",
 			wantErr: false,
 		},
 		{
 			name:   "get counter metric",
-			fields: fields{db: map[string]any{"foo-counter": 1}},
+			fields: fields{db: map[string]any{"foo-counter": int64(1)}},
 			args: args{
 				metricType: "counter",
 				name:       "foo",
 			},
-			want:    1,
+			want:    "1",
 			wantErr: false,
 		},
 		{
@@ -187,7 +187,7 @@ func TestMetrics_Get(t *testing.T) {
 				metricType: "counter",
 				name:       "foo",
 			},
-			want:    nil,
+			want:    "",
 			wantErr: true,
 		},
 	}
@@ -196,13 +196,13 @@ func TestMetrics_Get(t *testing.T) {
 			m := &Metrics{
 				store: store.NewStore(tt.fields.db),
 			}
-			got, err := m.Get(tt.args.metricType, tt.args.name)
+			got, err := m.GetValueAsString(tt.args.metricType, tt.args.name)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetValueAsString() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Get() got = %v, want %v", got, tt.want)
+				t.Errorf("GetValueAsString() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

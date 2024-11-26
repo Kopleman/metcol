@@ -5,6 +5,7 @@ type IStore interface {
 	Read(key string) (any, error)
 	Update(key string, value any) error
 	Delete(key string) error
+	GetAll() map[string]any
 }
 
 func (s *Store) existed(key string) bool {
@@ -50,6 +51,10 @@ func (s *Store) Delete(key string) error {
 	delete(s.db, key)
 
 	return nil
+}
+
+func (s *Store) GetAll() map[string]any {
+	return s.db
 }
 
 type Store struct {

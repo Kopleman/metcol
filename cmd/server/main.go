@@ -1,9 +1,8 @@
 package main
 
 import (
-	"github.com/Kopleman/metcol/internal/controllers"
 	"github.com/Kopleman/metcol/internal/metrics"
-	"github.com/Kopleman/metcol/internal/middlewares"
+	"github.com/Kopleman/metcol/internal/routers"
 	"github.com/Kopleman/metcol/internal/store"
 	"net/http"
 )
@@ -19,9 +18,7 @@ func main() {
 func run() error {
 	storeService := store.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
-	mux := http.NewServeMux()
-	updateCtrl := controllers.UpdateController(metricsService)
+	routes := routers.BuildServerRoutes(metricsService)
 
-	mux.Handle(`/update/{metricType}/{metricName}/{metricValue}`, middlewares.PostFilterMiddleware(http.HandlerFunc(updateCtrl)))
-	return http.ListenAndServe(`:8080`, mux)
+	return http.ListenAndServe(`:8080`, routes)
 }
