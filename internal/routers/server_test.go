@@ -48,8 +48,8 @@ func TestRouters_Server(t *testing.T) {
 	}{
 		{"POST", "/update/gauge/testGauge/100", "", http.StatusOK},
 		{"POST", "/update/counter/testCounter/100", "", http.StatusOK},
-		{"GET", "/update/counter/testCounter/100", "Only POST requests are allowed!\n", http.StatusMethodNotAllowed},
 		{"POST", "/update/gauge/badGauge/nope", "can not parse input value\n", http.StatusBadRequest},
+		{"GET", "/update/counter/testCounter/100", "Only POST requests are allowed!\n", http.StatusMethodNotAllowed},
 		{"GET", "/value/gauge/testGauge", "100", http.StatusOK},
 		{"GET", "/value/gauge/testUnknown94", "not found\n", http.StatusNotFound},
 		{"GET", "/", "testgauge:100\ntestcounter:100\n", http.StatusOK},
