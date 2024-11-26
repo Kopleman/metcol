@@ -31,7 +31,7 @@ func GetValue(metricsService metrics.IMetrics) func(http.ResponseWriter, *http.R
 
 		value, err := metricsService.GetValueAsString(metricType, metricName)
 
-		if err != nil && !errors.Is(err, store.ErrNotFound) {
+		if err != nil && errors.Is(err, store.ErrNotFound) {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
