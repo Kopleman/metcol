@@ -2,6 +2,7 @@
 package routers
 
 import (
+	"errors"
 	"github.com/Kopleman/metcol/internal/metrics"
 	"github.com/Kopleman/metcol/internal/store"
 	"github.com/stretchr/testify/assert"
@@ -14,18 +15,21 @@ import (
 )
 
 func testRequest(t *testing.T, ts *httptest.Server, method,
-	path string) (*http.Response, string) {
+	path string) (int, string) {
 	req, err := http.NewRequest(method, ts.URL+path, nil)
 	require.NoError(t, err)
 
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() {
+		err = errors.Join(err, resp.Body.Close())
+		require.NoError(t, err)
+	}()
 
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
-	return resp, string(respBody)
+	return resp.StatusCode, string(respBody)
 }
 
 func TestRouters_Server(t *testing.T) {
@@ -51,8 +55,8 @@ func TestRouters_Server(t *testing.T) {
 		{"GET", "/", "testgauge:100\ntestcounter:100\n", http.StatusOK},
 	}
 	for _, v := range testTable {
-		resp, get := testRequest(t, ts, v.method, v.url)
-		assert.Equal(t, v.status, resp.StatusCode)
-		assert.Equal(t, v.want, get)
+		gotStatusCode, gotResponse := testRequest(t, ts, v.method, v.url)
+		assert.Equal(t, v.status, gotStatusCode)
+		assert.Equal(t, v.want, gotResponse)
 	}
 }
