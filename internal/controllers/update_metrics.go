@@ -40,7 +40,7 @@ func UpdateController(metricsService metrics.IMetrics) func(http.ResponseWriter,
 			return
 		}
 
-		if err := metricsService.SetMetric(metricType, metricName, metricValue); err != nil {
+		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
