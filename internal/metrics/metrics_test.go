@@ -145,7 +145,7 @@ func TestMetrics_SetCounter(t *testing.T) {
 	}
 }
 
-func TestMetrics_Get(t *testing.T) {
+func TestMetrics_GetValueAsString(t *testing.T) {
 	type fields struct {
 		db map[string]any
 	}
@@ -265,6 +265,50 @@ func TestMetrics_SetMetric(t *testing.T) {
 			}
 
 			assert.Equal(t, valueToCheck, tt.args.value)
+		})
+	}
+}
+
+func TestMetrics_GetAllValuesAsString(t *testing.T) {
+	type fields struct {
+		db map[string]any
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    map[string]string
+		wantErr bool
+	}{
+		{
+			name:    "get stored metrics",
+			fields:  fields{db: map[string]any{"foo-gauge": float64(0.1), "bar-counter": int64(2)}},
+			want:    map[string]string{"foo": "0.1", "bar": "2"},
+			wantErr: false,
+		},
+		{
+			name:    "empty store",
+			fields:  fields{db: map[string]any{}},
+			want:    map[string]string{},
+			wantErr: false,
+		},
+		{
+			name:    "empty store",
+			fields:  fields{db: map[string]any{"foo-gauge": 1}},
+			want:    map[string]string{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &Metrics{
+				store: store.NewStore(tt.fields.db),
+			}
+			got, err := m.GetAllValuesAsString()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetAllValuesAsString() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
