@@ -308,7 +308,7 @@ func TestMetrics_GetAllValuesAsString(t *testing.T) {
 			}
 			got, err := m.GetAllValuesAsString()
 
-			if tt.wantErr {
+			if (err != nil) != tt.wantErr {
 				t.Errorf("GetAllValuesAsString() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
