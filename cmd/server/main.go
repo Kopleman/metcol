@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/Kopleman/metcol/internal/metrics"
+	"github.com/Kopleman/metcol/internal/server/config"
 	"github.com/Kopleman/metcol/internal/server/routers"
 	"github.com/Kopleman/metcol/internal/server/store"
 	"net/http"
@@ -16,9 +17,10 @@ func main() {
 
 // функция run будет полезна при инициализации зависимостей сервера перед запуском
 func run() error {
+	srvConfig := config.ParseServerConfig()
 	storeService := store.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
 	routes := routers.BuildServerRoutes(metricsService)
 
-	return http.ListenAndServe(`:8080`, routes)
+	return http.ListenAndServe(srvConfig.NetAddr.String(), routes)
 }
