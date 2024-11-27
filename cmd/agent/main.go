@@ -2,35 +2,42 @@ package main
 
 import (
 	"fmt"
+	"github.com/Kopleman/metcol/internal/agent/config"
 	"github.com/Kopleman/metcol/internal/agent/metrics-collector"
 	"github.com/Kopleman/metcol/internal/common/http-client"
 	"time"
 )
 
 func main() {
-	httpClient := httpclient.NewHTTPClient("http://localhost:8080/update/")
+	agentConfig := config.ParseAgentConfig()
+
+	endPointUrl := `http://` + agentConfig.EndPoint.String() + `/update/`
+
+	httpClient := httpclient.NewHTTPClient(endPointUrl)
 	collector := metricscollector.NewMetricsCollector(httpClient)
 	now := time.Now()
 
-	collectorTimer := now.Add(2 * time.Second)
-	senderTime := now.Add(10 * time.Second)
+	pollDuration := time.Duration(agentConfig.PollInterval) * time.Second
+	reportDuration := time.Duration(agentConfig.ReportInterval) * time.Second
+
+	collectTimer := now.Add(pollDuration)
+	reportTimer := now.Add(reportDuration)
 
 	for {
 		time.Sleep(1 * time.Second)
 
 		now = time.Now()
-		if now.After(collectorTimer) {
-			fmt.Println("collector")
+		if now.After(collectTimer) {
 			collector.CollectMetrics()
 			fmt.Println(fmt.Printf("collected metrics at %s", time.Now().UTC()))
-			collectorTimer = now.Add(2 * time.Second)
+			collectTimer = now.Add(pollDuration)
 		}
-		if now.After(senderTime) {
+		if now.After(reportTimer) {
 			if err := collector.SendMetrics(); err != nil {
 				fmt.Println(err.Error())
 			}
 			fmt.Println(fmt.Printf("sent metrics at %s", time.Now().UTC()))
-			senderTime = now.Add(10 * time.Second)
+			reportTimer = now.Add(reportDuration)
 		}
 	}
 }
