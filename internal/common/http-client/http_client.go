@@ -31,7 +31,7 @@ type HTTPClient struct {
 	client  *http.Client
 }
 
-func NewHTTPClient(baseURL string) IHTTPClient {
+func NewHTTPClient(baseURL string) *HTTPClient {
 	return &HTTPClient{
 		BaseURL: baseURL,
 		client:  &http.Client{},

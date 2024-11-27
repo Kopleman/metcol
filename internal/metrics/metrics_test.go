@@ -1,7 +1,8 @@
 package metrics
 
 import (
-	"github.com/Kopleman/metcol/internal/store"
+	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"strconv"
@@ -66,7 +67,7 @@ func TestMetrics_SetGauge(t *testing.T) {
 				t.Errorf("SetGauge() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(tt.fields.db[tt.args.name+"-"+string(GougeMetricType)], tt.args.value) {
+			if !reflect.DeepEqual(tt.fields.db[tt.args.name+"-"+string(common.GougeMetricType)], tt.args.value) {
 				t.Errorf("SetGauge() got = %v, want %v", tt.fields.db[tt.args.name], tt.args.value)
 			}
 		})
@@ -126,7 +127,7 @@ func TestMetrics_SetCounter(t *testing.T) {
 			m := &Metrics{
 				store: store.NewStore(tt.fields.db),
 			}
-			beforeUpdate, ok := tt.fields.db[tt.args.name+"-"+string(CounterMetricType)]
+			beforeUpdate, ok := tt.fields.db[tt.args.name+"-"+string(common.CounterMetricType)]
 			if !ok {
 				beforeUpdate = int64(0)
 			}
@@ -138,7 +139,7 @@ func TestMetrics_SetCounter(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(tt.fields.db[tt.args.name+"-"+string(CounterMetricType)], tt.args.value+parsed) {
+			if !reflect.DeepEqual(tt.fields.db[tt.args.name+"-"+string(common.CounterMetricType)], tt.args.value+parsed) {
 				t.Errorf("SetCounter() got = %v, want %v", tt.fields.db[tt.args.name], tt.args.value)
 			}
 		})
@@ -150,7 +151,7 @@ func TestMetrics_GetValueAsString(t *testing.T) {
 		db map[string]any
 	}
 	type args struct {
-		metricType MetricType
+		metricType common.MetricType
 		name       string
 	}
 	tests := []struct {
@@ -213,7 +214,7 @@ func TestMetrics_SetMetric(t *testing.T) {
 		db map[string]any
 	}
 	type args struct {
-		metricType MetricType
+		metricType common.MetricType
 		name       string
 		value      string
 	}
@@ -256,9 +257,9 @@ func TestMetrics_SetMetric(t *testing.T) {
 			}
 			var valueToCheck string
 			switch tt.args.metricType {
-			case GougeMetricType:
+			case common.GougeMetricType:
 				valueToCheck = strconv.FormatFloat(tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)].(float64), 'f', -1, 64)
-			case CounterMetricType:
+			case common.CounterMetricType:
 				valueToCheck = strconv.FormatInt(tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)].(int64), 10)
 			default:
 				valueToCheck = ""

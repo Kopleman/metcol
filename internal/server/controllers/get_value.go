@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Kopleman/metcol/internal/metrics"
-	"github.com/Kopleman/metcol/internal/store"
+	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"

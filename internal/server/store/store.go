@@ -1,13 +1,5 @@
 package store
 
-type IStore interface {
-	Create(key string, value any) error
-	Read(key string) (any, error)
-	Update(key string, value any) error
-	Delete(key string) error
-	GetAll() map[string]any
-}
-
 func (s *Store) existed(key string) bool {
 	_, existed := s.db[key]
 	return existed
@@ -61,7 +53,7 @@ type Store struct {
 	db map[string]any
 }
 
-func NewStore(db map[string]any) IStore {
+func NewStore(db map[string]any) *Store {
 	return &Store{
 		db,
 	}

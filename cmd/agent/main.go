@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	httpclient "github.com/Kopleman/metcol/internal/http-client"
-	metricscollector "github.com/Kopleman/metcol/internal/metrics-collector"
+	"github.com/Kopleman/metcol/internal/agent/metrics-collector"
+	"github.com/Kopleman/metcol/internal/common/http-client"
 	"time"
 )
 

@@ -4,7 +4,7 @@ package routers
 import (
 	"errors"
 	"github.com/Kopleman/metcol/internal/metrics"
-	"github.com/Kopleman/metcol/internal/store"
+	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"

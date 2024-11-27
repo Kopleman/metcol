@@ -1,16 +1,16 @@
 package routers
 
 import (
-	"github.com/Kopleman/metcol/internal/controllers"
 	"github.com/Kopleman/metcol/internal/metrics"
-	"github.com/Kopleman/metcol/internal/middlewares"
+	controllers2 "github.com/Kopleman/metcol/internal/server/controllers"
+	"github.com/Kopleman/metcol/internal/server/middlewares"
 	"github.com/go-chi/chi/v5"
 )
 
 func BuildServerRoutes(metricsService metrics.IMetrics) *chi.Mux {
-	mainPageCtrl := controllers.MainPage(metricsService)
-	updateCtrl := controllers.UpdateController(metricsService)
-	getValCtrl := controllers.GetValue(metricsService)
+	mainPageCtrl := controllers2.MainPage(metricsService)
+	updateCtrl := controllers2.UpdateController(metricsService)
+	getValCtrl := controllers2.GetValue(metricsService)
 
 	r := chi.NewRouter()
 

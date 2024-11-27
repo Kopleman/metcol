@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/Kopleman/metcol/internal/metrics"
-	"github.com/Kopleman/metcol/internal/routers"
-	"github.com/Kopleman/metcol/internal/store"
+	"github.com/Kopleman/metcol/internal/server/routers"
+	"github.com/Kopleman/metcol/internal/server/store"
 	"net/http"
 )
 

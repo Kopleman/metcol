@@ -2,7 +2,7 @@ package metricscollector
 
 import (
 	"fmt"
-	htttp_client "github.com/Kopleman/metcol/internal/http-client"
+	htttp_client "github.com/Kopleman/metcol/internal/common/http-client"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"testing"
