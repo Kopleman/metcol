@@ -11,9 +11,9 @@ import (
 func main() {
 	agentConfig := config.ParseAgentConfig()
 
-	endPointUrl := `http://` + agentConfig.EndPoint.String() + `/update/`
+	endPointURL := `http://` + agentConfig.EndPoint.String() + `/update/`
 
-	httpClient := httpclient.NewHTTPClient(endPointUrl)
+	httpClient := httpclient.NewHTTPClient(endPointURL)
 	collector := metricscollector.NewMetricsCollector(httpClient)
 	now := time.Now()
 

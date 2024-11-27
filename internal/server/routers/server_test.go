@@ -1,4 +1,3 @@
-// model_test.go
 package routers
 
 import (
