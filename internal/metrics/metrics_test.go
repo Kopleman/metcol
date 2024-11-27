@@ -251,10 +251,12 @@ func TestMetrics_SetMetric(t *testing.T) {
 				store: store.NewStore(tt.fields.db),
 			}
 			err := m.SetMetric(tt.args.metricType, tt.args.name, tt.args.value)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("SetMetric() error = %v, wantErr %v", err, tt.wantErr)
+
+			if tt.wantErr {
+				assert.Error(t, err, "SetMetric() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			var valueToCheck string
 			switch tt.args.metricType {
 			case common.GougeMetricType:
@@ -305,10 +307,12 @@ func TestMetrics_GetAllValuesAsString(t *testing.T) {
 				store: store.NewStore(tt.fields.db),
 			}
 			got, err := m.GetAllValuesAsString()
-			if (err != nil) != tt.wantErr {
+
+			if tt.wantErr {
 				t.Errorf("GetAllValuesAsString() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			assert.Equal(t, tt.want, got)
 		})
 	}
