@@ -40,12 +40,12 @@ func (m *Metrics) SetGauge(name string, value float64) error {
 
 	_, err := m.store.Read(storeKey)
 
-	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		return err
-	}
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return m.store.Create(storeKey, value)
+		}
 
-	if err != nil && errors.Is(err, store.ErrNotFound) {
-		return m.store.Create(storeKey, value)
+		return err
 	}
 
 	return m.store.Update(storeKey, value)
@@ -56,12 +56,12 @@ func (m *Metrics) SetCounter(name string, value int64) error {
 
 	counterValue, err := m.store.Read(storeKey)
 
-	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		return err
-	}
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return m.store.Create(storeKey, value)
+		}
 
-	if err != nil && errors.Is(err, store.ErrNotFound) {
-		return m.store.Create(storeKey, value)
+		return err
 	}
 
 	parsedValue, ok := counterValue.(int64)

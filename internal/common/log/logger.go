@@ -42,6 +42,8 @@ type logger struct {
 	*SugaredLogger
 }
 
+// TODO я знаю что тут куча всего чеего еще не используется, но это просто сокпированый логгер уже с проекта моего старого)
+
 // Logger common interface
 type Logger interface {
 	Debug(...interface{})
