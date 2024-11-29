@@ -33,7 +33,7 @@ type LogFormat string
 
 const (
 	FormatConsole LogFormat = "console"
-	FormatJson    LogFormat = "json"
+	FormatJSON    LogFormat = "json"
 )
 
 type SugaredLogger = zap.SugaredLogger
