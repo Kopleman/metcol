@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/metrics"
 	"github.com/Kopleman/metcol/internal/server/config"
 	"github.com/Kopleman/metcol/internal/server/routers"
@@ -10,14 +11,22 @@ import (
 
 // функция main вызывается автоматически при запуске приложения
 func main() {
-	if err := run(); err != nil {
-		panic(err)
+	logger := log.New(
+		log.WithAppVersion("local"),
+	)
+
+	if err := run(logger); err != nil {
+		logger.Fatal(err)
 	}
 }
 
 // функция run будет полезна при инициализации зависимостей сервера перед запуском
-func run() error {
-	srvConfig := config.ParseServerConfig()
+func run(logger log.Logger) error {
+	srvConfig, err := config.ParseServerConfig()
+	if err != nil {
+		return err
+	}
+
 	storeService := store.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
 	routes := routers.BuildServerRoutes(metricsService)

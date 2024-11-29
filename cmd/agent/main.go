@@ -12,13 +12,21 @@ func main() {
 		log.WithAppVersion("local"),
 	)
 
+	if err := run(logger); err != nil {
+		logger.Fatal(err)
+	}
+}
+
+func run(logger log.Logger) error {
 	agentConfig, err := config.ParseAgentConfig()
 	if err != nil {
-		logger.Fatal(err)
+		return err
 	}
 
 	httpClient := httpclient.NewHTTPClient(agentConfig)
 	collector := metricscollector.NewMetricsCollector(agentConfig, logger, httpClient)
 
 	collector.Run()
+
+	return nil
 }

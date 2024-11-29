@@ -2,7 +2,9 @@ package metricscollector
 
 import (
 	"fmt"
-	htttp_client "github.com/Kopleman/metcol/internal/common/http-client"
+	"github.com/Kopleman/metcol/internal/agent/config"
+	"github.com/Kopleman/metcol/internal/common/http-client"
+	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"testing"
@@ -18,36 +20,51 @@ func (m *mockHTTP) Post(_, _ string, _ io.Reader) ([]byte, error) {
 }
 
 func TestMetricsCollector_CollectMetrics(t *testing.T) {
+	mockCfg := config.Config{
+		EndPoint:       nil,
+		ReportInterval: 0,
+		PollInterval:   0,
+	}
+
 	type fields struct {
-		client htttp_client.IHTTPClient
+		cfg    *config.Config
+		client httpclient.IHTTPClient
+		logger log.Logger
 	}
 
 	tests := []struct {
 		name      string
 		fields    fields
 		numOfRuns int
+		wantErr   bool
 	}{
 		{
 			name:      "run 1",
-			fields:    fields{&mockHTTP{}},
+			fields:    fields{cfg: &mockCfg, client: &mockHTTP{}, logger: log.MockLogger{}},
 			numOfRuns: 1,
+			wantErr:   false,
 		},
 		{
 			name:      "run 2",
-			fields:    fields{&mockHTTP{}},
-			numOfRuns: 1,
+			fields:    fields{cfg: &mockCfg, client: &mockHTTP{}, logger: log.MockLogger{}},
+			numOfRuns: 2,
+			wantErr:   false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mc := NewMetricsCollector(tt.fields.client)
+			mc := NewMetricsCollector(tt.fields.cfg, tt.fields.logger, tt.fields.client)
 
 			state := mc.GetState()
 			assert.Equal(t, len(state), 2)
 			assert.Equal(t, state["PollCount"].value, "0")
 
 			for i := 0; i < tt.numOfRuns; i++ {
-				mc.CollectMetrics()
+				err := mc.CollectMetrics()
+				if (err != nil) != tt.wantErr {
+					t.Errorf("CollectMetrics() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
 			}
 
 			afterCallState := mc.GetState()
@@ -59,8 +76,17 @@ func TestMetricsCollector_CollectMetrics(t *testing.T) {
 
 func TestMetricsCollector_SendMetrics(t *testing.T) {
 	mockClient := &mockHTTP{}
+
+	mockCfg := config.Config{
+		EndPoint:       nil,
+		ReportInterval: 0,
+		PollInterval:   0,
+	}
+
 	type fields struct {
-		client htttp_client.IHTTPClient
+		cfg    *config.Config
+		client httpclient.IHTTPClient
+		logger log.Logger
 	}
 
 	tests := []struct {
@@ -70,18 +96,22 @@ func TestMetricsCollector_SendMetrics(t *testing.T) {
 	}{
 		{
 			name:    "send metrics to endpoint",
-			fields:  fields{mockClient},
+			fields:  fields{cfg: &mockCfg, client: &mockHTTP{}, logger: log.MockLogger{}},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mc := NewMetricsCollector(tt.fields.client)
-			mc.CollectMetrics()
+			mc := NewMetricsCollector(tt.fields.cfg, tt.fields.logger, tt.fields.client)
+			err := mc.CollectMetrics()
+			if err != nil {
+				t.Errorf("unwanted CollectMetrics() error = %v", err)
+				return
+			}
 
-			err := mc.SendMetrics()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("SendMetrics() error = %v, wantErr %v", err, tt.wantErr)
+			sentErr := mc.SendMetrics()
+			if (sentErr != nil) != tt.wantErr {
+				t.Errorf("SendMetrics() error = %v, wantErr %v", sentErr, tt.wantErr)
 				return
 			}
 

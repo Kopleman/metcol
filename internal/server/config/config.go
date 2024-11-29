@@ -14,12 +14,12 @@ type configFromEnv struct {
 	EndPoint string `env:"ADDRESS"`
 }
 
-func ParseServerConfig() *Config {
+func ParseServerConfig() (*Config, error) {
 	cfgFromEnv := new(configFromEnv)
 	config := new(Config)
 	netAddr := new(flags.NetAddress)
 	netAddr.Host = "localhost"
-	netAddr.Port = 8080
+	netAddr.Port = "8080"
 	config.NetAddr = netAddr
 
 	netAddrValue := flag.Value(netAddr)
@@ -27,14 +27,14 @@ func ParseServerConfig() *Config {
 	flag.Parse()
 
 	if err := env.Parse(cfgFromEnv); err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	if cfgFromEnv.EndPoint != "" {
 		if err := netAddr.Set(cfgFromEnv.EndPoint); err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
 
-	return config
+	return config, nil
 }
