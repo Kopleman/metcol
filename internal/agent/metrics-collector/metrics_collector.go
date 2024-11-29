@@ -2,6 +2,8 @@ package metricscollector
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"github.com/Kopleman/metcol/internal/agent/config"
 	"github.com/Kopleman/metcol/internal/common"
 	htttpclient "github.com/Kopleman/metcol/internal/common/http-client"
@@ -141,7 +143,7 @@ func (mc *MetricsCollector) CollectMetrics() error {
 func (mc *MetricsCollector) increasePollCounter() error {
 	currentPCValue, err := strconv.ParseInt(mc.currentMetricState["PollCount"].value, 10, 64)
 	if err != nil {
-		return ErrCounterPollParse
+		return errors.New("unable to parse counterpoll value on poll counter inc")
 	}
 
 	mc.currentMetricState["PollCount"] = MetricItem{
@@ -150,6 +152,13 @@ func (mc *MetricsCollector) increasePollCounter() error {
 	}
 
 	return nil
+}
+
+func (mc *MetricsCollector) resetPollCounter() {
+	mc.currentMetricState["PollCount"] = MetricItem{
+		value:      "",
+		metricType: common.CounterMetricType,
+	}
 }
 
 func (mc *MetricsCollector) assignNewRandomValue() {
@@ -166,6 +175,8 @@ func (mc *MetricsCollector) SendMetrics() error {
 		}
 	}
 
+	mc.resetPollCounter()
+
 	return nil
 }
 
@@ -175,7 +186,7 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 	body := []byte("")
 	_, err := mc.client.Post(url, "text/plain", bytes.NewBuffer(body))
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to sent %s metric: %w", name, err)
 	}
 
 	return nil
