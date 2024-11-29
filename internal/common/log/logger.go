@@ -32,8 +32,8 @@ func GetAllLevels() []interface{} {
 type LogFormat string
 
 const (
-	FORMAT_CONSOLE LogFormat = "console"
-	FORMAT_JSON    LogFormat = "json"
+	FormatConsole LogFormat = "console"
+	FormatJson    LogFormat = "json"
 )
 
 type SugaredLogger = zap.SugaredLogger
@@ -78,7 +78,7 @@ func initLogger(level LogLevel, format LogFormat, consoleColored bool, timeKey s
 	// Default JSON encoder
 	encoder := zapcore.NewJSONEncoder(encoderCfg)
 	switch format {
-	case FORMAT_CONSOLE:
+	case FormatConsole:
 		if consoleColored {
 			encoderCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		}
