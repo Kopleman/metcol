@@ -8,14 +8,14 @@ import (
 func TestNetAddress_Set(t *testing.T) {
 	type fields struct {
 		Host string
-		Port int
+		Port string
 	}
 	type args struct {
 		s string
 	}
 	type want struct {
 		Host string
-		Port int
+		Port string
 	}
 	tests := []struct {
 		name    string
@@ -28,12 +28,12 @@ func TestNetAddress_Set(t *testing.T) {
 			name: "set localhost:9090",
 			fields: fields{
 				Host: "",
-				Port: 0,
+				Port: "",
 			},
 			args: args{s: "localhost:9090"},
 			want: want{
 				Host: "localhost",
-				Port: 9090,
+				Port: "9090",
 			},
 			wantErr: false,
 		},
@@ -41,12 +41,12 @@ func TestNetAddress_Set(t *testing.T) {
 			name: "set :9090",
 			fields: fields{
 				Host: "",
-				Port: 0,
+				Port: "",
 			},
 			args: args{s: ":9090"},
 			want: want{
 				Host: "localhost",
-				Port: 9090,
+				Port: "9090",
 			},
 			wantErr: false,
 		},
@@ -54,12 +54,12 @@ func TestNetAddress_Set(t *testing.T) {
 			name: "throw error 1",
 			fields: fields{
 				Host: "",
-				Port: 0,
+				Port: "",
 			},
 			args: args{s: "9090"},
 			want: want{
 				Host: "localhost",
-				Port: 9090,
+				Port: "9090",
 			},
 			wantErr: true,
 		},
@@ -67,12 +67,12 @@ func TestNetAddress_Set(t *testing.T) {
 			name: "throw error 2",
 			fields: fields{
 				Host: "",
-				Port: 0,
+				Port: "",
 			},
 			args: args{s: "some-string"},
 			want: want{
 				Host: "localhost",
-				Port: 9090,
+				Port: "9090",
 			},
 			wantErr: true,
 		},
@@ -80,12 +80,12 @@ func TestNetAddress_Set(t *testing.T) {
 			name: "throw error 3",
 			fields: fields{
 				Host: "",
-				Port: 0,
+				Port: "",
 			},
 			args: args{s: ":"},
 			want: want{
 				Host: "localhost",
-				Port: 9090,
+				Port: "9090",
 			},
 			wantErr: true,
 		},

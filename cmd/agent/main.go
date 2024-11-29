@@ -8,16 +8,17 @@ import (
 )
 
 func main() {
-	agentConfig := config.ParseAgentConfig()
-
 	logger := log.New(
 		log.WithAppVersion("local"),
 	)
 
+	agentConfig, err := config.ParseAgentConfig()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	httpClient := httpclient.NewHTTPClient(agentConfig)
 	collector := metricscollector.NewMetricsCollector(agentConfig, logger, httpClient)
-
-	// Init logger
 
 	collector.Run()
 }

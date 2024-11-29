@@ -18,12 +18,12 @@ type configFromEnv struct {
 	PollInterval   int64  `env:"POLL_INTERVAL"`
 }
 
-func ParseAgentConfig() *Config {
+func ParseAgentConfig() (*Config, error) {
 	cfgFromEnv := new(configFromEnv)
 	config := new(Config)
 	netAddr := new(flags.NetAddress)
 	netAddr.Host = "localhost"
-	netAddr.Port = 8080
+	netAddr.Port = "8080"
 	config.EndPoint = netAddr
 
 	netAddrValue := flag.Value(netAddr)
@@ -36,12 +36,12 @@ func ParseAgentConfig() *Config {
 	flag.Parse()
 
 	if err := env.Parse(cfgFromEnv); err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	if cfgFromEnv.EndPoint != "" {
 		if err := netAddr.Set(cfgFromEnv.EndPoint); err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
 
@@ -53,5 +53,5 @@ func ParseAgentConfig() *Config {
 		config.ReportInterval = cfgFromEnv.ReportInterval
 	}
 
-	return config
+	return config, nil
 }
