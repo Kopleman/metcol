@@ -2,15 +2,14 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
+	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/metrics"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strings"
-	"time"
 )
 
-func UpdateController(metricsService metrics.IMetrics) func(http.ResponseWriter, *http.Request) {
+func UpdateController(metricsService metrics.IMetrics, logger log.Logger) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		metricTypeStringAsString := strings.ToLower(chi.URLParam(req, "metricType"))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
@@ -31,7 +30,7 @@ func UpdateController(metricsService metrics.IMetrics) func(http.ResponseWriter,
 			return
 		}
 
-		fmt.Println(fmt.Printf("update called with metricType='%s', metricName='%s', metricValue='%s' at %s", metricType, metricName, metricValue, time.Now().UTC()))
+		logger.Infof("update called with metricType='%s', metricName='%s', metricValue='%s'", metricType, metricName, metricValue)
 
 		err = metricsService.SetMetric(metricType, metricName, metricValue)
 
@@ -41,7 +40,8 @@ func UpdateController(metricsService metrics.IMetrics) func(http.ResponseWriter,
 		}
 
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			logger.Error(err)
+			http.Error(w, "something went wrong", http.StatusInternalServerError)
 			return
 		}
 

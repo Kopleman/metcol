@@ -2,17 +2,16 @@ package controllers
 
 import (
 	"errors"
-	"fmt"
+	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 	"strings"
-	"time"
 )
 
-func GetValue(metricsService metrics.IMetrics) func(http.ResponseWriter, *http.Request) {
+func GetValue(metricsService metrics.IMetrics, logger log.Logger) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		metricTypeStringAsString := strings.ToLower(chi.URLParam(req, "metricType"))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
@@ -27,22 +26,22 @@ func GetValue(metricsService metrics.IMetrics) func(http.ResponseWriter, *http.R
 			return
 		}
 
-		fmt.Println(fmt.Printf("getValue called with metricType='%s', metricName='%s' at %s", metricType, metricName, time.Now().UTC()))
+		logger.Infof("getValue called with metricType='%s', metricName='%s' at %s", metricType, metricName)
 
 		value, err := metricsService.GetValueAsString(metricType, metricName)
-
-		if err != nil && errors.Is(err, store.ErrNotFound) {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
-		}
-
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			if errors.Is(err, store.ErrNotFound) {
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+
+			logger.Error(err)
+			http.Error(w, "something went wrong", http.StatusInternalServerError)
 			return
 		}
 
 		if _, err := io.WriteString(w, value); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "something went wrong", http.StatusInternalServerError)
 		}
 	}
 }
