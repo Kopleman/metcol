@@ -4,43 +4,43 @@ type MockLogger struct {
 	*SugaredLogger
 }
 
-func (m MockLogger) Debug(i ...interface{}) {
+func (m MockLogger) Debug(_ ...interface{}) {
 }
 
-func (m MockLogger) Debugf(s string, i ...interface{}) {
+func (m MockLogger) Debugf(_ string, _ ...interface{}) {
 }
 
-func (m MockLogger) Info(i ...interface{}) {
+func (m MockLogger) Info(_ ...interface{}) {
 }
 
-func (m MockLogger) Infof(s string, i ...interface{}) {
+func (m MockLogger) Infof(_ string, _ ...interface{}) {
 }
 
-func (m MockLogger) Warn(i ...interface{}) {
+func (m MockLogger) Warn(_ ...interface{}) {
 }
 
-func (m MockLogger) Warnf(s string, i ...interface{}) {
+func (m MockLogger) Warnf(_ string, _ ...interface{}) {
 }
 
-func (m MockLogger) Error(i ...interface{}) {
+func (m MockLogger) Error(_ ...interface{}) {
 }
 
-func (m MockLogger) Errorf(s string, i ...interface{}) {
+func (m MockLogger) Errorf(_ string, _ ...interface{}) {
 }
 
-func (m MockLogger) Fatal(i ...interface{}) {
+func (m MockLogger) Fatal(_ ...interface{}) {
 }
 
-func (m MockLogger) Fatalf(s string, i ...interface{}) {
+func (m MockLogger) Fatalf(_ string, _ ...interface{}) {
 }
 
-func (m MockLogger) Panic(i ...interface{}) {
+func (m MockLogger) Panic(_ ...interface{}) {
 }
 
-func (m MockLogger) Panicf(s string, i ...interface{}) {
+func (m MockLogger) Panicf(_ string, _ ...interface{}) {
 }
 
-func (m MockLogger) With(i ...interface{}) Logger {
+func (m MockLogger) With(_ ...interface{}) Logger {
 	return m
 }
 

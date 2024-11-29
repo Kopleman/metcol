@@ -21,7 +21,7 @@ func main() {
 }
 
 // функция run будет полезна при инициализации зависимостей сервера перед запуском
-func run(logger log.Logger) error {
+func run(_ log.Logger) error {
 	srvConfig, err := config.ParseServerConfig()
 	if err != nil {
 		return err
