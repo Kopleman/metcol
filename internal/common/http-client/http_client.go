@@ -1,8 +1,8 @@
 package httpclient
 
 import (
-	"errors"
 	"github.com/Kopleman/metcol/internal/agent/config"
+	"github.com/Kopleman/metcol/internal/common/log"
 	"io"
 	"net/http"
 )
@@ -16,7 +16,8 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 	}
 
 	defer func() {
-		err = errors.Join(err, res.Body.Close())
+		err = res.Body.Close()
+		c.logger.Error(err)
 	}()
 
 	respBody, err = io.ReadAll(res.Body)
@@ -26,13 +27,15 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 type HTTPClient struct {
 	BaseURL string
 	client  *http.Client
+	logger  log.Logger
 }
 
-func NewHTTPClient(cfg *config.Config) *HTTPClient {
+func NewHTTPClient(cfg *config.Config, logger log.Logger) *HTTPClient {
 	baseURL := `http://` + cfg.EndPoint.String()
 
 	return &HTTPClient{
 		BaseURL: baseURL,
 		client:  &http.Client{},
+		logger:  logger,
 	}
 }

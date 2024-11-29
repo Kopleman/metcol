@@ -3,7 +3,6 @@ package metricscollector
 import (
 	"fmt"
 	"github.com/Kopleman/metcol/internal/agent/config"
-	"github.com/Kopleman/metcol/internal/common/http-client"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/stretchr/testify/assert"
 	"io"
@@ -28,7 +27,7 @@ func TestMetricsCollector_CollectMetrics(t *testing.T) {
 
 	type fields struct {
 		cfg    *config.Config
-		client httpclient.IHTTPClient
+		client HTTPClient
 		logger log.Logger
 	}
 
@@ -85,7 +84,7 @@ func TestMetricsCollector_SendMetrics(t *testing.T) {
 
 	type fields struct {
 		cfg    *config.Config
-		client httpclient.IHTTPClient
+		client HTTPClient
 		logger log.Logger
 	}
 
@@ -96,7 +95,7 @@ func TestMetricsCollector_SendMetrics(t *testing.T) {
 	}{
 		{
 			name:    "send metrics to endpoint",
-			fields:  fields{cfg: &mockCfg, client: &mockHTTP{}, logger: log.MockLogger{}},
+			fields:  fields{cfg: &mockCfg, client: mockClient, logger: log.MockLogger{}},
 			wantErr: false,
 		},
 	}
@@ -115,7 +114,7 @@ func TestMetricsCollector_SendMetrics(t *testing.T) {
 				return
 			}
 
-			assert.Equal(t, mockClient.postCallCount, 29)
+			assert.Equal(t, 29, mockClient.postCallCount)
 		})
 	}
 }

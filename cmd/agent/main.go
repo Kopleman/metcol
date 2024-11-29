@@ -23,7 +23,7 @@ func run(logger log.Logger) error {
 		return err
 	}
 
-	httpClient := httpclient.NewHTTPClient(agentConfig)
+	httpClient := httpclient.NewHTTPClient(agentConfig, logger)
 	collector := metricscollector.NewMetricsCollector(agentConfig, logger, httpClient)
 
 	collector.Run()
