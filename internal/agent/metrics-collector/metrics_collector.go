@@ -2,18 +2,21 @@ package metricscollector
 
 import (
 	"bytes"
+	"github.com/Kopleman/metcol/internal/agent/config"
 	"github.com/Kopleman/metcol/internal/common"
 	htttpclient "github.com/Kopleman/metcol/internal/common/http-client"
+	"github.com/Kopleman/metcol/internal/common/log"
 	"math/rand/v2"
 	"runtime"
 	"strconv"
+	"time"
 )
 
 func (mc *MetricsCollector) GetState() map[string]MetricItem {
 	return mc.currentMetricState
 }
 
-func (mc *MetricsCollector) CollectMetrics() {
+func (mc *MetricsCollector) CollectMetrics() error {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 
@@ -127,10 +130,12 @@ func (mc *MetricsCollector) CollectMetrics() {
 	}
 
 	if err := mc.increasePollCounter(); err != nil {
-		panic(err.Error())
+		return err
 	}
 
 	mc.assignNewRandomValue()
+
+	return nil
 }
 
 func (mc *MetricsCollector) increasePollCounter() error {
@@ -165,7 +170,7 @@ func (mc *MetricsCollector) SendMetrics() error {
 }
 
 func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
-	url := string(item.metricType) + "/" + name + "/" + item.value
+	url := "/update/" + string(item.metricType) + "/" + name + "/" + item.value
 
 	body := []byte("")
 	_, err := mc.client.Post(url, "text/plain", bytes.NewBuffer(body))
@@ -176,6 +181,45 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 	return nil
 }
 
+func (mc *MetricsCollector) Run() {
+	now := time.Now()
+
+	pollDuration := time.Duration(mc.cfg.PollInterval) * time.Second
+	reportDuration := time.Duration(mc.cfg.ReportInterval) * time.Second
+
+	collectTimer := now.Add(pollDuration)
+	reportTimer := now.Add(reportDuration)
+
+	for {
+		time.Sleep(1 * time.Second)
+
+		now = time.Now()
+		if now.After(collectTimer) {
+			err := mc.CollectMetrics()
+
+			if err != nil {
+				mc.logger.Error(err)
+			} else {
+				mc.logger.Info("collected metrics")
+			}
+
+			collectTimer = now.Add(pollDuration)
+		}
+
+		if now.After(reportTimer) {
+			err := mc.SendMetrics()
+
+			if err != nil {
+				mc.logger.Error(err)
+			} else {
+				mc.logger.Info("sent metrics")
+			}
+
+			reportTimer = now.Add(reportDuration)
+		}
+	}
+}
+
 type IMetricsCollector interface {
 	CollectMetrics()
 	SendMetrics() error
@@ -183,11 +227,13 @@ type IMetricsCollector interface {
 }
 
 type MetricsCollector struct {
+	cfg                *config.Config
 	currentMetricState map[string]MetricItem
 	client             htttpclient.IHTTPClient
+	logger             log.Logger
 }
 
-func NewMetricsCollector(client htttpclient.IHTTPClient) *MetricsCollector {
+func NewMetricsCollector(cfg *config.Config, logger log.Logger, client htttpclient.IHTTPClient) *MetricsCollector {
 	baseState := map[string]MetricItem{
 		"PollCount": {
 			value:      "0",
@@ -198,5 +244,5 @@ func NewMetricsCollector(client htttpclient.IHTTPClient) *MetricsCollector {
 			metricType: common.CounterMetricType,
 		},
 	}
-	return &MetricsCollector{currentMetricState: baseState, client: client}
+	return &MetricsCollector{currentMetricState: baseState, client: client, cfg: cfg, logger: logger}
 }

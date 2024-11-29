@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"errors"
+	"github.com/Kopleman/metcol/internal/agent/config"
 	"io"
 	"net/http"
 )
@@ -31,7 +32,9 @@ type HTTPClient struct {
 	client  *http.Client
 }
 
-func NewHTTPClient(baseURL string) *HTTPClient {
+func NewHTTPClient(cfg *config.Config) *HTTPClient {
+	baseURL := `http://` + cfg.EndPoint.String()
+
 	return &HTTPClient{
 		BaseURL: baseURL,
 		client:  &http.Client{},
