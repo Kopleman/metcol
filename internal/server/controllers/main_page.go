@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func MainPage(metricsService metrics.IMetrics, logger log.Logger) func(http.ResponseWriter, *http.Request) {
+func MainPage(logger log.Logger, metricsService metrics.IMetrics) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		allMetrics, err := metricsService.GetAllValuesAsString()
 		if err != nil {

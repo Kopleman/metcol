@@ -21,7 +21,7 @@ func main() {
 }
 
 // функция run будет полезна при инициализации зависимостей сервера перед запуском
-func run(_ log.Logger) error {
+func run(logger log.Logger) error {
 	srvConfig, err := config.ParseServerConfig()
 	if err != nil {
 		return err
@@ -29,7 +29,7 @@ func run(_ log.Logger) error {
 
 	storeService := store.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
-	routes := routers.BuildServerRoutes(metricsService)
+	routes := routers.BuildServerRoutes(logger, metricsService)
 
 	return http.ListenAndServe(srvConfig.NetAddr.String(), routes)
 }

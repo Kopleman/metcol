@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func UpdateController(metricsService metrics.IMetrics, logger log.Logger) func(http.ResponseWriter, *http.Request) {
+func UpdateController(logger log.Logger, metricsService metrics.IMetrics) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		metricTypeStringAsString := strings.ToLower(chi.URLParam(req, "metricType"))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)

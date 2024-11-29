@@ -2,6 +2,7 @@ package routers
 
 import (
 	"errors"
+	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +35,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 func TestRouters_Server(t *testing.T) {
 	storeService := store.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
-	routes := BuildServerRoutes(metricsService)
+	routes := BuildServerRoutes(&log.MockLogger{}, metricsService)
 
 	ts := httptest.NewServer(routes)
 	defer ts.Close()
