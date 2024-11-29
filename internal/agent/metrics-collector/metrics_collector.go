@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/Kopleman/metcol/internal/agent/config"
 	"github.com/Kopleman/metcol/internal/common"
-	htttpclient "github.com/Kopleman/metcol/internal/common/http-client"
 	"github.com/Kopleman/metcol/internal/common/log"
+	"io"
 	"math/rand/v2"
 	"runtime"
 	"strconv"
@@ -231,20 +231,18 @@ func (mc *MetricsCollector) Run() {
 	}
 }
 
-type IMetricsCollector interface {
-	CollectMetrics()
-	SendMetrics() error
-	GetState() map[string]MetricItem
+type HTTPClient interface {
+	Post(url, contentType string, body io.Reader) ([]byte, error)
 }
 
 type MetricsCollector struct {
 	cfg                *config.Config
 	currentMetricState map[string]MetricItem
-	client             htttpclient.IHTTPClient
+	client             HTTPClient
 	logger             log.Logger
 }
 
-func NewMetricsCollector(cfg *config.Config, logger log.Logger, client htttpclient.IHTTPClient) *MetricsCollector {
+func NewMetricsCollector(cfg *config.Config, logger log.Logger, client HTTPClient) *MetricsCollector {
 	baseState := map[string]MetricItem{
 		"PollCount": {
 			value:      "0",

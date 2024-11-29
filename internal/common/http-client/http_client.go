@@ -7,10 +7,6 @@ import (
 	"net/http"
 )
 
-type IHTTPClient interface {
-	Post(url, contentType string, body io.Reader) ([]byte, error)
-}
-
 func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, error) {
 	finalURL := c.BaseURL + url
 	var respBody []byte

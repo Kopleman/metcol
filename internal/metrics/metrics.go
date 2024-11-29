@@ -152,7 +152,7 @@ func ParseMetricType(typeAsString string) (common.MetricType, error) {
 
 }
 
-type IStore interface {
+type Store interface {
 	Create(key string, value any) error
 	Read(key string) (any, error)
 	Update(key string, value any) error
@@ -160,9 +160,9 @@ type IStore interface {
 }
 
 type Metrics struct {
-	store IStore
+	store Store
 }
 
-func NewMetrics(s IStore) *Metrics {
+func NewMetrics(s Store) *Metrics {
 	return &Metrics{store: s}
 }
