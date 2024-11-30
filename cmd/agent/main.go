@@ -20,7 +20,7 @@ func main() {
 func run(logger log.Logger) error {
 	agentConfig, err := config.ParseAgentConfig()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse the agent's config: %w", err)
 	}
 
 	httpClient := httpclient.NewHTTPClient(agentConfig, logger)
