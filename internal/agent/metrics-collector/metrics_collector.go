@@ -198,36 +198,67 @@ func (mc *MetricsCollector) Run() {
 	pollDuration := time.Duration(mc.cfg.PollInterval) * time.Second
 	reportDuration := time.Duration(mc.cfg.ReportInterval) * time.Second
 
-	collectTimer := now.Add(pollDuration)
-	reportTimer := now.Add(reportDuration)
+	args := intervalJobsArg{
+		collectTimer:     now.Add(pollDuration),
+		reportTimer:      now.Add(reportDuration),
+		pollInterval:     pollDuration,
+		reportInterval:   reportDuration,
+		reportInProgress: false,
+	}
 
+	ticker := time.NewTicker(1 * time.Second)
+	quit := make(chan bool)
 	for {
-		time.Sleep(1 * time.Second)
+		select {
+		case <-ticker.C:
+			go mc.doIntervalJobs(&args)
+		case <-quit:
+			ticker.Stop()
+			return
+		}
+	}
+}
 
-		now = time.Now()
-		if now.After(collectTimer) {
-			err := mc.CollectMetrics()
+type intervalJobsArg struct {
+	collectTimer     time.Time
+	reportTimer      time.Time
+	pollInterval     time.Duration
+	reportInterval   time.Duration
+	reportInProgress bool
+}
 
-			if err != nil {
-				mc.logger.Error(err)
-			} else {
-				mc.logger.Info("collected metrics")
-			}
+func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg) {
+	now := time.Now()
+	if now.After(args.collectTimer) {
+		err := mc.CollectMetrics()
 
-			collectTimer = now.Add(pollDuration)
+		if err != nil {
+			mc.logger.Error(err)
+		} else {
+			mc.logger.Info("collected metrics")
 		}
 
-		if now.After(reportTimer) {
-			err := mc.SendMetrics()
+		args.collectTimer = now.Add(args.pollInterval)
+	}
 
-			if err != nil {
-				mc.logger.Error(err)
-			} else {
-				mc.logger.Info("sent metrics")
-			}
+	if args.reportInProgress {
+		return
+	}
 
-			reportTimer = now.Add(reportDuration)
+	if now.After(args.reportTimer) {
+		args.reportInProgress = true
+
+		err := mc.SendMetrics()
+
+		if err != nil {
+			mc.logger.Error(err)
+		} else {
+			mc.logger.Info("sent metrics")
 		}
+
+		args.reportTimer = now.Add(args.reportInterval)
+
+		args.reportInProgress = false
 	}
 }
 
