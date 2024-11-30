@@ -37,11 +37,11 @@ func ParseAgentConfig() (*Config, error) {
 	flag.Parse()
 
 	if config.ReportInterval < 0 {
-		return nil, fmt.Errorf("invalid report interval value prodived: %v", config.ReportInterval)
+		return nil, fmt.Errorf("invalid report interval value prodived via flag: %v", config.ReportInterval)
 	}
 
 	if config.PollInterval < 0 {
-		return nil, fmt.Errorf("invalid poll interval value prodived: %v", config.PollInterval)
+		return nil, fmt.Errorf("invalid poll interval value prodived via flag: %v", config.PollInterval)
 	}
 
 	if err := env.Parse(cfgFromEnv); err != nil {
@@ -52,6 +52,14 @@ func ParseAgentConfig() (*Config, error) {
 		if err := netAddr.Set(cfgFromEnv.EndPoint); err != nil {
 			return nil, err
 		}
+	}
+
+	if cfgFromEnv.PollInterval < 0 {
+		return nil, fmt.Errorf("invalid poll interval value prodived via envs: %v", cfgFromEnv.PollInterval)
+	}
+
+	if cfgFromEnv.ReportInterval < 0 {
+		return nil, fmt.Errorf("invalid report interval value prodived via envs: %v", cfgFromEnv.ReportInterval)
 	}
 
 	if cfgFromEnv.PollInterval > 0 {
