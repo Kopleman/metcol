@@ -211,7 +211,7 @@ func (mc *MetricsCollector) Run() {
 	for {
 		select {
 		case <-ticker.C:
-			go mc.doIntervalJobs(&args)
+			go mc.doIntervalJobs(&args, quit)
 		case <-quit:
 			ticker.Stop()
 			return
@@ -227,16 +227,18 @@ type intervalJobsArg struct {
 	reportInProgress bool
 }
 
-func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg) {
+func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg, quitChan chan bool) {
 	now := time.Now()
 	if now.After(args.collectTimer) {
 		err := mc.CollectMetrics()
 
 		if err != nil {
 			mc.logger.Error(err)
-		} else {
-			mc.logger.Info("collected metrics")
+			quitChan <- true
+			return
 		}
+
+		mc.logger.Info("collected metrics")
 
 		args.collectTimer = now.Add(args.pollInterval)
 	}
