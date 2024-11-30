@@ -16,8 +16,9 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 	}
 
 	defer func() {
-		err = res.Body.Close()
-		c.logger.Error(err)
+		if bodyParseErr := res.Body.Close(); bodyParseErr != nil {
+			c.logger.Error(bodyParseErr)
+		}
 	}()
 
 	respBody, err = io.ReadAll(res.Body)
