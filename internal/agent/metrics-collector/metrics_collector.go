@@ -210,7 +210,7 @@ func (mc *MetricsCollector) Run() {
 	for {
 		select {
 		case <-ticker.C:
-			go mc.doIntervalJobs(&args, quit)
+			mc.doIntervalJobs(&args, quit)
 		case <-quit:
 			ticker.Stop()
 			return

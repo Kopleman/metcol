@@ -2,6 +2,7 @@ package flags
 
 import (
 	"errors"
+	"github.com/davecgh/go-spew/spew"
 	"net"
 )
 
@@ -15,6 +16,7 @@ func (a *NetAddress) String() string {
 }
 
 func (a *NetAddress) Set(s string) error {
+	spew.Dump(s)
 	host, port, err := net.SplitHostPort(s)
 
 	if err != nil {
