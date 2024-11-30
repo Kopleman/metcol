@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"github.com/Kopleman/metcol/internal/common/flags"
 	"github.com/caarlos0/env/v6"
 )
@@ -34,6 +35,14 @@ func ParseAgentConfig() (*Config, error) {
 	flag.Int64Var(&config.PollInterval, "p", 2, "poll interval")
 
 	flag.Parse()
+
+	if config.ReportInterval < 0 {
+		return nil, fmt.Errorf("invalid report interval value prodived: %v", config.ReportInterval)
+	}
+
+	if config.PollInterval < 0 {
+		return nil, fmt.Errorf("invalid poll interval value prodived: %v", config.PollInterval)
+	}
 
 	if err := env.Parse(cfgFromEnv); err != nil {
 		return nil, err
