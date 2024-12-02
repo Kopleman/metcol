@@ -24,7 +24,7 @@ func main() {
 func run(logger log.Logger) error {
 	srvConfig, err := config.ParseServerConfig()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse config for server: %w", err)
 	}
 
 	storeService := store.NewStore(make(map[string]any))

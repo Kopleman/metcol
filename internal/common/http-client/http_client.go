@@ -28,7 +28,7 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 		return nil, fmt.Errorf("failed to parse response body: %w", err)
 	}
 
-	return respBody, err
+	return respBody, nil
 }
 
 type HTTPClient struct {

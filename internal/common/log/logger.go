@@ -42,7 +42,8 @@ type logger struct {
 	*SugaredLogger
 }
 
-// TODO я знаю что тут куча всего чеего еще не используется, но это просто сокпированый логгер уже с проекта моего старого).
+// TODO я знаю что тут куча всего чеего еще не используется,
+// TODO но это просто сокпированый логгер уже с проекта моего старого).
 
 // Logger common interface.
 type Logger interface {
@@ -63,7 +64,7 @@ type Logger interface {
 	Sugar() *SugaredLogger
 }
 
-func initLogger(level LogLevel, format LogFormat, consoleColored bool, timeKey string) *zap.Logger {
+func initLogger(level LogLevel, consoleColored bool, timeKey string) *zap.Logger {
 	atom := zap.NewAtomicLevel()
 
 	encoderCfg := zap.NewProductionEncoderConfig()
@@ -120,7 +121,6 @@ func New(opts ...Option) Logger {
 
 	l := initLogger(
 		options.LogLevel,
-		options.LogFormat,
 		options.ConsoleColored,
 		options.TimeKey,
 	)

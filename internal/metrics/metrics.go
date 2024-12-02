@@ -171,7 +171,6 @@ func ParseMetricType(typeAsString string) (common.MetricType, error) {
 	default:
 		return common.UnknownMetricType, ErrUnknownMetricType
 	}
-
 }
 
 type Store interface {
