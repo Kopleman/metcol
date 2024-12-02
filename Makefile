@@ -1,5 +1,3 @@
-current_dir := $(notdir $(patsubst %/,%,$(dir $(mkfile_path))))
-
 .PHONY: build-server
 build-server:
 	go build -o ./cmd/server/server ./cmd/server
@@ -14,6 +12,10 @@ build: build-server build-agent
 .PHONY: test
 test:
 	go test ./...
+
+.PHONY: create-report-dir
+create-report-dir:
+	mkdir -p ./golangci-lint
 
 .PHONY: prepare-lint
 prepare-lint:
@@ -36,4 +38,4 @@ format-lint-report:
 	rm ./golangci-lint/report-unformatted.json
 
 .PHONY: lint
-lint: prepare-lint raw-lint format-lint-report
+lint: create-report-dir prepare-lint raw-lint format-lint-report
