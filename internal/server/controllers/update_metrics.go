@@ -2,11 +2,12 @@ package controllers
 
 import (
 	"errors"
+	"net/http"
+	"strings"
+
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/metrics"
 	"github.com/go-chi/chi/v5"
-	"net/http"
-	"strings"
 )
 
 func UpdateController(logger log.Logger, metricsService metrics.IMetrics) func(http.ResponseWriter, *http.Request) {

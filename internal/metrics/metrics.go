@@ -2,10 +2,11 @@ package metrics
 
 import (
 	"errors"
-	"github.com/Kopleman/metcol/internal/common"
-	"github.com/Kopleman/metcol/internal/server/store"
 	"strconv"
 	"strings"
+
+	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/server/store"
 )
 
 type IMetrics interface {

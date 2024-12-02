@@ -2,14 +2,15 @@ package routers
 
 import (
 	"errors"
-	"github.com/Kopleman/metcol/internal/common/log"
-	"github.com/Kopleman/metcol/internal/metrics"
-	"github.com/Kopleman/metcol/internal/server/store"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/Kopleman/metcol/internal/common/log"
+	"github.com/Kopleman/metcol/internal/metrics"
+	"github.com/Kopleman/metcol/internal/server/store"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
 )

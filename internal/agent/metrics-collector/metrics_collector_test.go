@@ -2,11 +2,12 @@ package metricscollector
 
 import (
 	"fmt"
+	"io"
+	"testing"
+
 	"github.com/Kopleman/metcol/internal/agent/config"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"testing"
 )
 
 type mockHTTP struct {

@@ -1,8 +1,9 @@
 package flags
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNetAddress_Set(t *testing.T) {

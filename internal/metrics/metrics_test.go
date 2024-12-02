@@ -1,12 +1,13 @@
 package metrics
 
 import (
-	"github.com/Kopleman/metcol/internal/common"
-	"github.com/Kopleman/metcol/internal/server/store"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"strconv"
 	"testing"
+
+	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/server/store"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMetrics_SetGauge(t *testing.T) {

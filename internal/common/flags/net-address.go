@@ -2,8 +2,9 @@ package flags
 
 import (
 	"errors"
-	"github.com/davecgh/go-spew/spew"
 	"net"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 type NetAddress struct {

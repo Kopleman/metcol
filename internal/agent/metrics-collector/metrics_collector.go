@@ -3,14 +3,15 @@ package metricscollector
 import (
 	"bytes"
 	"fmt"
-	"github.com/Kopleman/metcol/internal/agent/config"
-	"github.com/Kopleman/metcol/internal/common"
-	"github.com/Kopleman/metcol/internal/common/log"
 	"io"
 	"math/rand/v2"
 	"runtime"
 	"strconv"
 	"time"
+
+	"github.com/Kopleman/metcol/internal/agent/config"
+	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/common/log"
 )
 
 func (mc *MetricsCollector) GetState() map[string]MetricItem {

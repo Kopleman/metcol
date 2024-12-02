@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+
 	"github.com/Kopleman/metcol/internal/common/flags"
 	"github.com/caarlos0/env/v6"
 )

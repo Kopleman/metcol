@@ -2,13 +2,14 @@ package controllers
 
 import (
 	"errors"
+	"io"
+	"net/http"
+	"strings"
+
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/go-chi/chi/v5"
-	"io"
-	"net/http"
-	"strings"
 )
 
 func GetValue(logger log.Logger, metricsService metrics.IMetrics) func(http.ResponseWriter, *http.Request) {

@@ -1,10 +1,11 @@
 package httpclient
 
 import (
-	"github.com/Kopleman/metcol/internal/agent/config"
-	"github.com/Kopleman/metcol/internal/common/log"
 	"io"
 	"net/http"
+
+	"github.com/Kopleman/metcol/internal/agent/config"
+	"github.com/Kopleman/metcol/internal/common/log"
 )
 
 func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, error) {

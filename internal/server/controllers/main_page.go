@@ -2,9 +2,10 @@ package controllers
 
 import (
 	"bytes"
+	"net/http"
+
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/metrics"
-	"net/http"
 )
 
 func MainPage(logger log.Logger, metricsService metrics.IMetrics) func(http.ResponseWriter, *http.Request) {
