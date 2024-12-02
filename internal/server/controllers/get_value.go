@@ -14,7 +14,11 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func GetValue(logger log.Logger, metricsService metrics.IMetrics) func(http.ResponseWriter, *http.Request) {
+type MetricsForGetValue interface {
+	GetValueAsString(metricType common.MetricType, name string) (string, error)
+}
+
+func GetValue(logger log.Logger, metricsService MetricsForGetValue) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		metricTypeStringAsString := strings.ToLower(chi.URLParam(req, "metricType"))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)

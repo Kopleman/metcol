@@ -10,12 +10,6 @@ import (
 	"github.com/Kopleman/metcol/internal/server/store"
 )
 
-type IMetrics interface {
-	SetMetric(metricType common.MetricType, name string, value string) error
-	GetValueAsString(metricType common.MetricType, name string) (string, error)
-	GetAllValuesAsString() (map[string]string, error)
-}
-
 func (m *Metrics) buildStoreKey(name string, metricType common.MetricType) string {
 	return name + "-" + string(metricType)
 }

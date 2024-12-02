@@ -11,7 +11,11 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func UpdateController(logger log.Logger, metricsService metrics.IMetrics) func(http.ResponseWriter, *http.Request) {
+type MetricsForUpdate interface {
+	SetMetric(metricType common.MetricType, name string, value string) error
+}
+
+func UpdateController(logger log.Logger, metricsService MetricsForUpdate) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		metricTypeStringAsString := strings.ToLower(chi.URLParam(req, "metricType"))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)

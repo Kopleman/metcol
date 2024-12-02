@@ -60,7 +60,7 @@ func TestRouters_Server(t *testing.T) {
 			"failed to read metric 'testunknown94-gauge': not found\n",
 			http.StatusNotFound,
 		},
-		{"GET", "/", "testgauge:100\ntestcounter:100\n", http.StatusOK},
+		{"GET", "/", "testcounter:100\ntestgauge:100\n", http.StatusOK},
 	}
 	for _, v := range testTable {
 		gotStatusCode, gotResponse := testRequest(t, ts, v.method, v.url)
