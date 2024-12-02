@@ -7,7 +7,7 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
-	metrics2 "github.com/Kopleman/metcol/internal/server/metrics"
+	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -18,7 +18,7 @@ type MetricsForUpdate interface {
 func UpdateController(logger log.Logger, metricsService MetricsForUpdate) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		metricTypeStringAsString := strings.ToLower(chi.URLParam(req, "metricType"))
-		metricType, err := metrics2.ParseMetricType(metricTypeStringAsString)
+		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -45,7 +45,7 @@ func UpdateController(logger log.Logger, metricsService MetricsForUpdate) func(h
 
 		err = metricsService.SetMetric(metricType, metricName, metricValue)
 
-		if errors.Is(err, metrics2.ErrValueParse) {
+		if errors.Is(err, metrics.ErrValueParse) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
