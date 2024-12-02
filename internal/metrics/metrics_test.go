@@ -133,7 +133,7 @@ func TestMetrics_SetCounter(t *testing.T) {
 				beforeUpdate = int64(0)
 			}
 			parsed, pOk := beforeUpdate.(int64)
-			if pOk {
+			if !pOk {
 				t.Error("beforeUpdate parse error")
 				return
 			}
@@ -266,14 +266,14 @@ func TestMetrics_SetMetric(t *testing.T) {
 			switch tt.args.metricType {
 			case common.GougeMetricType:
 				parsed, pOk := tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)].(float64)
-				if pOk {
+				if !pOk {
 					t.Error("GougeMetricType parse error")
 					return
 				}
 				valueToCheck = strconv.FormatFloat(parsed, 'f', -1, 64)
 			case common.CounterMetricType:
 				parsed, pOk := tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)].(int64)
-				if pOk {
+				if !pOk {
 					t.Error("CounterMetricType parse error")
 					return
 				}
