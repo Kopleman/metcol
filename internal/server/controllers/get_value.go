@@ -10,6 +10,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -31,7 +32,9 @@ func GetValue(logger log.Logger, metricsService metrics.IMetrics) func(http.Resp
 		logger.Infof("getValue called with metricType='%s', metricName='%s' at %s", metricType, metricName)
 
 		value, err := metricsService.GetValueAsString(metricType, metricName)
+		spew.Dump(err)
 		if err != nil {
+			spew.Dump(errors.Is(err, store.ErrNotFound))
 			if errors.Is(err, store.ErrNotFound) {
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return

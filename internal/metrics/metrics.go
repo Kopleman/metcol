@@ -48,17 +48,17 @@ func (m *Metrics) SetGauge(name string, value float64) error {
 		if errors.Is(err, store.ErrNotFound) {
 			storeErr := m.store.Create(storeKey, value)
 			if storeErr != nil {
-				return fmt.Errorf("failed to create gauge metric '%s': %v", storeKey, err)
+				return fmt.Errorf("failed to create gauge metric '%s': %w", storeKey, err)
 			}
 			return nil
 		}
 
-		return fmt.Errorf("failed to read gauge metric '%s': %v", storeKey, err)
+		return fmt.Errorf("failed to read gauge metric '%s': %w", storeKey, err)
 	}
 
 	updateErr := m.store.Update(storeKey, value)
 	if updateErr != nil {
-		return fmt.Errorf("failed to update gauge metric '%s': %v", storeKey, err)
+		return fmt.Errorf("failed to update gauge metric '%s': %w", storeKey, err)
 	}
 
 	return nil
@@ -73,12 +73,12 @@ func (m *Metrics) SetCounter(name string, value int64) error {
 		if errors.Is(err, store.ErrNotFound) {
 			storeErr := m.store.Create(storeKey, value)
 			if storeErr != nil {
-				return fmt.Errorf("failed to create counter metric '%s': %v", storeKey, err)
+				return fmt.Errorf("failed to create counter metric '%s': %w", storeKey, err)
 			}
 			return nil
 		}
 
-		return fmt.Errorf("failed to read counter metric '%s': %v", storeKey, err)
+		return fmt.Errorf("failed to read counter metric '%s': %w", storeKey, err)
 	}
 
 	parsedValue, ok := counterValue.(int64)
@@ -89,7 +89,7 @@ func (m *Metrics) SetCounter(name string, value int64) error {
 
 	updateErr := m.store.Update(storeKey, parsedValue+value)
 	if updateErr != nil {
-		return fmt.Errorf("failed to update counter metric '%s': %v", storeKey, err)
+		return fmt.Errorf("failed to update counter metric '%s': %w", storeKey, err)
 	}
 
 	return nil
@@ -118,7 +118,7 @@ func (m *Metrics) GetValueAsString(metricType common.MetricType, name string) (s
 	storeKey := m.buildStoreKey(name, metricType)
 	value, err := m.store.Read(storeKey)
 	if err != nil {
-		return "", fmt.Errorf("failed to read metric '%s': %v", storeKey, err)
+		return "", fmt.Errorf("failed to read metric '%s': %w", storeKey, err)
 	}
 
 	return m.convertMetricValueToString(metricType, value)

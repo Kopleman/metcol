@@ -29,12 +29,12 @@ func ParseServerConfig() (*Config, error) {
 	flag.Parse()
 
 	if err := env.Parse(cfgFromEnv); err != nil {
-		return nil, fmt.Errorf("failed to parse server envs: %v", err)
+		return nil, fmt.Errorf("failed to parse server envs: %w", err)
 	}
 
 	if cfgFromEnv.EndPoint != "" {
 		if err := netAddr.Set(cfgFromEnv.EndPoint); err != nil {
-			return nil, fmt.Errorf("failed to set endpoint address for server: %v", err)
+			return nil, fmt.Errorf("failed to set endpoint address for server: %w", err)
 		}
 	}
 

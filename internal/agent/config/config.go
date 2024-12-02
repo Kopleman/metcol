@@ -41,7 +41,7 @@ func ParseAgentConfig() (*Config, error) {
 	flag.Parse()
 
 	if config.ReportInterval < 0 {
-		return nil, fmt.Errorf("invalid report interval value prodived via flag: %v", config.ReportInterval)
+		return nil, fmt.Errorf("invalid report interval value prodived via flag: %", config.ReportInterval)
 	}
 
 	if config.PollInterval < 0 {
@@ -49,12 +49,12 @@ func ParseAgentConfig() (*Config, error) {
 	}
 
 	if err := env.Parse(cfgFromEnv); err != nil {
-		return nil, fmt.Errorf("failed to parse agent envs: %v", err)
+		return nil, fmt.Errorf("failed to parse agent envs: %w", err)
 	}
 
 	if cfgFromEnv.EndPoint != "" {
 		if err := netAddr.Set(cfgFromEnv.EndPoint); err != nil {
-			return nil, fmt.Errorf("failed to set endpoint address for agent: %v", err)
+			return nil, fmt.Errorf("failed to set endpoint address for agent: %w", err)
 		}
 	}
 

@@ -32,7 +32,7 @@ func run(logger log.Logger) error {
 	routes := routers.BuildServerRoutes(logger, metricsService)
 
 	if listenAndServeErr := http.ListenAndServe(srvConfig.NetAddr.String(), routes); listenAndServeErr != nil {
-		return fmt.Errorf("failed to setup server: %v", listenAndServeErr)
+		return fmt.Errorf("failed to setup server: %w", listenAndServeErr)
 	}
 
 	return nil
