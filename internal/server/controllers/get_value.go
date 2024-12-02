@@ -8,7 +8,7 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
-	"github.com/Kopleman/metcol/internal/metrics"
+	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-chi/chi/v5"

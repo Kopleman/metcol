@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/Kopleman/metcol/internal/common/log"
-	"github.com/Kopleman/metcol/internal/metrics"
+	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/stretchr/testify/assert"
 
