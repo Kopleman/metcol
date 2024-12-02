@@ -41,7 +41,7 @@ func ParseAgentConfig() (*Config, error) {
 	flag.Parse()
 
 	if config.ReportInterval < 0 {
-		return nil, fmt.Errorf("invalid report interval value prodived via flag: %", config.ReportInterval)
+		return nil, fmt.Errorf("invalid report interval value prodived via flag: %v", config.ReportInterval)
 	}
 
 	if config.PollInterval < 0 {
