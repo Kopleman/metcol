@@ -75,12 +75,10 @@ func initLogger(level LogLevel, format LogFormat, consoleColored bool, timeKey s
 
 	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
-	// Default JSON encoder
-	encoder := zapcore.NewJSONEncoder(encoderCfg)
 	if consoleColored {
 		encoderCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	}
-	encoder = zapcore.NewConsoleEncoder(encoderCfg)
+	encoder := zapcore.NewConsoleEncoder(encoderCfg)
 
 	logger := zap.New(zapcore.NewCore(
 		encoder,
