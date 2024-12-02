@@ -132,7 +132,11 @@ func TestMetrics_SetCounter(t *testing.T) {
 			if !ok {
 				beforeUpdate = int64(0)
 			}
-			parsed := beforeUpdate.(int64)
+			parsed, pOk := beforeUpdate.(int64)
+			if pOk {
+				t.Error("beforeUpdate parse error")
+				return
+			}
 
 			err := m.SetCounter(tt.args.name, tt.args.value)
 			if (err != nil) != tt.wantErr {
@@ -156,10 +160,10 @@ func TestMetrics_GetValueAsString(t *testing.T) {
 		name       string
 	}
 	tests := []struct {
-		name    string
+		want    any
 		fields  fields
 		args    args
-		want    any
+		name    string
 		wantErr bool
 	}{
 		{
@@ -261,9 +265,19 @@ func TestMetrics_SetMetric(t *testing.T) {
 			var valueToCheck string
 			switch tt.args.metricType {
 			case common.GougeMetricType:
-				valueToCheck = strconv.FormatFloat(tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)].(float64), 'f', -1, 64)
+				parsed, pOk := tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)].(float64)
+				if pOk {
+					t.Error("GougeMetricType parse error")
+					return
+				}
+				valueToCheck = strconv.FormatFloat(parsed, 'f', -1, 64)
 			case common.CounterMetricType:
-				valueToCheck = strconv.FormatInt(tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)].(int64), 10)
+				parsed, pOk := tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)].(int64)
+				if pOk {
+					t.Error("CounterMetricType parse error")
+					return
+				}
+				valueToCheck = strconv.FormatInt(parsed, 10)
 			default:
 				valueToCheck = ""
 			}
@@ -278,9 +292,9 @@ func TestMetrics_GetAllValuesAsString(t *testing.T) {
 		db map[string]any
 	}
 	tests := []struct {
-		name    string
 		fields  fields
 		want    map[string]string
+		name    string
 		wantErr bool
 	}{
 		{

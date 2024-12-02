@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/metrics"
 	"github.com/go-chi/chi/v5"
@@ -31,7 +32,12 @@ func UpdateController(logger log.Logger, metricsService metrics.IMetrics) func(h
 			return
 		}
 
-		logger.Infof("update called with metricType='%s', metricName='%s', metricValue='%s'", metricType, metricName, metricValue)
+		logger.Infof(
+			"update called with metricType='%s', metricName='%s', metricValue='%s'",
+			metricType,
+			metricName,
+			metricValue,
+		)
 
 		err = metricsService.SetMetric(metricType, metricName, metricValue)
 
@@ -42,7 +48,7 @@ func UpdateController(logger log.Logger, metricsService metrics.IMetrics) func(h
 
 		if err != nil {
 			logger.Error(err)
-			http.Error(w, "something went wrong", http.StatusInternalServerError)
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
 			return
 		}
 

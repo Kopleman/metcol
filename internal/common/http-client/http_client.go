@@ -1,6 +1,7 @@
 package httpclient
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 
@@ -13,7 +14,7 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 	var respBody []byte
 	res, err := c.client.Post(finalURL, contentType, body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to send post req to '%s': %v", finalURL, err)
 	}
 
 	defer func() {
@@ -23,13 +24,17 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 	}()
 
 	respBody, err = io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse response body: %v", err)
+	}
+
 	return respBody, err
 }
 
 type HTTPClient struct {
-	BaseURL string
-	client  *http.Client
 	logger  log.Logger
+	client  *http.Client
+	BaseURL string
 }
 
 func NewHTTPClient(cfg *config.Config, logger log.Logger) *HTTPClient {

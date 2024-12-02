@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Kopleman/metcol/internal/common/log"
@@ -10,7 +11,6 @@ import (
 	"github.com/Kopleman/metcol/internal/server/store"
 )
 
-// функция main вызывается автоматически при запуске приложения
 func main() {
 	logger := log.New(
 		log.WithAppVersion("local"),
@@ -21,7 +21,6 @@ func main() {
 	}
 }
 
-// функция run будет полезна при инициализации зависимостей сервера перед запуском
 func run(logger log.Logger) error {
 	srvConfig, err := config.ParseServerConfig()
 	if err != nil {
@@ -32,5 +31,9 @@ func run(logger log.Logger) error {
 	metricsService := metrics.NewMetrics(storeService)
 	routes := routers.BuildServerRoutes(logger, metricsService)
 
-	return http.ListenAndServe(srvConfig.NetAddr.String(), routes)
+	if listenAndServeErr := http.ListenAndServe(srvConfig.NetAddr.String(), routes); listenAndServeErr != nil {
+		return fmt.Errorf("failed to setup server: %v", listenAndServeErr)
+	}
+
+	return nil
 }

@@ -10,13 +10,13 @@ func TestStore_Create(t *testing.T) {
 		db map[string]any
 	}
 	type args struct {
-		key   string
 		value any
+		key   string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
 		args    args
+		fields  fields
+		name    string
 		wantErr bool
 	}{
 		{
@@ -56,10 +56,10 @@ func TestStore_Read(t *testing.T) {
 		key string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
 		want    any
+		fields  fields
+		name    string
+		args    args
 		wantErr bool
 	}{
 		{
@@ -99,13 +99,13 @@ func TestStore_Update(t *testing.T) {
 		db map[string]any
 	}
 	type args struct {
-		key   string
 		value any
+		key   string
 	}
 	tests := []struct {
-		name    string
-		fields  fields
 		args    args
+		fields  fields
+		name    string
 		wantErr bool
 	}{
 		{

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 
+	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/metrics"
 )
@@ -13,7 +14,7 @@ func MainPage(logger log.Logger, metricsService metrics.IMetrics) func(http.Resp
 		allMetrics, err := metricsService.GetAllValuesAsString()
 		if err != nil {
 			logger.Error(err)
-			http.Error(w, "something went wrong", http.StatusInternalServerError)
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
 			return
 		}
 
@@ -21,7 +22,7 @@ func MainPage(logger log.Logger, metricsService metrics.IMetrics) func(http.Resp
 			kvw := bytes.NewBufferString(metricName + ":" + metricValue + "\n")
 			if _, err := kvw.WriteTo(w); err != nil {
 				logger.Error(err)
-				http.Error(w, "something went wrong", http.StatusInternalServerError)
+				http.Error(w, common.Err500Message, http.StatusInternalServerError)
 				return
 			}
 		}

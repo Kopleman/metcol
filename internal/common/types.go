@@ -7,7 +7,3 @@ const (
 	GougeMetricType   MetricType = "gauge"
 	UnknownMetricType MetricType = "unknown"
 )
-
-type MetricItem struct {
-	metricType MetricType
-}

@@ -5,10 +5,10 @@ type Option func(*Options)
 type Options struct {
 	LogLevel       LogLevel
 	LogFormat      LogFormat
-	ConsoleColored bool
 	AppName        string
 	AppVersion     string
 	TimeKey        string
+	ConsoleColored bool
 }
 
 func WithLogLevel(v LogLevel) Option {

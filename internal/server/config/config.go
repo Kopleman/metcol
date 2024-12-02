@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/Kopleman/metcol/internal/common/flags"
 	"github.com/caarlos0/env/v6"
@@ -28,12 +29,12 @@ func ParseServerConfig() (*Config, error) {
 	flag.Parse()
 
 	if err := env.Parse(cfgFromEnv); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse server envs: %v", err)
 	}
 
 	if cfgFromEnv.EndPoint != "" {
 		if err := netAddr.Set(cfgFromEnv.EndPoint); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to set endpoint address for server: %v", err)
 		}
 	}
 

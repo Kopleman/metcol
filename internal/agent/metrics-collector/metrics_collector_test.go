@@ -1,8 +1,8 @@
 package metricscollector
 
 import (
-	"fmt"
 	"io"
+	"strconv"
 	"testing"
 
 	"github.com/Kopleman/metcol/internal/agent/config"
@@ -33,8 +33,8 @@ func TestMetricsCollector_CollectMetrics(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
 		fields    fields
+		name      string
 		numOfRuns int
 		wantErr   bool
 	}{
@@ -69,7 +69,7 @@ func TestMetricsCollector_CollectMetrics(t *testing.T) {
 
 			afterCallState := mc.GetState()
 			assert.Equal(t, len(afterCallState), 29)
-			assert.Equal(t, afterCallState["PollCount"].value, fmt.Sprintf("%v", tt.numOfRuns))
+			assert.Equal(t, afterCallState["PollCount"].value, strconv.Itoa(tt.numOfRuns))
 		})
 	}
 }
@@ -90,8 +90,8 @@ func TestMetricsCollector_SendMetrics(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
 		fields  fields
+		name    string
 		wantErr bool
 	}{
 		{

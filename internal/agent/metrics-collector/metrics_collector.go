@@ -143,7 +143,10 @@ func (mc *MetricsCollector) CollectMetrics() error {
 func (mc *MetricsCollector) increasePollCounter() error {
 	currentPCValue, err := strconv.ParseInt(mc.currentMetricState["PollCount"].value, 10, 64)
 	if err != nil {
-		return fmt.Errorf("unable to parse counterpoll value ('%s') on poll counter inc", mc.currentMetricState["PollCount"].value)
+		return fmt.Errorf(
+			"unable to parse counterpoll value ('%s') on poll counter inc",
+			mc.currentMetricState["PollCount"].value,
+		)
 	}
 
 	mc.currentMetricState["PollCount"] = MetricItem{

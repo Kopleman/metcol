@@ -42,9 +42,9 @@ type logger struct {
 	*SugaredLogger
 }
 
-// TODO я знаю что тут куча всего чеего еще не используется, но это просто сокпированый логгер уже с проекта моего старого)
+// TODO я знаю что тут куча всего чеего еще не используется, но это просто сокпированый логгер уже с проекта моего старого).
 
-// Logger common interface
+// Logger common interface.
 type Logger interface {
 	Debug(...interface{})
 	Debugf(string, ...interface{})
@@ -77,13 +77,10 @@ func initLogger(level LogLevel, format LogFormat, consoleColored bool, timeKey s
 
 	// Default JSON encoder
 	encoder := zapcore.NewJSONEncoder(encoderCfg)
-	switch format {
-	case FormatConsole:
-		if consoleColored {
-			encoderCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		}
-		encoder = zapcore.NewConsoleEncoder(encoderCfg)
+	if consoleColored {
+		encoderCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	}
+	encoder = zapcore.NewConsoleEncoder(encoderCfg)
 
 	logger := zap.New(zapcore.NewCore(
 		encoder,
@@ -112,7 +109,7 @@ func initLogger(level LogLevel, format LogFormat, consoleColored bool, timeKey s
 	return logger
 }
 
-// New - init new logger with options
+// New - init new logger with options.
 func New(opts ...Option) Logger {
 	options := Options{}
 	for _, opt := range opts {

@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -19,9 +20,11 @@ func (m *Metrics) buildStoreKey(name string, metricType common.MetricType) strin
 	return name + "-" + string(metricType)
 }
 
+const metricsStoreKeyPartsNum = 2
+
 func (m *Metrics) parseStoreKey(key string) (string, common.MetricType, error) {
 	parts := strings.Split(key, "-")
-	if len(parts) != 2 {
+	if len(parts) != metricsStoreKeyPartsNum {
 		return "", common.UnknownMetricType, ErrStoreKeyParse
 	}
 
@@ -43,13 +46,22 @@ func (m *Metrics) SetGauge(name string, value float64) error {
 
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return m.store.Create(storeKey, value)
+			storeErr := m.store.Create(storeKey, value)
+			if storeErr != nil {
+				return fmt.Errorf("failed to create gauge metric '%s': %v", storeKey, err)
+			}
+			return nil
 		}
 
-		return err
+		return fmt.Errorf("failed to read gauge metric '%s': %v", storeKey, err)
 	}
 
-	return m.store.Update(storeKey, value)
+	updateErr := m.store.Update(storeKey, value)
+	if updateErr != nil {
+		return fmt.Errorf("failed to update gauge metric '%s': %v", storeKey, err)
+	}
+
+	return nil
 }
 
 func (m *Metrics) SetCounter(name string, value int64) error {
@@ -59,10 +71,14 @@ func (m *Metrics) SetCounter(name string, value int64) error {
 
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return m.store.Create(storeKey, value)
+			storeErr := m.store.Create(storeKey, value)
+			if storeErr != nil {
+				return fmt.Errorf("failed to create counter metric '%s': %v", storeKey, err)
+			}
+			return nil
 		}
 
-		return err
+		return fmt.Errorf("failed to read counter metric '%s': %v", storeKey, err)
 	}
 
 	parsedValue, ok := counterValue.(int64)
@@ -71,7 +87,12 @@ func (m *Metrics) SetCounter(name string, value int64) error {
 		return ErrCounterValueParse
 	}
 
-	return m.store.Update(storeKey, parsedValue+value)
+	updateErr := m.store.Update(storeKey, parsedValue+value)
+	if updateErr != nil {
+		return fmt.Errorf("failed to update counter metric '%s': %v", storeKey, err)
+	}
+
+	return nil
 }
 
 func (m *Metrics) SetMetric(metricType common.MetricType, name string, value string) error {
@@ -97,7 +118,7 @@ func (m *Metrics) GetValueAsString(metricType common.MetricType, name string) (s
 	storeKey := m.buildStoreKey(name, metricType)
 	value, err := m.store.Read(storeKey)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read metric '%s': %v", storeKey, err)
 	}
 
 	return m.convertMetricValueToString(metricType, value)

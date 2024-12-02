@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
@@ -37,12 +38,12 @@ func GetValue(logger log.Logger, metricsService metrics.IMetrics) func(http.Resp
 			}
 
 			logger.Error(err)
-			http.Error(w, "something went wrong", http.StatusInternalServerError)
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
 			return
 		}
 
 		if _, err := io.WriteString(w, value); err != nil {
-			http.Error(w, "something went wrong", http.StatusInternalServerError)
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
 		}
 	}
 }

@@ -8,6 +8,9 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
+const minReportInterval int64 = 10
+const minPollInterval int64 = 2
+
 type Config struct {
 	EndPoint       *flags.NetAddress
 	ReportInterval int64
@@ -31,9 +34,9 @@ func ParseAgentConfig() (*Config, error) {
 	netAddrValue := flag.Value(netAddr)
 	flag.Var(netAddrValue, "a", "address and port of collector-server")
 
-	flag.Int64Var(&config.ReportInterval, "r", 10, "report interval")
+	flag.Int64Var(&config.ReportInterval, "r", minReportInterval, "report interval")
 
-	flag.Int64Var(&config.PollInterval, "p", 2, "poll interval")
+	flag.Int64Var(&config.PollInterval, "p", minPollInterval, "poll interval")
 
 	flag.Parse()
 
@@ -46,12 +49,12 @@ func ParseAgentConfig() (*Config, error) {
 	}
 
 	if err := env.Parse(cfgFromEnv); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse agent envs: %v", err)
 	}
 
 	if cfgFromEnv.EndPoint != "" {
 		if err := netAddr.Set(cfgFromEnv.EndPoint); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to set endpoint address for agent: %v", err)
 		}
 	}
 
