@@ -23,7 +23,7 @@ func MainPage(logger log.Logger, metricsService MetricsForMainPage) func(http.Re
 		}
 
 		var metricNameList []string
-		for metricName, _ := range allMetrics {
+		for metricName := range allMetrics {
 			metricNameList = append(metricNameList, metricName)
 		}
 		sort.Strings(metricNameList)
