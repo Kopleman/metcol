@@ -59,7 +59,7 @@ func TestMetricsCollector_CollectMetrics(t *testing.T) {
 			assert.Equal(t, len(state), 2)
 			assert.Equal(t, state["PollCount"].value, "0")
 
-			for i := 0; i < tt.numOfRuns; i++ {
+			for range tt.numOfRuns {
 				err := mc.CollectMetrics()
 				if (err != nil) != tt.wantErr {
 					t.Errorf("CollectMetrics() error = %v, wantErr %v", err, tt.wantErr)
