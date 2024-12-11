@@ -1,25 +1,32 @@
 package controllers
 
 import (
-	"bytes"
-	"net/http"
 	"sort"
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
+	"github.com/gofiber/fiber/v3"
 )
 
 type MetricsForMainPage interface {
 	GetAllValuesAsString() (map[string]string, error)
 }
 
-func MainPage(logger log.Logger, metricsService MetricsForMainPage) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, req *http.Request) {
-		allMetrics, err := metricsService.GetAllValuesAsString()
+type MainPageController struct {
+	logger         log.Logger
+	metricsService MetricsForMainPage
+}
+
+func NewMainPageController(logger log.Logger, metricsService MetricsForMainPage) *MainPageController {
+	return &MainPageController{logger, metricsService}
+}
+
+func (ctrl *MainPageController) MainPage() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		allMetrics, err := ctrl.metricsService.GetAllValuesAsString()
 		if err != nil {
-			logger.Error(err)
-			http.Error(w, common.Err500Message, http.StatusInternalServerError)
-			return
+			ctrl.logger.Error(err)
+			return fiber.NewError(fiber.StatusInternalServerError, common.Err500Message)
 		}
 
 		var metricNameList []string
@@ -27,20 +34,17 @@ func MainPage(logger log.Logger, metricsService MetricsForMainPage) func(http.Re
 			metricNameList = append(metricNameList, metricName)
 		}
 		sort.Strings(metricNameList)
+
+		resp := ""
 		for _, metricName := range metricNameList {
 			metricValue, ok := allMetrics[metricName]
 			if !ok {
-				logger.Errorf("unable to find metrcia by name '%s", metricName)
-				http.Error(w, common.Err500Message, http.StatusInternalServerError)
-				return
+				ctrl.logger.Errorf("unable to find metric by name '%s", metricName)
+				return fiber.NewError(fiber.StatusInternalServerError, common.Err500Message)
 			}
-
-			kvw := bytes.NewBufferString(metricName + ":" + metricValue + "\n")
-			if _, err := kvw.WriteTo(w); err != nil {
-				logger.Error(err)
-				http.Error(w, common.Err500Message, http.StatusInternalServerError)
-				return
-			}
+			resp += metricName + ":" + metricValue + "\n"
 		}
+
+		return c.SendString(resp)
 	}
 }

@@ -4,8 +4,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/controllers"
-	"github.com/Kopleman/metcol/internal/server/middlewares"
-	"github.com/go-chi/chi/v5"
+	"github.com/gofiber/fiber/v3"
 )
 
 type Metrics interface {
@@ -14,25 +13,17 @@ type Metrics interface {
 	GetAllValuesAsString() (map[string]string, error)
 }
 
-func BuildServerRoutes(logger log.Logger, metricsService Metrics) *chi.Mux {
-	mainPageCtrl := controllers.MainPage(logger, metricsService)
-	updateCtrl := controllers.UpdateController(logger, metricsService)
-	getValCtrl := controllers.GetValue(logger, metricsService)
+func BuildAppRoutes(logger log.Logger, app *fiber.App, metricsService Metrics) {
+	mainPageCtrl := controllers.NewMainPageController(logger, metricsService)
+	updateCtrl := controllers.NewUpdateMetricsController(logger, metricsService)
+	getValCtrl := controllers.NewGetValueController(logger, metricsService)
 
-	r := chi.NewRouter()
+	apiRouter := app.Group("/")
+	app.Get("/", mainPageCtrl.MainPage())
 
-	r.Route("/", func(r chi.Router) {
-		r.Get("/", mainPageCtrl)
-	})
+	updateGrp := apiRouter.Group("/update")
+	updateGrp.Post("/:metricType/:metricName/:metricValue", updateCtrl.UpdateOrSet())
 
-	r.Route("/update", func(r chi.Router) {
-		r.Use(middlewares.PostFilterMiddleware)
-		r.Post("/{metricType}/{metricName}/{metricValue}", updateCtrl)
-	})
-
-	r.Route("/value", func(r chi.Router) {
-		r.Get("/{metricType}/{metricName}", getValCtrl)
-	})
-
-	return r
+	valueGrp := apiRouter.Group("/value")
+	valueGrp.Get("/:metricType/:metricName", getValCtrl.GetValue())
 }
