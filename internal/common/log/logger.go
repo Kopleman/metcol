@@ -52,6 +52,7 @@ type Logger interface {
 	Info(...interface{})
 	Infof(string, ...interface{})
 	Infoln(...interface{})
+	Infow(string, ...interface{})
 	Warn(...interface{})
 	Warnf(string, ...interface{})
 	Error(...interface{})

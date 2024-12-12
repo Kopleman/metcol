@@ -20,7 +20,11 @@ func BuildAppRoutes(logger log.Logger, app *fiber.App, metricsService Metrics) {
 	getValCtrl := controllers.NewGetValueController(logger, metricsService)
 
 	app.Use(
-		loggerMW.New(), // add Logger middleware
+		loggerMW.New(loggerMW.Config{
+			TimeFormat: "2006-01-02T15:04:05.000Z0700",
+			TimeZone:   "Local",
+			Format:     "${time} | ${status} | ${latency}  | ${method} | ${path} | ${bytesSent} | ${error}\n",
+		}),
 	)
 
 	apiRouter := app.Group("/")

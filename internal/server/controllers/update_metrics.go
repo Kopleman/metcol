@@ -44,11 +44,11 @@ func (ctrl UpdateMetricsController) UpdateOrSet() fiber.Handler {
 			return fiber.NewError(fiber.StatusBadRequest, "empty metric value")
 		}
 
-		ctrl.logger.Infof(
-			"update called with metricType='%s', metricName='%s', metricValue='%s'",
-			metricType,
-			metricName,
-			metricValue,
+		ctrl.logger.Infow(
+			"metric update called",
+			"metricType", metricType,
+			"metricName", metricName,
+			"metricValue", metricValue,
 		)
 
 		err = ctrl.metricsService.SetMetric(metricType, metricName, metricValue)
