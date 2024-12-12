@@ -16,7 +16,11 @@ func main() {
 		log.WithAppVersion("local"),
 		log.WithLogLevel(log.INFO),
 	)
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			logger.Fatal(err)
+		}
+	}()
 
 	logger.Info("Starting server")
 	if err := run(logger); err != nil {
