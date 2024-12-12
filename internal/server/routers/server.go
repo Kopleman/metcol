@@ -4,7 +4,8 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/controllers"
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
+	loggerMW "github.com/gofiber/fiber/v2/middleware/logger"
 )
 
 type Metrics interface {
@@ -17,6 +18,10 @@ func BuildAppRoutes(logger log.Logger, app *fiber.App, metricsService Metrics) {
 	mainPageCtrl := controllers.NewMainPageController(logger, metricsService)
 	updateCtrl := controllers.NewUpdateMetricsController(logger, metricsService)
 	getValCtrl := controllers.NewGetValueController(logger, metricsService)
+
+	app.Use(
+		loggerMW.New(), // add Logger middleware
+	)
 
 	apiRouter := app.Group("/")
 	app.Get("/", mainPageCtrl.MainPage())

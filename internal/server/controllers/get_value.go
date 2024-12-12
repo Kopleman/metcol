@@ -8,7 +8,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 )
 
 type MetricsForGetValue interface {
@@ -25,7 +25,7 @@ func NewGetValueController(logger log.Logger, metricsService MetricsForGetValue)
 }
 
 func (ctrl *GetValueController) GetValue() fiber.Handler {
-	return func(c fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
 		metricTypeStringAsString := strings.ToLower(c.Params("metricType"))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
 		if err != nil {

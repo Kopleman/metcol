@@ -9,7 +9,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"

@@ -8,7 +8,7 @@ import (
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/Kopleman/metcol/internal/server/routers"
 	"github.com/Kopleman/metcol/internal/server/store"
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 )
 
 func main() {

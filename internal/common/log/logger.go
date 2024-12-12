@@ -51,6 +51,7 @@ type Logger interface {
 	Debugf(string, ...interface{})
 	Info(...interface{})
 	Infof(string, ...interface{})
+	Infoln(...interface{})
 	Warn(...interface{})
 	Warnf(string, ...interface{})
 	Error(...interface{})

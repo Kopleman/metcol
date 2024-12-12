@@ -5,7 +5,7 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 )
 
 type MetricsForMainPage interface {
@@ -22,7 +22,7 @@ func NewMainPageController(logger log.Logger, metricsService MetricsForMainPage)
 }
 
 func (ctrl *MainPageController) MainPage() fiber.Handler {
-	return func(c fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
 		allMetrics, err := ctrl.metricsService.GetAllValuesAsString()
 		if err != nil {
 			ctrl.logger.Error(err)
