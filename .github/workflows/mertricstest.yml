@@ -105,7 +105,7 @@ jobs:
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14'
         run: |
-          metricstest -test.v -test.run="^TestIteration2[AB]*$" \
+          metricstest -test.v -test.run=^TestIteration2[AB]*$ \
             -source-path=. \
             -agent-binary-path=cmd/agent/agent
 
@@ -125,7 +125,7 @@ jobs:
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14'
         run: |
-          metricstest -test.v -test.run="^TestIteration3[AB]*$" \
+          metricstest -test.v -test.run=^TestIteration3[AB]*$ \
             -source-path=. \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server
@@ -148,10 +148,10 @@ jobs:
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
-          metricstest -test.v -test.run="^TestIteration4$" \
+          metricstest -test.v -test.run=^TestIteration4$ \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
-            -server-port=8080 \
+            -server-port=$SERVER_PORT \
             -source-path=.
 
       - name: "Code increment #5"
@@ -171,10 +171,10 @@ jobs:
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
-          metricstest -test.v -test.run="^TestIteration5$" \
+          metricstest -test.v -test.run=^TestIteration5$ \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
-            -server-port=8080 \
+            -server-port=$SERVER_PORT \
             -source-path=.
 
       - name: "Code increment #6"
@@ -193,10 +193,10 @@ jobs:
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
-          metricstest -test.v -test.run="^TestIteration6$" \
+          metricstest -test.v -test.run=^TestIteration6$ \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
-            -server-port=8080 \
+            -server-port=$SERVER_PORT \
             -source-path=.
 
       - name: "Code increment #7"
@@ -214,10 +214,10 @@ jobs:
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
           TEMP_FILE=$(random tempfile)
-          metricstest -test.v -test.run="^TestIteration7$" \
+          metricstest -test.v -test.run=^TestIteration7$ \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
-            -server-port=8080 \
+            -server-port=$SERVER_PORT \
             -source-path=.
 
       - name: "Code increment #8"
