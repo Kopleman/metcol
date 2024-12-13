@@ -30,27 +30,27 @@ func NewUpdateMetricsController(logger log.Logger, metricsService MetricsForUpda
 
 func (ctrl *UpdateMetricsController) UpdateOrSet() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		metricTypeStringAsString := strings.ToLower(c.Params("metricType"))
+		metricTypeStringAsString := strings.ToLower(c.Params(metricTypeField))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 
-		metricName := strings.ToLower(c.Params("metricName"))
+		metricName := strings.ToLower(c.Params(metricNameField))
 		if len(metricName) == 0 {
 			return fiber.NewError(fiber.StatusNotFound, "empty metric name")
 		}
 
-		metricValue := strings.ToLower(c.Params("metricValue"))
+		metricValue := strings.ToLower(c.Params(metricValueField))
 		if len(metricValue) == 0 {
 			return fiber.NewError(fiber.StatusBadRequest, "empty metric value")
 		}
 
 		ctrl.logger.Infow(
 			"metric update called",
-			"metricType", metricType,
-			"metricName", metricName,
-			"metricValue", metricValue,
+			metricTypeField, metricType,
+			metricNameField, metricName,
+			metricValueField, metricValue,
 		)
 
 		err = ctrl.metricsService.SetMetric(metricType, metricName, metricValue)
@@ -78,9 +78,9 @@ func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() fiber.Handler {
 
 		ctrl.logger.Infow(
 			"metric update called via JSON endpoint",
-			"metricType", metricDto.MType,
-			"metricName", metricDto.ID,
-			"metricValue", metricDto.Value,
+			metricTypeField, metricDto.MType,
+			metricNameField, metricDto.ID,
+			metricValueField, metricDto.Value,
 			"metricDelta", metricDto.Delta,
 		)
 

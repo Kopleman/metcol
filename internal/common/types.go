@@ -9,12 +9,12 @@ const (
 )
 
 var (
-	metricType_name = map[MetricType]string{
+	metricTypeName = map[MetricType]string{
 		CounterMetricType: "counter",
 		GougeMetricType:   "gauge",
 		UnknownMetricType: "unknown",
 	}
-	metricType_value = map[string]MetricType{
+	metricTypeValue = map[string]MetricType{
 		"counter": CounterMetricType,
 		"gauge":   GougeMetricType,
 		"unknown": UnknownMetricType,
@@ -22,10 +22,10 @@ var (
 )
 
 func (mt MetricType) String() string {
-	return metricType_name[mt]
+	return metricTypeName[mt]
 }
 
 func StringToMetricType(s string) (MetricType, bool) {
-	res, ok := metricType_value[s]
+	res, ok := metricTypeValue[s]
 	return res, ok
 }

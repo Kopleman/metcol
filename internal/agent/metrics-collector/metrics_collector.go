@@ -2,6 +2,7 @@ package metricscollector
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand/v2"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/Kopleman/metcol/internal/agent/config"
 	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 )
 
@@ -183,11 +185,42 @@ func (mc *MetricsCollector) SendMetrics() error {
 	return nil
 }
 
-func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
-	url := "/update/" + string(item.metricType) + "/" + name + "/" + item.value
+func (mc *MetricsCollector) convertMetricItemToDto(name string, item MetricItem) (*dto.MetricDTO, error) {
+	metricDto := &dto.MetricDTO{
+		ID:    name,
+		MType: item.metricType,
+	}
+	switch item.metricType {
+	case common.CounterMetricType:
+		parsedDelta, err := strconv.ParseInt(item.value, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse value ('%s') for metric '%s': %w", item.value, name, err)
+		}
+		metricDto.Delta = &parsedDelta
+	case common.GougeMetricType:
+		parsedValue, err := strconv.ParseFloat(item.value, 64)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse value ('%s') for metric '%s': %w", item.value, name, err)
+		}
+		metricDto.Value = &parsedValue
+	default:
+		return nil, fmt.Errorf("unknown metric type: %s", item.metricType)
+	}
 
-	body := []byte("")
-	_, err := mc.client.Post(url, "text/plain", bytes.NewBuffer(body))
+	return metricDto, nil
+}
+
+func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
+	metricDto, err := mc.convertMetricItemToDto(name, item)
+	if err != nil {
+		return err
+	}
+	body, marshalErr := json.Marshal(metricDto)
+	if marshalErr != nil {
+		return fmt.Errorf("unable to marshal metric dto: %w", err)
+	}
+	url := "/update"
+	_, err = mc.client.Post(url, "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("unable to sent %s metric: %w", name, err)
 	}

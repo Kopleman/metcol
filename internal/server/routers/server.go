@@ -40,5 +40,4 @@ func BuildAppRoutes(logger log.Logger, app *fiber.App, metricsService Metrics) {
 	valueGrp := apiRouter.Group("/value")
 	valueGrp.Post("/", getValCtrl.GetValueAsDTO())
 	valueGrp.Get("/:metricType/:metricName", getValCtrl.GetValue())
-
 }

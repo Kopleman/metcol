@@ -12,6 +12,19 @@ type GetValueRequest struct {
 	MType common.MetricType `json:"type"` // параметр, принимающий значение gauge или counter.
 }
 
+func parseType(metricTypeAsString string) (common.MetricType, error) {
+	mType, ok := common.StringToMetricType(metricTypeAsString)
+	if !ok {
+		return common.UnknownMetricType, fmt.Errorf(common.ErrUnknownMetric, metricTypeAsString)
+	}
+
+	if mType == common.UnknownMetricType {
+		return common.UnknownMetricType, fmt.Errorf(common.ErrUnknownMetric, metricTypeAsString)
+	}
+
+	return mType, nil
+}
+
 func (gr *GetValueRequest) UnmarshalJSON(data []byte) (err error) {
 	type ReqAlias GetValueRequest
 
@@ -23,16 +36,12 @@ func (gr *GetValueRequest) UnmarshalJSON(data []byte) (err error) {
 	}
 
 	if err = json.Unmarshal(data, aliasValue); err != nil {
-		return
+		return fmt.Errorf("unmarshal GetValueRequest: %w", err)
 	}
 
-	mType, ok := common.StringToMetricType(aliasValue.MType)
-	if !ok {
-		return fmt.Errorf("unknown metric type: %s", aliasValue.MType)
-	}
-
-	if mType == common.UnknownMetricType {
-		return fmt.Errorf("unknown metric type: %s", aliasValue.MType)
+	mType, parseError := parseType(aliasValue.MType)
+	if parseError != nil {
+		return fmt.Errorf("unmarshal GetValueRequest: %w", parseError)
 	}
 
 	gr.MType = mType
@@ -40,10 +49,10 @@ func (gr *GetValueRequest) UnmarshalJSON(data []byte) (err error) {
 }
 
 type MetricDTO struct {
-	ID    string            `json:"id"`              // имя метрики.
-	MType common.MetricType `json:"type"`            // параметр, принимающий значение gauge или counter.
-	Delta *int64            `json:"delta,omitempty"` // значение метрики в случае передачи counter.
-	Value *float64          `json:"value,omitempty"` // значение метрики в случае передачи gauge.
+	Delta *int64            `json:"delta,omitempty"`
+	Value *float64          `json:"value,omitempty"`
+	ID    string            `json:"id"`
+	MType common.MetricType `json:"type"`
 }
 
 func (m MetricDTO) MarshalJSON() ([]byte, error) {
@@ -57,7 +66,11 @@ func (m MetricDTO) MarshalJSON() ([]byte, error) {
 		MType:    m.MType.String(),
 	}
 
-	return json.Marshal(aliasValue)
+	bytes, err := json.Marshal(aliasValue)
+	if err != nil {
+		return nil, fmt.Errorf("marshal MetricDTO: %w", err)
+	}
+	return bytes, nil
 }
 
 func (m *MetricDTO) UnmarshalJSON(data []byte) (err error) {
@@ -71,16 +84,12 @@ func (m *MetricDTO) UnmarshalJSON(data []byte) (err error) {
 	}
 
 	if err = json.Unmarshal(data, aliasValue); err != nil {
-		return
+		return fmt.Errorf("unmarshal MetricDTO: %w", err)
 	}
 
-	mType, ok := common.StringToMetricType(aliasValue.MType)
-	if !ok {
-		return fmt.Errorf("unknown metric type: %s", aliasValue.MType)
-	}
-
-	if mType == common.UnknownMetricType {
-		return fmt.Errorf("unknown metric type: %s", aliasValue.MType)
+	mType, parseError := parseType(aliasValue.MType)
+	if parseError != nil {
+		return fmt.Errorf("unmarshal MetricDTO: %w", parseError)
 	}
 
 	m.MType = mType

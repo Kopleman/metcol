@@ -342,10 +342,10 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 		metricDto *dto.MetricDTO
 	}
 	tests := []struct {
-		name    string
 		fields  fields
 		args    args
 		expect  *dto.MetricDTO
+		name    string
 		wantErr bool
 	}{
 		{
@@ -408,10 +408,10 @@ func TestMetrics_GetMetricAsDTO(t *testing.T) {
 		name       string
 	}
 	tests := []struct {
-		name    string
 		fields  fields
-		args    args
 		want    *dto.MetricDTO
+		args    args
+		name    string
 		wantErr bool
 	}{
 		{

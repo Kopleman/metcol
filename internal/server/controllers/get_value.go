@@ -28,13 +28,13 @@ func NewGetValueController(logger log.Logger, metricsService MetricsForGetValue)
 
 func (ctrl *GetValueController) GetValue() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		metricTypeStringAsString := strings.ToLower(c.Params("metricType"))
+		metricTypeStringAsString := strings.ToLower(c.Params(metricTypeField))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
 		if err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 
-		metricName := strings.ToLower(c.Params("metricName"))
+		metricName := strings.ToLower(c.Params(metricNameField))
 		if len(metricName) == 0 {
 			return fiber.NewError(fiber.StatusNotFound, "empty metric name")
 		}
@@ -64,8 +64,8 @@ func (ctrl *GetValueController) GetValueAsDTO() fiber.Handler {
 
 		ctrl.logger.Infow(
 			"get value called via JSON endpoint",
-			"metricType", reqDto.MType,
-			"metricName", reqDto.ID,
+			metricTypeField, reqDto.MType,
+			metricNameField, reqDto.ID,
 		)
 
 		value, err := ctrl.metricsService.GetMetricAsDTO(reqDto.MType, reqDto.ID)
