@@ -11,8 +11,9 @@ import (
 
 type Metrics interface {
 	SetMetric(metricType common.MetricType, name string, value string) error
-	SetMetricByDto(metricDto *dto.MetricDto) error
+	SetMetricByDto(metricDto *dto.MetricDTO) error
 	GetValueAsString(metricType common.MetricType, name string) (string, error)
+	GetMetricAsDTO(metricType common.MetricType, name string) (*dto.MetricDTO, error)
 	GetAllValuesAsString() (map[string]string, error)
 }
 
@@ -37,5 +38,7 @@ func BuildAppRoutes(logger log.Logger, app *fiber.App, metricsService Metrics) {
 	updateGrp.Post("/:metricType/:metricName/:metricValue", updateCtrl.UpdateOrSet())
 
 	valueGrp := apiRouter.Group("/value")
+	valueGrp.Post("/", getValCtrl.GetValueAsDTO())
 	valueGrp.Get("/:metricType/:metricName", getValCtrl.GetValue())
+
 }

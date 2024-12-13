@@ -13,7 +13,7 @@ import (
 
 type MetricsForUpdate interface {
 	SetMetric(metricType common.MetricType, name string, value string) error
-	SetMetricByDto(metricDto *dto.MetricDto) error
+	SetMetricByDto(metricDto *dto.MetricDTO) error
 }
 
 type UpdateMetricsController struct {
@@ -71,7 +71,7 @@ func (ctrl *UpdateMetricsController) UpdateOrSet() fiber.Handler {
 
 func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		metricDto := new(dto.MetricDto)
+		metricDto := new(dto.MetricDTO)
 		if err := c.BodyParser(metricDto); err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "unable to parse dto")
 		}

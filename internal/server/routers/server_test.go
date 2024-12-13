@@ -88,6 +88,20 @@ func TestRouters_Server(t *testing.T) {
 			`unable to parse dto`,
 			http.StatusBadRequest,
 		},
+		{
+			"POST",
+			"/value",
+			strings.NewReader(`{"id": "foo", "type": "counter"}`),
+			`{"id":"foo","delta":100,"type":"counter"}`,
+			http.StatusOK,
+		},
+		{
+			"POST",
+			"/value",
+			strings.NewReader(`{"id": "foo", "type": "gauge"}`),
+			`{"id":"foo","value":1.2,"type":"gauge"}`,
+			http.StatusOK,
+		},
 	}
 	for _, v := range testTable {
 		gotStatusCode, gotResponse := testRequest(t, app, v.method, v.url, v.body)

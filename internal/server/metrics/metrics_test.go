@@ -339,26 +339,26 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 		db map[string]any
 	}
 	type args struct {
-		metricDto *dto.MetricDto
+		metricDto *dto.MetricDTO
 	}
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
-		expect  *dto.MetricDto
+		expect  *dto.MetricDTO
 		wantErr bool
 	}{
 		{
 			name:   "add gouge metric",
 			fields: fields{db: make(map[string]any)},
 			args: args{
-				metricDto: &dto.MetricDto{
+				metricDto: &dto.MetricDTO{
 					ID:    "foo",
 					MType: "gauge",
 					Value: common.Pointer(1.1),
 				},
 			},
-			expect: &dto.MetricDto{
+			expect: &dto.MetricDTO{
 				ID:    "foo",
 				MType: "gauge",
 				Value: common.Pointer(1.1),
@@ -369,13 +369,13 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 			name:   "add counter metric",
 			fields: fields{db: make(map[string]any)},
 			args: args{
-				metricDto: &dto.MetricDto{
+				metricDto: &dto.MetricDTO{
 					ID:    "foo",
 					MType: "counter",
 					Delta: common.Pointer(int64(100)),
 				},
 			},
-			expect: &dto.MetricDto{
+			expect: &dto.MetricDTO{
 				ID:    "foo",
 				MType: "counter",
 				Delta: common.Pointer(int64(100)),
@@ -395,6 +395,76 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 				return
 			}
 			assert.Equal(t, tt.expect, tt.args.metricDto)
+		})
+	}
+}
+
+func TestMetrics_GetMetricAsDTO(t *testing.T) {
+	type fields struct {
+		db map[string]any
+	}
+	type args struct {
+		metricType common.MetricType
+		name       string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *dto.MetricDTO
+		wantErr bool
+	}{
+		{
+			name:   "get gauge metric",
+			fields: fields{db: map[string]any{"foo-gauge": 1.1}},
+			args: args{
+				metricType: "gauge",
+				name:       "foo",
+			},
+			want: &dto.MetricDTO{
+				ID:    "foo",
+				MType: "gauge",
+				Delta: nil,
+				Value: common.Pointer(1.1),
+			},
+			wantErr: false,
+		},
+		{
+			name:   "get counter metric",
+			fields: fields{db: map[string]any{"foo-counter": int64(100)}},
+			args: args{
+				metricType: "counter",
+				name:       "foo",
+			},
+			want: &dto.MetricDTO{
+				ID:    "foo",
+				MType: "counter",
+				Delta: common.Pointer(int64(100)),
+			},
+			wantErr: false,
+		},
+		{
+			name:   "get counter metric",
+			fields: fields{db: map[string]any{"foo-gauge": 1}},
+			args: args{
+				metricType: "counter",
+				name:       "foo",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &Metrics{
+				store: store.NewStore(tt.fields.db),
+			}
+			got, err := m.GetMetricAsDTO(tt.args.metricType, tt.args.name)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetMetricAsDTO() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equalf(t, tt.want, got, "GetMetricAsDTO(%v, %v)", tt.args.metricType, tt.args.name)
 		})
 	}
 }

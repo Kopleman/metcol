@@ -112,7 +112,7 @@ func (m *Metrics) SetMetric(metricType common.MetricType, name string, value str
 	}
 }
 
-func (m *Metrics) SetMetricByDto(d *dto.MetricDto) error {
+func (m *Metrics) SetMetricByDto(d *dto.MetricDTO) error {
 	switch d.MType {
 	case common.CounterMetricType:
 		if d.Delta == nil {
@@ -147,6 +147,37 @@ func (m *Metrics) GetValueAsString(metricType common.MetricType, name string) (s
 	}
 
 	return m.convertMetricValueToString(metricType, value)
+}
+
+func (m *Metrics) GetMetricAsDTO(metricType common.MetricType, name string) (*dto.MetricDTO, error) {
+	metricDTO := dto.MetricDTO{
+		MType: metricType,
+		ID:    name,
+	}
+	storeKey := m.buildStoreKey(name, metricType)
+	value, err := m.store.Read(storeKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read metric '%s': %w", storeKey, err)
+	}
+
+	switch metricType {
+	case common.CounterMetricType:
+		typedValue, ok := value.(int64)
+		if !ok {
+			return nil, ErrCounterValueParse
+		}
+		metricDTO.Delta = &typedValue
+	case common.GougeMetricType:
+		typedValue, ok := value.(float64)
+		if !ok {
+			return nil, ErrGougeValueParse
+		}
+		metricDTO.Value = &typedValue
+	default:
+		return nil, ErrUnknownMetricType
+	}
+
+	return &metricDTO, nil
 }
 
 func (m *Metrics) GetAllValuesAsString() (map[string]string, error) {
