@@ -112,34 +112,31 @@ func (m *Metrics) SetMetric(metricType common.MetricType, name string, value str
 	}
 }
 
-func (m *Metrics) SetMetricByDto(metricDto *dto.MetricDto) error {
-	metricType := metricDto.MType
-	metricName := metricDto.ID
-	var metricValue *string
-	switch metricDto.MType {
+func (m *Metrics) SetMetricByDto(d *dto.MetricDto) error {
+	switch d.MType {
 	case common.CounterMetricType:
-		metricValue = metricDto.Delta
+		if d.Delta == nil {
+			return ErrValueParse
+		}
+		newDelta, err := m.SetCounter(d.ID, *d.Delta)
+		if err != nil {
+			return err
+		}
+		d.Delta = newDelta
+		return nil
 	case common.GougeMetricType:
-		metricValue = metricDto.Value
+		if d.Value == nil {
+			return ErrValueParse
+		}
+		newValue, err := m.SetGauge(d.ID, *d.Value)
+		if err != nil {
+			return err
+		}
+		d.Value = newValue
+		return nil
 	default:
 		return ErrUnknownMetricType
 	}
-
-	if metricValue == nil {
-		return ErrValueParse
-	}
-
-	if err := m.SetMetric(metricType, metricName, *metricValue); err != nil {
-		return err
-	}
-
-	newValue, err := m.GetValueAsString(metricType, metricName)
-	if err != nil {
-		return err
-	}
-
-	metricValue = &newValue
-	return nil
 }
 
 func (m *Metrics) GetValueAsString(metricType common.MetricType, name string) (string, error) {

@@ -70,22 +70,22 @@ func TestRouters_Server(t *testing.T) {
 		{
 			"POST",
 			"/update",
-			strings.NewReader(`{"id": "foo", "type": "gauge", "value": "100"}`),
-			`{"id":"foo","value":"100","type":"gauge"}`,
+			strings.NewReader(`{"id": "foo", "type": "gauge", "value": 1.2}`),
+			`{"id":"foo","value":1.2,"type":"gauge"}`,
 			http.StatusOK,
 		},
 		{
 			"POST",
 			"/update",
-			strings.NewReader(`{"id": "foo", "type": "counter", "delta": "100"}`),
-			`{"id":"foo","delta":"100","type":"counter"}`,
+			strings.NewReader(`{"id": "foo", "type": "counter", "delta": 100}`),
+			`{"id":"foo","delta":100,"type":"counter"}`,
 			http.StatusOK,
 		},
 		{
 			"POST",
 			"/update",
 			strings.NewReader(`{"id": "foo", "type": "counter", "value": "nope"}`),
-			`can not parse input value`,
+			`unable to parse dto`,
 			http.StatusBadRequest,
 		},
 	}

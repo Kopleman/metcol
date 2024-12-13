@@ -10,8 +10,8 @@ import (
 type MetricDto struct {
 	ID    string            `json:"id"`              // имя метрики.
 	MType common.MetricType `json:"type"`            // параметр, принимающий значение gauge или counter.
-	Delta *string           `json:"delta,omitempty"` // значение метрики в случае передачи counter.
-	Value *string           `json:"value,omitempty"` // значение метрики в случае передачи gauge.
+	Delta *int64            `json:"delta,omitempty"` // значение метрики в случае передачи counter.
+	Value *float64          `json:"value,omitempty"` // значение метрики в случае передачи gauge.
 }
 
 func (m MetricDto) MarshalJSON() ([]byte, error) {

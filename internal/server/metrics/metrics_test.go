@@ -355,13 +355,13 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 				metricDto: &dto.MetricDto{
 					ID:    "foo",
 					MType: "gauge",
-					Value: common.Pointer("1.1"),
+					Value: common.Pointer(1.1),
 				},
 			},
 			expect: &dto.MetricDto{
 				ID:    "foo",
 				MType: "gauge",
-				Value: common.Pointer("1.1"),
+				Value: common.Pointer(1.1),
 			},
 			wantErr: false,
 		},
@@ -372,13 +372,13 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 				metricDto: &dto.MetricDto{
 					ID:    "foo",
 					MType: "counter",
-					Delta: common.Pointer("1.1"),
+					Delta: common.Pointer(int64(100)),
 				},
 			},
 			expect: &dto.MetricDto{
 				ID:    "foo",
 				MType: "counter",
-				Delta: common.Pointer("1.1"),
+				Delta: common.Pointer(int64(100)),
 			},
 			wantErr: false,
 		},

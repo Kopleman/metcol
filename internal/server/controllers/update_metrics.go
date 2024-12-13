@@ -73,7 +73,7 @@ func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		metricDto := new(dto.MetricDto)
 		if err := c.BodyParser(metricDto); err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+			return fiber.NewError(fiber.StatusBadRequest, "unable to parse dto")
 		}
 
 		ctrl.logger.Infow(
