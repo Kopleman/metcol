@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/gofiber/fiber/v2"
@@ -12,6 +13,7 @@ import (
 
 type MetricsForUpdate interface {
 	SetMetric(metricType common.MetricType, name string, value string) error
+	SetMetricByDto(metricDto *dto.MetricDto) error
 }
 
 type UpdateMetricsController struct {
@@ -26,7 +28,7 @@ func NewUpdateMetricsController(logger log.Logger, metricsService MetricsForUpda
 	}
 }
 
-func (ctrl UpdateMetricsController) UpdateOrSet() fiber.Handler {
+func (ctrl *UpdateMetricsController) UpdateOrSet() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		metricTypeStringAsString := strings.ToLower(c.Params("metricType"))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
@@ -64,5 +66,35 @@ func (ctrl UpdateMetricsController) UpdateOrSet() fiber.Handler {
 
 		c.Set(fiber.HeaderContentType, fiber.MIMETextPlain)
 		return c.SendStatus(fiber.StatusOK)
+	}
+}
+
+func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		metricDto := new(dto.MetricDto)
+		if err := c.BodyParser(metricDto); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+
+		ctrl.logger.Infow(
+			"metric update called via JSON endpoint",
+			"metricType", metricDto.MType,
+			"metricName", metricDto.ID,
+			"metricValue", metricDto.Value,
+			"metricDelta", metricDto.Delta,
+		)
+
+		err := ctrl.metricsService.SetMetricByDto(metricDto)
+
+		if errors.Is(err, metrics.ErrValueParse) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+
+		if err != nil {
+			ctrl.logger.Error(err)
+			return fiber.NewError(fiber.StatusInternalServerError, common.Err500Message)
+		}
+
+		return c.JSON(metricDto)
 	}
 }

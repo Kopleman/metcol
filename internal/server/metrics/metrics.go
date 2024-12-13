@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/server/store"
 )
 
@@ -33,7 +34,7 @@ func (m *Metrics) parseStoreKey(key string) (string, common.MetricType, error) {
 	}
 }
 
-func (m *Metrics) SetGauge(name string, value float64) error {
+func (m *Metrics) SetGauge(name string, value float64) (*float64, error) {
 	storeKey := m.buildStoreKey(name, common.GougeMetricType)
 
 	_, err := m.store.Read(storeKey)
@@ -42,23 +43,23 @@ func (m *Metrics) SetGauge(name string, value float64) error {
 		if errors.Is(err, store.ErrNotFound) {
 			storeErr := m.store.Create(storeKey, value)
 			if storeErr != nil {
-				return fmt.Errorf("failed to create gauge metric '%s': %w", storeKey, err)
+				return nil, fmt.Errorf("failed to create gauge metric '%s': %w", storeKey, err)
 			}
-			return nil
+			return &value, nil
 		}
 
-		return fmt.Errorf("failed to read gauge metric '%s': %w", storeKey, err)
+		return nil, fmt.Errorf("failed to read gauge metric '%s': %w", storeKey, err)
 	}
 
 	updateErr := m.store.Update(storeKey, value)
 	if updateErr != nil {
-		return fmt.Errorf("failed to update gauge metric '%s': %w", storeKey, err)
+		return nil, fmt.Errorf("failed to update gauge metric '%s': %w", storeKey, err)
 	}
 
-	return nil
+	return &value, nil
 }
 
-func (m *Metrics) SetCounter(name string, value int64) error {
+func (m *Metrics) SetCounter(name string, value int64) (*int64, error) {
 	storeKey := m.buildStoreKey(name, common.CounterMetricType)
 
 	counterValue, err := m.store.Read(storeKey)
@@ -67,26 +68,27 @@ func (m *Metrics) SetCounter(name string, value int64) error {
 		if errors.Is(err, store.ErrNotFound) {
 			storeErr := m.store.Create(storeKey, value)
 			if storeErr != nil {
-				return fmt.Errorf("failed to create counter metric '%s': %w", storeKey, err)
+				return nil, fmt.Errorf("failed to create counter metric '%s': %w", storeKey, err)
 			}
-			return nil
+			return &value, nil
 		}
 
-		return fmt.Errorf("failed to read counter metric '%s': %w", storeKey, err)
+		return nil, fmt.Errorf("failed to read counter metric '%s': %w", storeKey, err)
 	}
 
 	parsedValue, ok := counterValue.(int64)
 
 	if !ok {
-		return ErrCounterValueParse
+		return nil, ErrCounterValueParse
 	}
 
-	updateErr := m.store.Update(storeKey, parsedValue+value)
+	newValue := parsedValue + value
+	updateErr := m.store.Update(storeKey, newValue)
 	if updateErr != nil {
-		return fmt.Errorf("failed to update counter metric '%s': %w", storeKey, err)
+		return nil, fmt.Errorf("failed to update counter metric '%s': %w", storeKey, err)
 	}
 
-	return nil
+	return &newValue, nil
 }
 
 func (m *Metrics) SetMetric(metricType common.MetricType, name string, value string) error {
@@ -96,16 +98,48 @@ func (m *Metrics) SetMetric(metricType common.MetricType, name string, value str
 		if err != nil {
 			return ErrValueParse
 		}
-		return m.SetCounter(name, parsedValue)
+		_, err = m.SetCounter(name, parsedValue)
+		return err
 	case common.GougeMetricType:
 		parsedValue, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return ErrValueParse
 		}
-		return m.SetGauge(name, parsedValue)
+		_, err = m.SetGauge(name, parsedValue)
+		return err
 	default:
 		return ErrUnknownMetricType
 	}
+}
+
+func (m *Metrics) SetMetricByDto(metricDto *dto.MetricDto) error {
+	metricType := metricDto.MType
+	metricName := metricDto.ID
+	var metricValue *string
+	switch metricDto.MType {
+	case common.CounterMetricType:
+		metricValue = metricDto.Delta
+	case common.GougeMetricType:
+		metricValue = metricDto.Value
+	default:
+		return ErrUnknownMetricType
+	}
+
+	if metricValue == nil {
+		return ErrValueParse
+	}
+
+	if err := m.SetMetric(metricType, metricName, *metricValue); err != nil {
+		return err
+	}
+
+	newValue, err := m.GetValueAsString(metricType, metricName)
+	if err != nil {
+		return err
+	}
+
+	metricValue = &newValue
+	return nil
 }
 
 func (m *Metrics) GetValueAsString(metricType common.MetricType, name string) (string, error) {

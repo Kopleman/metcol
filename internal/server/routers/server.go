@@ -2,6 +2,7 @@ package routers
 
 import (
 	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/controllers"
 	"github.com/gofiber/fiber/v2"
@@ -10,6 +11,7 @@ import (
 
 type Metrics interface {
 	SetMetric(metricType common.MetricType, name string, value string) error
+	SetMetricByDto(metricDto *dto.MetricDto) error
 	GetValueAsString(metricType common.MetricType, name string) (string, error)
 	GetAllValuesAsString() (map[string]string, error)
 }
@@ -31,6 +33,7 @@ func BuildAppRoutes(logger log.Logger, app *fiber.App, metricsService Metrics) {
 	app.Get("/", mainPageCtrl.MainPage())
 
 	updateGrp := apiRouter.Group("/update")
+	updateGrp.Post("/", updateCtrl.UpdateOrSetViaDTO())
 	updateGrp.Post("/:metricType/:metricName/:metricValue", updateCtrl.UpdateOrSet())
 
 	valueGrp := apiRouter.Group("/value")

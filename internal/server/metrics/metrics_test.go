@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/stretchr/testify/assert"
 )
@@ -63,7 +64,7 @@ func TestMetrics_SetGauge(t *testing.T) {
 			m := &Metrics{
 				store: store.NewStore(tt.fields.db),
 			}
-			err := m.SetGauge(tt.args.name, tt.args.value)
+			_, err := m.SetGauge(tt.args.name, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SetGauge() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -138,7 +139,7 @@ func TestMetrics_SetCounter(t *testing.T) {
 				return
 			}
 
-			err := m.SetCounter(tt.args.name, tt.args.value)
+			_, err := m.SetCounter(tt.args.name, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SetCounter() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -329,6 +330,71 @@ func TestMetrics_GetAllValuesAsString(t *testing.T) {
 			}
 
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestMetrics_SetMetricByDto(t *testing.T) {
+	type fields struct {
+		db map[string]any
+	}
+	type args struct {
+		metricDto *dto.MetricDto
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		expect  *dto.MetricDto
+		wantErr bool
+	}{
+		{
+			name:   "add gouge metric",
+			fields: fields{db: make(map[string]any)},
+			args: args{
+				metricDto: &dto.MetricDto{
+					ID:    "foo",
+					MType: "gauge",
+					Value: common.Pointer("1.1"),
+				},
+			},
+			expect: &dto.MetricDto{
+				ID:    "foo",
+				MType: "gauge",
+				Value: common.Pointer("1.1"),
+			},
+			wantErr: false,
+		},
+		{
+			name:   "add counter metric",
+			fields: fields{db: make(map[string]any)},
+			args: args{
+				metricDto: &dto.MetricDto{
+					ID:    "foo",
+					MType: "counter",
+					Delta: common.Pointer("1.1"),
+				},
+			},
+			expect: &dto.MetricDto{
+				ID:    "foo",
+				MType: "counter",
+				Delta: common.Pointer("1.1"),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &Metrics{
+				store: store.NewStore(tt.fields.db),
+			}
+			err := m.SetMetricByDto(tt.args.metricDto)
+
+			if tt.wantErr {
+				assert.Error(t, err, "SetMetric() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, tt.expect, tt.args.metricDto)
 		})
 	}
 }
