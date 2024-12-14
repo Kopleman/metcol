@@ -143,15 +143,15 @@ func (mc *MetricsCollector) CollectMetrics() error {
 }
 
 func (mc *MetricsCollector) increasePollCounter() error {
-	currentPCValue, err := strconv.ParseInt(mc.currentMetricState["PollCount"].value, 10, 64)
+	currentPCValue, err := strconv.ParseInt(mc.currentMetricState[pollCountMetricName].value, 10, 64)
 	if err != nil {
 		return fmt.Errorf(
-			"unable to parse counterpoll value ('%s') on poll counter inc",
-			mc.currentMetricState["PollCount"].value,
+			"unable to parse pollcount value ('%s') on poll counter inc",
+			mc.currentMetricState[pollCountMetricName].value,
 		)
 	}
 
-	mc.currentMetricState["PollCount"] = MetricItem{
+	mc.currentMetricState[pollCountMetricName] = MetricItem{
 		value:      strconv.FormatInt(currentPCValue+1, 10),
 		metricType: common.CounterMetricType,
 	}
@@ -160,14 +160,14 @@ func (mc *MetricsCollector) increasePollCounter() error {
 }
 
 func (mc *MetricsCollector) resetPollCounter() {
-	mc.currentMetricState["PollCount"] = MetricItem{
-		value:      "",
+	mc.currentMetricState[pollCountMetricName] = MetricItem{
+		value:      "0",
 		metricType: common.CounterMetricType,
 	}
 }
 
 func (mc *MetricsCollector) assignNewRandomValue() {
-	mc.currentMetricState["RandomValue"] = MetricItem{
+	mc.currentMetricState[randomValueMetricName] = MetricItem{
 		value:      strconv.FormatFloat(rand.Float64(), 'f', -1, 64),
 		metricType: common.GougeMetricType,
 	}
@@ -313,11 +313,11 @@ type MetricsCollector struct {
 
 func NewMetricsCollector(cfg *config.Config, logger log.Logger, client HTTPClient) *MetricsCollector {
 	baseState := map[string]MetricItem{
-		"PollCount": {
+		pollCountMetricName: {
 			value:      "0",
 			metricType: common.CounterMetricType,
 		},
-		"RandomValue": {
+		randomValueMetricName: {
 			value:      "0",
 			metricType: common.CounterMetricType,
 		},
