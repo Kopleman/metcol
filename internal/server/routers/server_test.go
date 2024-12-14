@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -27,7 +28,6 @@ func testRequest(t *testing.T, app *fiber.App, method,
 	}
 
 	resp, err := app.Test(req, -1)
-
 	require.NoError(t, err)
 	defer func() {
 		err = errors.Join(err, resp.Body.Close())
@@ -48,31 +48,34 @@ func TestRouters_Server(t *testing.T) {
 	BuildAppRoutes(mockLogger, app, metricsService)
 
 	var testTable = []struct {
-		method string
-		url    string
-		body   io.Reader
-		want   string
-		status int
+		method        string
+		url           string
+		body          io.Reader
+		want          string
+		status        int
+		needUnMarshal bool
 	}{
-		{"POST", "/update/gauge/testGauge/100", http.NoBody, "OK", http.StatusOK},
-		{"POST", "/update/counter/testCounter/100", http.NoBody, "OK", http.StatusOK},
-		{"POST", "/update/gauge/badGauge/nope", http.NoBody, "can not parse input value", http.StatusBadRequest},
-		{"GET", "/update/counter/testCounter/100", http.NoBody, "Method Not Allowed", http.StatusMethodNotAllowed},
-		{"GET", "/value/gauge/testGauge", http.NoBody, "100", http.StatusOK},
+		{"POST", "/update/gauge/testGauge/100", http.NoBody, "OK", http.StatusOK, false},
+		{"POST", "/update/counter/testCounter/100", http.NoBody, "OK", http.StatusOK, false},
+		{"POST", "/update/gauge/badGauge/nope", http.NoBody, "can not parse input value", http.StatusBadRequest, false},
+		{"GET", "/update/counter/testCounter/100", http.NoBody, "Method Not Allowed", http.StatusMethodNotAllowed, false},
+		{"GET", "/value/gauge/testGauge", http.NoBody, "100", http.StatusOK, false},
 		{
 			"GET",
 			"/value/gauge/testUnknown94",
 			http.NoBody,
 			"failed to read metric 'testunknown94-gauge': not found",
 			http.StatusNotFound,
+			false,
 		},
-		{"GET", "/", http.NoBody, "testcounter:100\ntestgauge:100\n", http.StatusOK},
+		{"GET", "/", http.NoBody, "testcounter:100\ntestgauge:100\n", http.StatusOK, false},
 		{
 			"POST",
 			"/update",
 			strings.NewReader(`{"id": "foo", "type": "gauge", "value": 1.2}`),
 			`{"id":"foo","value":1.2,"type":"gauge"}`,
 			http.StatusOK,
+			true,
 		},
 		{
 			"POST",
@@ -80,6 +83,7 @@ func TestRouters_Server(t *testing.T) {
 			strings.NewReader(`{"id": "foo", "type": "counter", "delta": 100}`),
 			`{"id":"foo","delta":100,"type":"counter"}`,
 			http.StatusOK,
+			true,
 		},
 		{
 			"POST",
@@ -87,6 +91,7 @@ func TestRouters_Server(t *testing.T) {
 			strings.NewReader(`{"id": "foo", "type": "counter", "value": "nope"}`),
 			`unable to parse dto`,
 			http.StatusBadRequest,
+			false,
 		},
 		{
 			"POST",
@@ -94,6 +99,7 @@ func TestRouters_Server(t *testing.T) {
 			strings.NewReader(`{"id": "foo", "type": "counter"}`),
 			`{"id":"foo","delta":100,"type":"counter"}`,
 			http.StatusOK,
+			true,
 		},
 		{
 			"POST",
@@ -101,11 +107,26 @@ func TestRouters_Server(t *testing.T) {
 			strings.NewReader(`{"id": "foo", "type": "gauge"}`),
 			`{"id":"foo","value":1.2,"type":"gauge"}`,
 			http.StatusOK,
+			true,
 		},
 	}
 	for _, v := range testTable {
 		gotStatusCode, gotResponse := testRequest(t, app, v.method, v.url, v.body)
 		assert.Equal(t, v.status, gotStatusCode)
-		assert.Equal(t, v.want, gotResponse)
+
+		if !v.needUnMarshal {
+			assert.Equal(t, v.want, gotResponse)
+			continue
+		}
+
+		var unMarshalResponse interface{}
+		err := json.Unmarshal([]byte(gotResponse), &unMarshalResponse)
+		require.NoError(t, err)
+
+		var unMarshalWant interface{}
+		err = json.Unmarshal([]byte(v.want), &unMarshalWant)
+		require.NoError(t, err)
+
+		assert.Equal(t, unMarshalWant, unMarshalResponse)
 	}
 }
