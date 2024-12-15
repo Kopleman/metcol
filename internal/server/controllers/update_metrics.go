@@ -2,61 +2,99 @@ package controllers
 
 import (
 	"errors"
-	"net/http"
 	"strings"
 
 	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/metrics"
-	"github.com/go-chi/chi/v5"
+	"github.com/gofiber/fiber/v2"
 )
 
 type MetricsForUpdate interface {
 	SetMetric(metricType common.MetricType, name string, value string) error
+	SetMetricByDto(metricDto *dto.MetricDTO) error
 }
 
-func UpdateController(logger log.Logger, metricsService MetricsForUpdate) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, req *http.Request) {
-		metricTypeStringAsString := strings.ToLower(chi.URLParam(req, "metricType"))
+type UpdateMetricsController struct {
+	logger         log.Logger
+	metricsService MetricsForUpdate
+}
+
+func NewUpdateMetricsController(logger log.Logger, metricsService MetricsForUpdate) UpdateMetricsController {
+	return UpdateMetricsController{
+		logger:         logger,
+		metricsService: metricsService,
+	}
+}
+
+func (ctrl *UpdateMetricsController) UpdateOrSet() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		metricTypeStringAsString := strings.ToLower(c.Params(metricTypeField))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 
-		metricName := strings.ToLower(chi.URLParam(req, "metricName"))
+		metricName := strings.ToLower(c.Params(metricNameField))
 		if len(metricName) == 0 {
-			http.Error(w, "empty metric name", http.StatusNotFound)
-			return
+			return fiber.NewError(fiber.StatusNotFound, "empty metric name")
 		}
 
-		metricValue := strings.ToLower(chi.URLParam(req, "metricValue"))
+		metricValue := strings.ToLower(c.Params(metricValueField))
 		if len(metricValue) == 0 {
-			http.Error(w, "empty metric value", http.StatusBadRequest)
-			return
+			return fiber.NewError(fiber.StatusBadRequest, "empty metric value")
 		}
 
-		logger.Infof(
-			"update called with metricType='%s', metricName='%s', metricValue='%s'",
-			metricType,
-			metricName,
-			metricValue,
+		ctrl.logger.Infow(
+			"metric update called",
+			metricTypeField, metricType,
+			metricNameField, metricName,
+			metricValueField, metricValue,
 		)
 
-		err = metricsService.SetMetric(metricType, metricName, metricValue)
+		err = ctrl.metricsService.SetMetric(metricType, metricName, metricValue)
 
 		if errors.Is(err, metrics.ErrValueParse) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 
 		if err != nil {
-			logger.Error(err)
-			http.Error(w, common.Err500Message, http.StatusInternalServerError)
-			return
+			ctrl.logger.Error(err)
+			return fiber.NewError(fiber.StatusInternalServerError, common.Err500Message)
 		}
 
-		w.Header().Set("content-type", "text/plain")
-		w.WriteHeader(http.StatusOK)
+		c.Set(fiber.HeaderContentType, fiber.MIMETextPlain)
+		return c.SendStatus(fiber.StatusOK)
+	}
+}
+
+func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		metricDto := new(dto.MetricDTO)
+		if err := c.BodyParser(metricDto); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "unable to parse dto")
+		}
+
+		ctrl.logger.Infow(
+			"metric update called via JSON endpoint",
+			metricTypeField, metricDto.MType,
+			metricNameField, metricDto.ID,
+			metricValueField, metricDto.Value,
+			"metricDelta", metricDto.Delta,
+		)
+
+		err := ctrl.metricsService.SetMetricByDto(metricDto)
+
+		if errors.Is(err, metrics.ErrValueParse) {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+
+		if err != nil {
+			ctrl.logger.Error(err)
+			return fiber.NewError(fiber.StatusInternalServerError, common.Err500Message)
+		}
+
+		return c.JSON(metricDto)
 	}
 }

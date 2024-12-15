@@ -2,55 +2,82 @@ package controllers
 
 import (
 	"errors"
-	"io"
-	"net/http"
 	"strings"
 
 	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
-	"github.com/davecgh/go-spew/spew"
-	"github.com/go-chi/chi/v5"
+	"github.com/gofiber/fiber/v2"
 )
 
 type MetricsForGetValue interface {
 	GetValueAsString(metricType common.MetricType, name string) (string, error)
+	GetMetricAsDTO(metricType common.MetricType, name string) (*dto.MetricDTO, error)
 }
 
-func GetValue(logger log.Logger, metricsService MetricsForGetValue) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, req *http.Request) {
-		metricTypeStringAsString := strings.ToLower(chi.URLParam(req, "metricType"))
+type GetValueController struct {
+	logger         log.Logger
+	metricsService MetricsForGetValue
+}
+
+func NewGetValueController(logger log.Logger, metricsService MetricsForGetValue) *GetValueController {
+	return &GetValueController{logger, metricsService}
+}
+
+func (ctrl *GetValueController) GetValue() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		metricTypeStringAsString := strings.ToLower(c.Params(metricTypeField))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
 		}
 
-		metricName := strings.ToLower(chi.URLParam(req, "metricName"))
+		metricName := strings.ToLower(c.Params(metricNameField))
 		if len(metricName) == 0 {
-			http.Error(w, "empty metric name", http.StatusNotFound)
-			return
+			return fiber.NewError(fiber.StatusNotFound, "empty metric name")
 		}
 
-		logger.Infof("getValue called with metricType='%s', metricName='%s' at %s", metricType, metricName)
+		ctrl.logger.Infof("getValue called with metricType='%s', metricName='%s' at %s", metricType, metricName)
 
-		value, err := metricsService.GetValueAsString(metricType, metricName)
-		spew.Dump(err)
+		value, err := ctrl.metricsService.GetValueAsString(metricType, metricName)
 		if err != nil {
-			spew.Dump(errors.Is(err, store.ErrNotFound))
 			if errors.Is(err, store.ErrNotFound) {
-				http.Error(w, err.Error(), http.StatusNotFound)
-				return
+				return fiber.NewError(fiber.StatusNotFound, err.Error())
 			}
 
-			logger.Error(err)
-			http.Error(w, common.Err500Message, http.StatusInternalServerError)
-			return
+			ctrl.logger.Error(err)
+			return fiber.NewError(fiber.StatusInternalServerError, common.Err500Message)
 		}
 
-		if _, err := io.WriteString(w, value); err != nil {
-			http.Error(w, common.Err500Message, http.StatusInternalServerError)
+		return c.SendString(value)
+	}
+}
+
+func (ctrl *GetValueController) GetValueAsDTO() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		reqDto := new(dto.GetValueRequest)
+		if err := c.BodyParser(reqDto); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "unable to parse dto")
 		}
+
+		ctrl.logger.Infow(
+			"get value called via JSON endpoint",
+			metricTypeField, reqDto.MType,
+			metricNameField, reqDto.ID,
+		)
+
+		value, err := ctrl.metricsService.GetMetricAsDTO(reqDto.MType, reqDto.ID)
+		if err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				return fiber.NewError(fiber.StatusNotFound, err.Error())
+			}
+
+			ctrl.logger.Error(err)
+			return fiber.NewError(fiber.StatusInternalServerError, common.Err500Message)
+		}
+
+		return c.JSON(value)
 	}
 }
