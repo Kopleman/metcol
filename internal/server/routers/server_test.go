@@ -4,29 +4,30 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
-	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
 )
 
-func testRequest(t *testing.T, app *fiber.App, method,
+func testRequest(t *testing.T, ts *httptest.Server, method,
 	path string, body io.Reader) (int, string) {
 	t.Helper()
 
-	req, err := http.NewRequest(method, path, body)
+	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
 	if body != http.NoBody {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set(common.ContentType, "application/json")
 	}
 
-	resp, err := app.Test(req, -1)
+	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
 	defer func() {
 		err = errors.Join(err, resp.Body.Close())
@@ -42,9 +43,10 @@ func testRequest(t *testing.T, app *fiber.App, method,
 func TestRouters_Server(t *testing.T) {
 	storeService := store.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
-	mockLogger := log.MockLogger{}
-	app := fiber.New()
-	BuildAppRoutes(mockLogger, app, metricsService)
+	routes := BuildServerRoutes(&log.MockLogger{}, metricsService)
+
+	ts := httptest.NewServer(routes)
+	defer ts.Close()
 
 	var testTable = []struct {
 		method  string
@@ -54,16 +56,16 @@ func TestRouters_Server(t *testing.T) {
 		status  int
 		hasJSON bool
 	}{
-		{"POST", "/update/gauge/testGauge/100", http.NoBody, "OK", http.StatusOK, false},
-		{"POST", "/update/counter/testCounter/100", http.NoBody, "OK", http.StatusOK, false},
-		{"POST", "/update/gauge/badGauge/nope", http.NoBody, "can not parse input value", http.StatusBadRequest, false},
-		{"GET", "/update/counter/testCounter/100", http.NoBody, "Method Not Allowed", http.StatusMethodNotAllowed, false},
+		{"POST", "/update/gauge/testGauge/100", http.NoBody, "", http.StatusOK, false},
+		{"POST", "/update/counter/testCounter/100", http.NoBody, "", http.StatusOK, false},
+		{"POST", "/update/gauge/badGauge/nope", http.NoBody, "can not parse input value\n", http.StatusBadRequest, false},
+		{"GET", "/update/counter/testCounter/100", http.NoBody, "Method Not Allowed\n", http.StatusMethodNotAllowed, false},
 		{"GET", "/value/gauge/testGauge", http.NoBody, "100", http.StatusOK, false},
 		{
 			"GET",
 			"/value/gauge/testUnknown94",
 			http.NoBody,
-			"failed to read metric 'testunknown94-gauge': not found",
+			"failed to read metric 'testunknown94-gauge': not found\n",
 			http.StatusNotFound,
 			false,
 		},
@@ -88,7 +90,7 @@ func TestRouters_Server(t *testing.T) {
 			"POST",
 			"/update",
 			strings.NewReader(`{"id": "foo", "type": "counter", "value": "nope"}`),
-			`unable to parse dto`,
+			"unable to parse dto\n",
 			http.StatusBadRequest,
 			false,
 		},
@@ -110,7 +112,7 @@ func TestRouters_Server(t *testing.T) {
 		},
 	}
 	for _, v := range testTable {
-		gotStatusCode, gotResponse := testRequest(t, app, v.method, v.url, v.body)
+		gotStatusCode, gotResponse := testRequest(t, ts, v.method, v.url, v.body)
 		assert.Equal(t, v.status, gotStatusCode)
 
 		if !v.hasJSON {

@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/Kopleman/metcol/internal/common"
@@ -9,7 +11,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
-	"github.com/gofiber/fiber/v2"
+	"github.com/go-chi/chi/v5"
 )
 
 type MetricsForGetValue interface {
@@ -26,40 +28,50 @@ func NewGetValueController(logger log.Logger, metricsService MetricsForGetValue)
 	return &GetValueController{logger, metricsService}
 }
 
-func (ctrl *GetValueController) GetValue() fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		metricTypeStringAsString := strings.ToLower(c.Params(metricTypeField))
+func (ctrl *GetValueController) GetValue() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		metricTypeStringAsString := strings.ToLower(chi.URLParam(req, "metricType"))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
 		if err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
 
-		metricName := strings.ToLower(c.Params(metricNameField))
+		metricName := strings.ToLower(chi.URLParam(req, "metricName"))
 		if len(metricName) == 0 {
-			return fiber.NewError(fiber.StatusNotFound, "empty metric name")
+			http.Error(w, "empty metric name", http.StatusNotFound)
+			return
 		}
 
 		ctrl.logger.Infof("getValue called with metricType='%s', metricName='%s' at %s", metricType, metricName)
 
 		value, err := ctrl.metricsService.GetValueAsString(metricType, metricName)
+
 		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {
-				return fiber.NewError(fiber.StatusNotFound, err.Error())
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
 			}
 
 			ctrl.logger.Error(err)
-			return fiber.NewError(fiber.StatusInternalServerError, common.Err500Message)
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
+			return
 		}
 
-		return c.SendString(value)
+		w.Header().Set(common.ContentType, "text/html")
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write([]byte(value)); err != nil {
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
+		}
 	}
 }
 
-func (ctrl *GetValueController) GetValueAsDTO() fiber.Handler {
-	return func(c *fiber.Ctx) error {
+func (ctrl *GetValueController) GetValueAsDTO() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
 		reqDto := new(dto.GetValueRequest)
-		if err := c.BodyParser(reqDto); err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, "unable to parse dto")
+		if err := json.NewDecoder(req.Body).Decode(&reqDto); err != nil {
+			http.Error(w, "unable to parse dto", http.StatusBadRequest)
+			return
 		}
 
 		ctrl.logger.Infow(
@@ -71,13 +83,20 @@ func (ctrl *GetValueController) GetValueAsDTO() fiber.Handler {
 		value, err := ctrl.metricsService.GetMetricAsDTO(reqDto.MType, reqDto.ID)
 		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {
-				return fiber.NewError(fiber.StatusNotFound, err.Error())
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
 			}
 
 			ctrl.logger.Error(err)
-			return fiber.NewError(fiber.StatusInternalServerError, common.Err500Message)
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
+			return
 		}
 
-		return c.JSON(value)
+		w.Header().Set(common.ContentType, "application/json")
+		w.WriteHeader(http.StatusOK)
+		if err = json.NewEncoder(w).Encode(value); err != nil {
+			http.Error(w, common.Err500Message, http.StatusBadRequest)
+			return
+		}
 	}
 }

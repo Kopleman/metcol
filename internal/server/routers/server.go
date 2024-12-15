@@ -5,8 +5,9 @@ import (
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/controllers"
-	"github.com/gofiber/fiber/v2"
-	loggerMW "github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/Kopleman/metcol/internal/server/middlewares"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 type Metrics interface {
@@ -17,27 +18,31 @@ type Metrics interface {
 	GetAllValuesAsString() (map[string]string, error)
 }
 
-func BuildAppRoutes(logger log.Logger, app *fiber.App, metricsService Metrics) {
+func BuildServerRoutes(logger log.Logger, metricsService Metrics) *chi.Mux {
 	mainPageCtrl := controllers.NewMainPageController(logger, metricsService)
 	updateCtrl := controllers.NewUpdateMetricsController(logger, metricsService)
 	getValCtrl := controllers.NewGetValueController(logger, metricsService)
 
-	app.Use(
-		loggerMW.New(loggerMW.Config{
-			TimeFormat: "2006-01-02T15:04:05.000Z0700",
-			TimeZone:   "Local",
-			Format:     "${time} | ${status} | ${latency}  | ${method} | ${path} | ${bytesSent} | ${error}\n",
-		}),
-	)
+	r := chi.NewRouter()
 
-	apiRouter := app.Group("/")
-	app.Get("/", mainPageCtrl.MainPage())
+	r.Use(middleware.Logger)
+	// r.Use(middleware.Compress(5, "text/html", "application/json"))
+	r.Use(middlewares.CompressMiddleware)
 
-	updateGrp := apiRouter.Group("/update")
-	updateGrp.Post("/", updateCtrl.UpdateOrSetViaDTO())
-	updateGrp.Post("/:metricType/:metricName/:metricValue", updateCtrl.UpdateOrSet())
+	r.Route("/", func(r chi.Router) {
+		r.Get("/", mainPageCtrl.MainPage())
+	})
 
-	valueGrp := apiRouter.Group("/value")
-	valueGrp.Post("/", getValCtrl.GetValueAsDTO())
-	valueGrp.Get("/:metricType/:metricName", getValCtrl.GetValue())
+	r.Route("/update", func(r chi.Router) {
+		r.Use(middlewares.PostFilterMiddleware)
+		r.Post("/", updateCtrl.UpdateOrSetViaDTO())
+		r.Post("/{metricType}/{metricName}/{metricValue}", updateCtrl.UpdateOrSet())
+	})
+
+	r.Route("/value", func(r chi.Router) {
+		r.Get("/{metricType}/{metricName}", getValCtrl.GetValue())
+		r.Post("/", getValCtrl.GetValueAsDTO())
+	})
+
+	return r
 }

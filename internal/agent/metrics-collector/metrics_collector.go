@@ -220,9 +220,14 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 		return fmt.Errorf("unable to marshal metric dto: %w", err)
 	}
 	url := "/update"
-	_, err = mc.client.Post(url, "application/json", bytes.NewBuffer(body))
+	respBytes, err := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("unable to sent %s metric: %w", name, err)
+	}
+
+	var t interface{}
+	if err := json.Unmarshal(respBytes, &t); err != nil {
+		return fmt.Errorf("unable to unmarshal metric response: %w", err)
 	}
 
 	return nil
