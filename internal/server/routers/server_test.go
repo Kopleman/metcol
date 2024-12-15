@@ -1,7 +1,6 @@
 package routers
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -48,12 +47,12 @@ func TestRouters_Server(t *testing.T) {
 	BuildAppRoutes(mockLogger, app, metricsService)
 
 	var testTable = []struct {
-		method        string
-		url           string
-		body          io.Reader
-		want          string
-		status        int
-		needUnMarshal bool
+		method  string
+		url     string
+		body    io.Reader
+		want    string
+		status  int
+		hasJSON bool
 	}{
 		{"POST", "/update/gauge/testGauge/100", http.NoBody, "OK", http.StatusOK, false},
 		{"POST", "/update/counter/testCounter/100", http.NoBody, "OK", http.StatusOK, false},
@@ -114,19 +113,11 @@ func TestRouters_Server(t *testing.T) {
 		gotStatusCode, gotResponse := testRequest(t, app, v.method, v.url, v.body)
 		assert.Equal(t, v.status, gotStatusCode)
 
-		if !v.needUnMarshal {
+		if !v.hasJSON {
 			assert.Equal(t, v.want, gotResponse)
 			continue
 		}
 
-		var unMarshalResponse interface{}
-		err := json.Unmarshal([]byte(gotResponse), &unMarshalResponse)
-		require.NoError(t, err)
-
-		var unMarshalWant interface{}
-		err = json.Unmarshal([]byte(v.want), &unMarshalWant)
-		require.NoError(t, err)
-
-		assert.Equal(t, unMarshalWant, unMarshalResponse)
+		assert.JSONEq(t, v.want, gotResponse)
 	}
 }
