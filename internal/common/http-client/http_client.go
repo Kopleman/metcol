@@ -1,6 +1,7 @@
 package httpclient
 
 import (
+	"compress/gzip"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,12 +21,18 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 	req.Header.Set(common.ContentType, contentType)
-	req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set(common.AcceptEncoding, "gzip")
 
 	res, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send post req to '%s': %w", finalURL, err)
 	}
+
+	gz, err := gzip.NewReader(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decompress response: %w", err)
+	}
+	defer gz.Close() //nolint:all // defer
 
 	defer func() {
 		if bodyParseErr := res.Body.Close(); bodyParseErr != nil {
@@ -34,7 +41,7 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 	}()
 	spew.Dump(res.Header)
 
-	respBody, err = io.ReadAll(res.Body)
+	respBody, err = io.ReadAll(gz)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse response body: %w", err)
 	}

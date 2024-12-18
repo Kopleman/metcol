@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/Kopleman/metcol/internal/common"
 )
 
 type compressWriter struct {
@@ -83,7 +85,7 @@ func CompressMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ow := w
 
-		acceptEncoding := r.Header.Get("Accept-Encoding")
+		acceptEncoding := r.Header.Get(common.AcceptEncoding)
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
 		if supportsGzip {
 			cw := newCompressWriter(w)
