@@ -14,8 +14,15 @@ import (
 func main() {
 	logger := log.New(
 		log.WithAppVersion("local"),
+		log.WithLogLevel(log.INFO),
 	)
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			logger.Fatal(err)
+		}
+	}()
 
+	logger.Info("Starting server")
 	if err := run(logger); err != nil {
 		logger.Fatal(err)
 	}
@@ -29,8 +36,8 @@ func run(logger log.Logger) error {
 
 	storeService := store.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
-	routes := routers.BuildServerRoutes(logger, metricsService)
 
+	routes := routers.BuildServerRoutes(logger, metricsService)
 	if listenAndServeErr := http.ListenAndServe(srvConfig.NetAddr.String(), routes); listenAndServeErr != nil {
 		return fmt.Errorf("failed to setup server: %w", listenAndServeErr)
 	}

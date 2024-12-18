@@ -16,6 +16,12 @@ func (m MockLogger) Info(_ ...interface{}) {
 func (m MockLogger) Infof(_ string, _ ...interface{}) {
 }
 
+func (m MockLogger) Infow(_ string, _ ...interface{}) {
+}
+
+func (m MockLogger) Infoln(_ ...interface{}) {
+}
+
 func (m MockLogger) Warn(_ ...interface{}) {
 }
 
