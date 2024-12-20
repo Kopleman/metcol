@@ -39,3 +39,11 @@ format-lint-report:
 
 .PHONY: lint
 lint: create-report-dir prepare-lint raw-lint format-lint-report
+
+.PHONY: field-alignment
+field-alignment:
+	fieldalignment -fix ./...
+
+
+
+

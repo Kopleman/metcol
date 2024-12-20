@@ -8,12 +8,22 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
+const defaultStoreInterval int64 = 300
+const defaultFileStoragePath string = "./store.json"
+const defaultRestoreVal bool = true
+
 type Config struct {
-	NetAddr *flags.NetAddress
+	NetAddr         *flags.NetAddress
+	FileStoragePath string
+	StoreInterval   int64
+	Restore         bool
 }
 
 type configFromEnv struct {
-	EndPoint string `env:"ADDRESS"`
+	Restore         *bool  `env:"RESTORE"`
+	EndPoint        string `env:"ADDRESS"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	StoreInterval   int64  `env:"STORE_INTERVAL"`
 }
 
 func ParseServerConfig() (*Config, error) {
@@ -26,7 +36,18 @@ func ParseServerConfig() (*Config, error) {
 
 	netAddrValue := flag.Value(netAddr)
 	flag.Var(netAddrValue, "a", "address and port to run server")
+
+	flag.Int64Var(&config.StoreInterval, "i", defaultStoreInterval, "store interval")
+
+	flag.StringVar(&config.FileStoragePath, "f", defaultFileStoragePath, "store file path")
+
+	flag.BoolVar(&config.Restore, "r", defaultRestoreVal, "restore store")
+
 	flag.Parse()
+
+	if config.StoreInterval < 0 {
+		return nil, fmt.Errorf("invalid store interval value prodived via flag: %v", config.StoreInterval)
+	}
 
 	if err := env.Parse(cfgFromEnv); err != nil {
 		return nil, fmt.Errorf("failed to parse server envs: %w", err)
@@ -36,6 +57,22 @@ func ParseServerConfig() (*Config, error) {
 		if err := netAddr.Set(cfgFromEnv.EndPoint); err != nil {
 			return nil, fmt.Errorf("failed to set endpoint address for server: %w", err)
 		}
+	}
+
+	if cfgFromEnv.StoreInterval < 0 {
+		return nil, fmt.Errorf("invalid store interval value prodived via envs: %v", cfgFromEnv.StoreInterval)
+	}
+
+	if cfgFromEnv.StoreInterval > 0 {
+		config.StoreInterval = cfgFromEnv.StoreInterval
+	}
+
+	if cfgFromEnv.FileStoragePath != "" {
+		config.FileStoragePath = cfgFromEnv.FileStoragePath
+	}
+
+	if cfgFromEnv.Restore != nil {
+		config.Restore = *cfgFromEnv.Restore
 	}
 
 	return config, nil
