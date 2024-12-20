@@ -218,6 +218,51 @@ func (m *Metrics) convertMetricValueToString(metricType common.MetricType, value
 	}
 }
 
+func (m *Metrics) ExportMetrics() ([]*dto.MetricDTO, error) {
+	allMetrics := m.store.GetAll()
+	exportData := make([]*dto.MetricDTO, 0, len(allMetrics))
+	for metricKey, metricValue := range allMetrics {
+		metricName, metricType, err := m.parseStoreKey(metricKey)
+		if err != nil {
+			return nil, err
+		}
+		metricDTO := dto.MetricDTO{
+			ID:    metricName,
+			MType: metricType,
+			Delta: nil,
+			Value: nil,
+		}
+		switch metricType {
+		case common.CounterMetricType:
+			typedValue, ok := metricValue.(int64)
+			if !ok {
+				return nil, ErrCounterValueParse
+			}
+			metricDTO.Delta = &typedValue
+		case common.GougeMetricType:
+			typedValue, ok := metricValue.(float64)
+			if !ok {
+				return nil, ErrGougeValueParse
+			}
+			metricDTO.Value = &typedValue
+		default:
+			return nil, ErrUnknownMetricType
+		}
+
+		exportData = append(exportData, &metricDTO)
+	}
+	return exportData, nil
+}
+
+func (m *Metrics) ImportMetrics(metricsToImport []*dto.MetricDTO) error {
+	for _, metricToImport := range metricsToImport {
+		if err := m.SetMetricByDto(metricToImport); err != nil {
+			return fmt.Errorf("failed to import metric '%s': %w", metricToImport.ID, err)
+		}
+	}
+	return nil
+}
+
 func ParseMetricType(typeAsString string) (common.MetricType, error) {
 	switch typeAsString {
 	case string(common.CounterMetricType):

@@ -468,3 +468,151 @@ func TestMetrics_GetMetricAsDTO(t *testing.T) {
 		})
 	}
 }
+
+func TestMetrics_ExportMetrics(t *testing.T) {
+	type fields struct {
+		db map[string]any
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    []*dto.MetricDTO
+		wantErr bool
+	}{
+		{
+			name:   "export 1 metric",
+			fields: fields{db: map[string]any{"foo-gauge": 1.1}},
+			want: []*dto.MetricDTO{
+				{
+					ID:    "foo",
+					MType: "gauge",
+					Delta: nil,
+					Value: common.Pointer(1.1),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "export 2 metrics",
+			fields: fields{db: map[string]any{"foo-gauge": float64(0.1), "bar-counter": int64(2)}},
+			want: []*dto.MetricDTO{
+				{
+					ID:    "foo",
+					MType: "gauge",
+					Delta: nil,
+					Value: common.Pointer(0.1),
+				},
+				{
+					ID:    "bar",
+					MType: "counter",
+					Delta: common.Pointer(int64(2)),
+					Value: nil,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "export bad metric",
+			fields:  fields{db: map[string]any{"foo-gauge": "bad staff"}},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &Metrics{
+				store: store.NewStore(tt.fields.db),
+			}
+			got, err := m.ExportMetrics()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ExportMetrics() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equalf(t, tt.want, got, "ExportMetrics()")
+		})
+	}
+}
+
+func TestMetrics_ImportMetrics(t *testing.T) {
+	type fields struct {
+		db map[string]any
+	}
+	type args struct {
+		metricsToImport []*dto.MetricDTO
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    map[string]any
+		wantErr bool
+	}{
+		{
+			name:   "import 1 metric",
+			fields: fields{db: make(map[string]any)},
+			args: args{
+				metricsToImport: []*dto.MetricDTO{
+					{
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: common.Pointer(1.1),
+					},
+				},
+			},
+			want:    map[string]any{"foo-gauge": 1.1},
+			wantErr: false,
+		},
+		{
+			name:   "import 2 metric",
+			fields: fields{db: make(map[string]any)},
+			args: args{
+				metricsToImport: []*dto.MetricDTO{
+					{
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: common.Pointer(0.1),
+					},
+					{
+						ID:    "bar",
+						MType: "counter",
+						Delta: common.Pointer(int64(2)),
+						Value: nil,
+					},
+				},
+			},
+			want:    map[string]any{"foo-gauge": float64(0.1), "bar-counter": int64(2)},
+			wantErr: false,
+		},
+		{
+			name:   "import bad metric",
+			fields: fields{db: make(map[string]any)},
+			args: args{
+				metricsToImport: []*dto.MetricDTO{
+					{
+						ID:    "foo",
+						MType: "gauge",
+						Delta: common.Pointer(int64(1)),
+						Value: nil,
+					},
+				},
+			},
+			want:    map[string]any{},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &Metrics{
+				store: store.NewStore(tt.fields.db),
+			}
+			err := m.ImportMetrics(tt.args.metricsToImport)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ImportMetrics() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equalf(t, tt.want, tt.fields.db, "ImportMetrics()")
+		})
+	}
+}
