@@ -9,7 +9,6 @@ import (
 	"github.com/Kopleman/metcol/internal/agent/config"
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
-	"github.com/davecgh/go-spew/spew"
 )
 
 func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, error) {
@@ -39,7 +38,6 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 			c.logger.Error(bodyParseErr)
 		}
 	}()
-	spew.Dump(res.Header)
 
 	respBody, err = io.ReadAll(gz)
 	if err != nil {

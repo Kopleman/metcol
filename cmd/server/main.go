@@ -6,6 +6,7 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/config"
+	filestorage "github.com/Kopleman/metcol/internal/server/file_storage"
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/Kopleman/metcol/internal/server/routers"
 	"github.com/Kopleman/metcol/internal/server/store"
@@ -36,6 +37,18 @@ func run(logger log.Logger) error {
 
 	storeService := store.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
+	fs := filestorage.NewFileStorage(srvConfig, logger, metricsService)
+	if err = fs.Init(); err != nil {
+		return fmt.Errorf("failed to init filestorage: %w", err)
+	}
+	defer fs.Close()
+
+	go func() {
+		err = fs.RunBackupJob()
+		if err != nil {
+			logger.Fatal(err)
+		}
+	}()
 
 	routes := routers.BuildServerRoutes(logger, metricsService)
 	if listenAndServeErr := http.ListenAndServe(srvConfig.NetAddr.String(), routes); listenAndServeErr != nil {
