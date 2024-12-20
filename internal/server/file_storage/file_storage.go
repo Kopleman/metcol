@@ -69,7 +69,7 @@ func (fs *FileStorage) ImportMetrics() error {
 }
 
 func (fs *FileStorage) Init() error {
-	file, err := os.OpenFile(fs.cfg.FileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)
+	file, err := os.OpenFile(fs.cfg.FileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666) //nolint:all // different lint behavior on perm var
 	if err != nil {
 		return fmt.Errorf("could not open storage file: %w", err)
 	}
