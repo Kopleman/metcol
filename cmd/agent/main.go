@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Kopleman/metcol/internal/agent/config"
 	metricscollector "github.com/Kopleman/metcol/internal/agent/metrics-collector"
@@ -20,6 +23,8 @@ func main() {
 }
 
 func run(logger log.Logger) error {
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 	agentConfig, err := config.ParseAgentConfig()
 	if err != nil {
 		return fmt.Errorf("failed to parse the agent's config: %w", err)
@@ -28,7 +33,9 @@ func run(logger log.Logger) error {
 	httpClient := httpclient.NewHTTPClient(agentConfig, logger)
 	collector := metricscollector.NewMetricsCollector(agentConfig, logger, httpClient)
 
-	collector.Run()
+	if err = collector.Run(sig); err != nil {
+		return fmt.Errorf("metrics collector error: %w", err)
+	}
 
 	return nil
 }

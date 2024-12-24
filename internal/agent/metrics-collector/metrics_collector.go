@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand/v2"
+	"os"
 	"runtime"
 	"strconv"
 	"time"
@@ -233,7 +234,7 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 	return nil
 }
 
-func (mc *MetricsCollector) Run() {
+func (mc *MetricsCollector) Run(sig chan os.Signal) error {
 	now := time.Now()
 
 	pollDuration := time.Duration(mc.cfg.PollInterval) * time.Second
@@ -248,14 +249,16 @@ func (mc *MetricsCollector) Run() {
 	}
 
 	ticker := time.NewTicker(1 * time.Second)
-	quit := make(chan bool)
 	for {
 		select {
 		case <-ticker.C:
-			go mc.doIntervalJobs(&args, quit)
-		case <-quit:
+			if err := mc.doIntervalJobs(&args); err != nil {
+				ticker.Stop()
+				return err
+			}
+		case <-sig:
 			ticker.Stop()
-			return
+			return nil
 		}
 	}
 }
@@ -268,15 +271,13 @@ type intervalJobsArg struct {
 	reportInProgress bool
 }
 
-func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg, quitChan chan bool) {
+func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg) error {
 	now := time.Now()
 	if now.After(args.collectTimer) {
 		err := mc.CollectMetrics()
 
 		if err != nil {
-			mc.logger.Error(err)
-			quitChan <- true
-			return
+			return fmt.Errorf("collect metrics: %w", err)
 		}
 
 		mc.logger.Info("collected metrics")
@@ -285,7 +286,7 @@ func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg, quitChan chan 
 	}
 
 	if args.reportInProgress {
-		return
+		return nil
 	}
 
 	if now.After(args.reportTimer) {
@@ -300,9 +301,10 @@ func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg, quitChan chan 
 		}
 
 		args.reportTimer = now.Add(args.reportInterval)
-
 		args.reportInProgress = false
 	}
+
+	return nil
 }
 
 type HTTPClient interface {

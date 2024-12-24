@@ -31,7 +31,11 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to decompress response: %w", err)
 	}
-	defer gz.Close() //nolint:all // defer
+	defer func() {
+		if gzErr := gz.Close(); gzErr != nil {
+			c.logger.Error(gzErr)
+		}
+	}()
 
 	defer func() {
 		if bodyParseErr := res.Body.Close(); bodyParseErr != nil {
