@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -48,20 +49,14 @@ func (fs *FileStorage) ExportMetrics() error {
 
 func (fs *FileStorage) ImportMetrics() error {
 	metricsData := make([]*dto.MetricDTO, 0)
-	stats, err := fs.file.Stat()
-	if err != nil {
-		return fmt.Errorf("could not stat file with storage: %w", err)
-	}
-
-	if stats.Size() == 0 {
-		return nil
-	}
-
-	if err = fs.decoder.Decode(&metricsData); err != nil {
+	if err := fs.decoder.Decode(&metricsData); err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
 		return fmt.Errorf("could not decode metrics data from file: %w", err)
 	}
 
-	if err = fs.metricService.ImportMetrics(metricsData); err != nil {
+	if err := fs.metricService.ImportMetrics(metricsData); err != nil {
 		return fmt.Errorf("could not re-store data to store: %w", err)
 	}
 

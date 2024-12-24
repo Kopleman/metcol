@@ -19,7 +19,7 @@ func main() {
 	)
 	defer func() {
 		if err := logger.Sync(); err != nil {
-			logger.Fatal(err)
+			logger.Errorf("Error syncing logger: %v", err)
 		}
 	}()
 
@@ -43,16 +43,25 @@ func run(logger log.Logger) error {
 	}
 	defer fs.Close()
 
+	runTimeError := make(chan error, 1)
 	go func() {
 		err = fs.RunBackupJob()
 		if err != nil {
-			logger.Fatal(err)
+			runTimeError <- fmt.Errorf("backup job error: %w", err)
 		}
 	}()
 
-	routes := routers.BuildServerRoutes(logger, metricsService)
-	if listenAndServeErr := http.ListenAndServe(srvConfig.NetAddr.String(), routes); listenAndServeErr != nil {
-		return fmt.Errorf("failed to setup server: %w", listenAndServeErr)
+	go func() {
+		routes := routers.BuildServerRoutes(logger, metricsService)
+		if listenAndServeErr := http.ListenAndServe(srvConfig.NetAddr.String(), routes); listenAndServeErr != nil {
+			runTimeError <- fmt.Errorf("internal server error: %w", listenAndServeErr)
+		}
+	}()
+	logger.Infof("Server started on: %s", srvConfig.NetAddr.Port)
+
+	serverError := <-runTimeError
+	if serverError != nil {
+		return fmt.Errorf("server error: %w", serverError)
 	}
 
 	return nil

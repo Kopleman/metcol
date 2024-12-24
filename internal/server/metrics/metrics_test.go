@@ -8,6 +8,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/server/store"
+	"github.com/Kopleman/metcol/internal/testutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -355,13 +356,13 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 				metricDto: &dto.MetricDTO{
 					ID:    "foo",
 					MType: "gauge",
-					Value: common.Pointer(1.1),
+					Value: testutils.Pointer(1.1),
 				},
 			},
 			expect: &dto.MetricDTO{
 				ID:    "foo",
 				MType: "gauge",
-				Value: common.Pointer(1.1),
+				Value: testutils.Pointer(1.1),
 			},
 			wantErr: false,
 		},
@@ -372,13 +373,13 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 				metricDto: &dto.MetricDTO{
 					ID:    "foo",
 					MType: "counter",
-					Delta: common.Pointer(int64(100)),
+					Delta: testutils.Pointer(int64(100)),
 				},
 			},
 			expect: &dto.MetricDTO{
 				ID:    "foo",
 				MType: "counter",
-				Delta: common.Pointer(int64(100)),
+				Delta: testutils.Pointer(int64(100)),
 			},
 			wantErr: false,
 		},
@@ -425,7 +426,7 @@ func TestMetrics_GetMetricAsDTO(t *testing.T) {
 				ID:    "foo",
 				MType: "gauge",
 				Delta: nil,
-				Value: common.Pointer(1.1),
+				Value: testutils.Pointer(1.1),
 			},
 			wantErr: false,
 		},
@@ -439,7 +440,7 @@ func TestMetrics_GetMetricAsDTO(t *testing.T) {
 			want: &dto.MetricDTO{
 				ID:    "foo",
 				MType: "counter",
-				Delta: common.Pointer(int64(100)),
+				Delta: testutils.Pointer(int64(100)),
 			},
 			wantErr: false,
 		},
@@ -487,7 +488,7 @@ func TestMetrics_ExportMetrics(t *testing.T) {
 					ID:    "foo",
 					MType: "gauge",
 					Delta: nil,
-					Value: common.Pointer(1.1),
+					Value: testutils.Pointer(1.1),
 				},
 			},
 			wantErr: false,
@@ -500,12 +501,12 @@ func TestMetrics_ExportMetrics(t *testing.T) {
 					ID:    "foo",
 					MType: "gauge",
 					Delta: nil,
-					Value: common.Pointer(0.1),
+					Value: testutils.Pointer(0.1),
 				},
 				{
 					ID:    "bar",
 					MType: "counter",
-					Delta: common.Pointer(int64(2)),
+					Delta: testutils.Pointer(int64(2)),
 					Value: nil,
 				},
 			},
@@ -556,7 +557,7 @@ func TestMetrics_ImportMetrics(t *testing.T) {
 						ID:    "foo",
 						MType: "gauge",
 						Delta: nil,
-						Value: common.Pointer(1.1),
+						Value: testutils.Pointer(1.1),
 					},
 				},
 			},
@@ -572,12 +573,12 @@ func TestMetrics_ImportMetrics(t *testing.T) {
 						ID:    "foo",
 						MType: "gauge",
 						Delta: nil,
-						Value: common.Pointer(0.1),
+						Value: testutils.Pointer(0.1),
 					},
 					{
 						ID:    "bar",
 						MType: "counter",
-						Delta: common.Pointer(int64(2)),
+						Delta: testutils.Pointer(int64(2)),
 						Value: nil,
 					},
 				},
@@ -593,7 +594,7 @@ func TestMetrics_ImportMetrics(t *testing.T) {
 					{
 						ID:    "foo",
 						MType: "gauge",
-						Delta: common.Pointer(int64(1)),
+						Delta: testutils.Pointer(int64(1)),
 						Value: nil,
 					},
 				},
