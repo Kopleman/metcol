@@ -1,6 +1,8 @@
 package postgres
 
 import (
+	"fmt"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -13,23 +15,25 @@ type Config struct {
 }
 
 func (c Config) Validate() error {
-	return validation.ValidateStruct(
+	err := validation.ValidateStruct(
 		&c,
 		validation.Field(&c.PingInterval, validation.Required, validation.Min(1)),
 	)
+	if err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
+	return nil
 }
 
-// GetMaxConns return max conns
 func (c Config) GetMaxConns() int32 {
 	return c.MaxConns
 }
 
-// GetMinConns return min conns
 func (c Config) GetMinConns() int32 {
 	return c.MinConns
 }
 
-// GetPreferSimpleProtocol return PreferSimpleProtocol option
 func (c Config) GetPreferSimpleProtocol() bool {
 	return c.PreferSimpleProtocol
 }

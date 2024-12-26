@@ -542,10 +542,10 @@ func TestMetrics_ImportMetrics(t *testing.T) {
 		metricsToImport []*dto.MetricDTO
 	}
 	tests := []struct {
-		name    string
 		fields  fields
-		args    args
 		want    map[string]any
+		name    string
+		args    args
 		wantErr bool
 	}{
 		{

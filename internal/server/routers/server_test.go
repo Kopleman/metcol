@@ -43,7 +43,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 func TestRouters_Server(t *testing.T) {
 	storeService := store.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
-	routes := BuildServerRoutes(&log.MockLogger{}, metricsService)
+	routes := BuildServerRoutes(&log.MockLogger{}, metricsService, nil)
 
 	ts := httptest.NewServer(routes)
 	defer ts.Close()

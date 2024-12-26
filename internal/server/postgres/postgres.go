@@ -15,7 +15,7 @@ type PostgreSQL struct {
 func NewPostgreSQL(ctx context.Context, logger log.Logger, dsn string) (*PostgreSQL, error) {
 	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("pgxpool.ParseConfig: %w", err)
+		return nil, fmt.Errorf("NewPostgreSQL: pgxpool.ParseConfig: %w", err)
 	}
 
 	config.MinConns = 3
@@ -24,13 +24,13 @@ func NewPostgreSQL(ctx context.Context, logger log.Logger, dsn string) (*Postgre
 
 	pool, err := pgxpool.ConnectConfig(ctx, config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("NewPostgreSQL: pgxpool.ConnectConfig: %w", err)
 	}
 
 	psql := &PostgreSQL{pool}
 
-	if err := psql.PingDB(); err != nil {
-		return nil, err
+	if pingErr := psql.PingDB(); pingErr != nil {
+		return nil, fmt.Errorf("NewPostgreSQL: pingDB: %w", err)
 	}
 
 	logger.Info("connected to postgres")
@@ -39,7 +39,12 @@ func NewPostgreSQL(ctx context.Context, logger log.Logger, dsn string) (*Postgre
 }
 
 func (p *PostgreSQL) PingDB() error {
-	return p.Ping(context.Background())
+	err := p.Ping(context.Background())
+	if err != nil {
+		return fmt.Errorf("PingDB: %w", err)
+	}
+
+	return nil
 }
 
 func (p *PostgreSQL) Interface() IPgxPool {

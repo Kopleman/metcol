@@ -28,8 +28,8 @@ func BuildServerRoutes(logger log.Logger, metricsService Metrics, db *postgres.P
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
-	r.Use(middleware.Compress(5, "text/html", "application/json"))
-	//r.Use(middlewares.CompressMiddleware)
+	// r.Use(middleware.Compress(5, "text/html", "application/json"))
+	r.Use(middlewares.CompressMiddleware)
 
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", mainPageCtrl.MainPage())

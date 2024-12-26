@@ -16,17 +16,17 @@ const defaultDBDSN string = "postgres://admin:admin@localhost:5432/metcol?sslmod
 type Config struct {
 	NetAddr         *flags.NetAddress
 	FileStoragePath string
+	DataBaseDSN     string
 	StoreInterval   int64
 	Restore         bool
-	DataBaseDSN     string
 }
 
 type configFromEnv struct {
 	Restore         *bool  `env:"RESTORE"`
 	EndPoint        string `env:"ADDRESS"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	StoreInterval   int64  `env:"STORE_INTERVAL"`
 	DataBaseDSN     string `env:"DATABASE_DSN"`
+	StoreInterval   int64  `env:"STORE_INTERVAL"`
 }
 
 func ParseServerConfig() (*Config, error) {
