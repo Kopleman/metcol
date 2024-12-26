@@ -31,7 +31,7 @@ func NewServer(logger log.Logger, cfg *config.Config) *Server {
 
 func (s *Server) Start(ctx context.Context) error {
 	defer s.Shutdown()
-	pg, err := postgres.NewPostgreSQL(ctx, s.logger, s.config.DataBaseDSN)
+	pg, err := postgres.NewPostgresSQL(ctx, s.logger, s.config.DataBaseDSN)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}

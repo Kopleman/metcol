@@ -1,12 +1,13 @@
 package routers
 
 import (
+	"context"
+
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/controllers"
 	"github.com/Kopleman/metcol/internal/server/middlewares"
-	"github.com/Kopleman/metcol/internal/server/postgres"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -19,7 +20,11 @@ type Metrics interface {
 	GetAllValuesAsString() (map[string]string, error)
 }
 
-func BuildServerRoutes(logger log.Logger, metricsService Metrics, db *postgres.PostgreSQL) *chi.Mux {
+type PgxPool interface {
+	Ping(context.Context) error
+}
+
+func BuildServerRoutes(logger log.Logger, metricsService Metrics, db PgxPool) *chi.Mux {
 	mainPageCtrl := controllers.NewMainPageController(logger, metricsService)
 	updateCtrl := controllers.NewUpdateMetricsController(logger, metricsService)
 	getValCtrl := controllers.NewGetValueController(logger, metricsService)

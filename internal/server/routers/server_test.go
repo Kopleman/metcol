@@ -11,7 +11,9 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/metrics"
+	mock "github.com/Kopleman/metcol/internal/server/routers/mocks"
 	"github.com/Kopleman/metcol/internal/server/store"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
@@ -41,9 +43,12 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 }
 
 func TestRouters_Server(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockPgx := mock.NewMockPgxPool(ctrl)
+
 	storeService := store.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
-	routes := BuildServerRoutes(&log.MockLogger{}, metricsService, nil)
+	routes := BuildServerRoutes(&log.MockLogger{}, metricsService, mockPgx)
 
 	ts := httptest.NewServer(routes)
 	defer ts.Close()

@@ -1,23 +1,27 @@
 package controllers
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/Kopleman/metcol/internal/common"
-	"github.com/Kopleman/metcol/internal/server/postgres"
 )
 
-type PingController struct {
-	db *postgres.PostgreSQL
+type PgxPool interface {
+	Ping(context.Context) error
 }
 
-func NewPingController(db *postgres.PostgreSQL) *PingController {
+type PingController struct {
+	db PgxPool
+}
+
+func NewPingController(db PgxPool) *PingController {
 	return &PingController{db: db}
 }
 
 func (ctrl *PingController) Ping() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		if err := ctrl.db.PingDB(); err != nil {
+		if err := ctrl.db.Ping(context.TODO()); err != nil {
 			http.Error(w, common.Err500Message, http.StatusInternalServerError)
 			return
 		}

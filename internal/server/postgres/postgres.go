@@ -5,32 +5,32 @@ import (
 	"fmt"
 
 	"github.com/Kopleman/metcol/internal/common/log"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PostgreSQL struct {
 	*pgxpool.Pool
 }
 
-func NewPostgreSQL(ctx context.Context, logger log.Logger, dsn string) (*PostgreSQL, error) {
+func NewPostgresSQL(ctx context.Context, logger log.Logger, dsn string) (*PostgreSQL, error) {
 	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("NewPostgreSQL: pgxpool.ParseConfig: %w", err)
+		return nil, fmt.Errorf("NewPostgresSQL: pgxpool.ParseConfig: %w", err)
 	}
 
 	config.MinConns = 3
 
 	config.MaxConns = 6
 
-	pool, err := pgxpool.ConnectConfig(ctx, config)
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		return nil, fmt.Errorf("NewPostgreSQL: pgxpool.ConnectConfig: %w", err)
+		return nil, fmt.Errorf("NewPostgresSQL: pool conection error: %w", err)
 	}
 
 	psql := &PostgreSQL{pool}
 
-	if pingErr := psql.PingDB(); pingErr != nil {
-		return nil, fmt.Errorf("NewPostgreSQL: pingDB: %w", err)
+	if pingErr := psql.pingDB(); pingErr != nil {
+		return nil, fmt.Errorf("NewPostgresSQL: pingDB: %w", err)
 	}
 
 	logger.Info("connected to postgres")
@@ -38,7 +38,7 @@ func NewPostgreSQL(ctx context.Context, logger log.Logger, dsn string) (*Postgre
 	return psql, nil
 }
 
-func (p *PostgreSQL) PingDB() error {
+func (p *PostgreSQL) pingDB() error {
 	err := p.Ping(context.Background())
 	if err != nil {
 		return fmt.Errorf("PingDB: %w", err)
