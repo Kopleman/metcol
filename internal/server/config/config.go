@@ -11,12 +11,14 @@ import (
 const defaultStoreInterval int64 = 300
 const defaultFileStoragePath string = "./store.json"
 const defaultRestoreVal bool = true
+const defaultDBDSN string = "postgres://admin:admin@localhost:5432/metcol?sslmode=disable"
 
 type Config struct {
 	NetAddr         *flags.NetAddress
 	FileStoragePath string
 	StoreInterval   int64
 	Restore         bool
+	DataBaseDSN     string
 }
 
 type configFromEnv struct {
@@ -24,6 +26,7 @@ type configFromEnv struct {
 	EndPoint        string `env:"ADDRESS"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	StoreInterval   int64  `env:"STORE_INTERVAL"`
+	DataBaseDSN     string `env:"DATABASE_DSN"`
 }
 
 func ParseServerConfig() (*Config, error) {
@@ -42,6 +45,8 @@ func ParseServerConfig() (*Config, error) {
 	flag.StringVar(&config.FileStoragePath, "f", defaultFileStoragePath, "store file path")
 
 	flag.BoolVar(&config.Restore, "r", defaultRestoreVal, "restore store")
+
+	flag.StringVar(&config.DataBaseDSN, "d", defaultDBDSN, "database DSN")
 
 	flag.Parse()
 
@@ -73,6 +78,10 @@ func ParseServerConfig() (*Config, error) {
 
 	if cfgFromEnv.Restore != nil {
 		config.Restore = *cfgFromEnv.Restore
+	}
+
+	if cfgFromEnv.DataBaseDSN != "" {
+		config.DataBaseDSN = cfgFromEnv.DataBaseDSN
 	}
 
 	return config, nil
