@@ -9,8 +9,8 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
+	errors2 "github.com/Kopleman/metcol/internal/server/errors"
 	"github.com/Kopleman/metcol/internal/server/metrics"
-	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -48,7 +48,7 @@ func (ctrl *GetValueController) GetValue() func(http.ResponseWriter, *http.Reque
 		value, err := ctrl.metricsService.GetValueAsString(metricType, metricName)
 
 		if err != nil {
-			if errors.Is(err, store.ErrNotFound) {
+			if errors.Is(err, errors2.ErrNotFound) {
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}
@@ -82,7 +82,7 @@ func (ctrl *GetValueController) GetValueAsDTO() func(http.ResponseWriter, *http.
 
 		value, err := ctrl.metricsService.GetMetricAsDTO(reqDto.MType, reqDto.ID)
 		if err != nil {
-			if errors.Is(err, store.ErrNotFound) {
+			if errors.Is(err, errors2.ErrNotFound) {
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}

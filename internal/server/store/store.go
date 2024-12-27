@@ -1,5 +1,7 @@
 package store
 
+import "github.com/Kopleman/metcol/internal/server/errors"
+
 func (s *Store) existed(key string) bool {
 	_, existed := s.db[key]
 	return existed
@@ -7,7 +9,7 @@ func (s *Store) existed(key string) bool {
 
 func (s *Store) Create(key string, value any) error {
 	if s.existed(key) {
-		return ErrAlreadyExists
+		return errors.ErrAlreadyExists
 	}
 
 	s.db[key] = value
@@ -19,7 +21,7 @@ func (s *Store) Read(key string) (any, error) {
 	value, existed := s.db[key]
 
 	if !existed {
-		return nil, ErrNotFound
+		return nil, errors.ErrNotFound
 	}
 
 	return value, nil

@@ -8,7 +8,7 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
-	"github.com/Kopleman/metcol/internal/server/store"
+	errors2 "github.com/Kopleman/metcol/internal/server/errors"
 )
 
 func (m *Metrics) buildStoreKey(name string, metricType common.MetricType) string {
@@ -40,7 +40,7 @@ func (m *Metrics) SetGauge(name string, value float64) (*float64, error) {
 	_, err := m.store.Read(storeKey)
 
 	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
+		if errors.Is(err, errors2.ErrNotFound) {
 			storeErr := m.store.Create(storeKey, value)
 			if storeErr != nil {
 				return nil, fmt.Errorf("failed to create gauge metric '%s': %w", storeKey, err)
@@ -65,7 +65,7 @@ func (m *Metrics) SetCounter(name string, value int64) (*int64, error) {
 	counterValue, err := m.store.Read(storeKey)
 
 	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
+		if errors.Is(err, errors2.ErrNotFound) {
 			storeErr := m.store.Create(storeKey, value)
 			if storeErr != nil {
 				return nil, fmt.Errorf("failed to create counter metric '%s': %w", storeKey, err)
