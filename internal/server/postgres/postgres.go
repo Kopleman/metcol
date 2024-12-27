@@ -28,9 +28,9 @@ func NewPostgresSQL(ctx context.Context, logger log.Logger, dsn string) (*Postgr
 	}
 
 	psql := &PostgreSQL{pool}
-
-	if pingErr := psql.pingDB(); pingErr != nil {
-		return nil, fmt.Errorf("NewPostgresSQL: pingDB: %w", err)
+	err = psql.Ping(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("NewPostgresSQL: ping: %w", err)
 	}
 
 	logger.Info("connected to postgres")

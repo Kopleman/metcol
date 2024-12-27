@@ -11,7 +11,6 @@ import (
 const defaultStoreInterval int64 = 300
 const defaultFileStoragePath string = "./store.json"
 const defaultRestoreVal bool = true
-const defaultDBDSN string = "postgres://admin:admin@localhost:5432/metcol?sslmode=disable"
 
 type Config struct {
 	NetAddr         *flags.NetAddress
@@ -46,7 +45,7 @@ func ParseServerConfig() (*Config, error) {
 
 	flag.BoolVar(&config.Restore, "r", defaultRestoreVal, "restore store")
 
-	flag.StringVar(&config.DataBaseDSN, "d", defaultDBDSN, "database DSN")
+	flag.StringVar(&config.DataBaseDSN, "d", "", "database DSN")
 
 	flag.Parse()
 
