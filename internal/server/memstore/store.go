@@ -59,8 +59,12 @@ func (s *Store) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-func (s *Store) GetAll(ctx context.Context) map[string]*dto.MetricDTO {
-	return s.db
+func (s *Store) GetAll(ctx context.Context) ([]*dto.MetricDTO, error) {
+	exportData := make([]*dto.MetricDTO, 0, len(s.db))
+	for _, metricValue := range s.db {
+		exportData = append(exportData, metricValue)
+	}
+	return exportData, nil
 }
 
 type Store struct {

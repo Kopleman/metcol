@@ -174,7 +174,10 @@ func (m *Metrics) GetMetricAsDTO(ctx context.Context, metricType common.MetricTy
 
 func (m *Metrics) GetAllValuesAsString(ctx context.Context) (map[string]string, error) {
 	dataToReturn := make(map[string]string)
-	allMetrics := m.store.GetAll(ctx)
+	allMetrics, err := m.store.GetAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read all metrics for output: %w", err)
+	}
 
 	for _, metricValue := range allMetrics {
 		valueAsString, err := m.convertMetricValueToString(metricValue)
@@ -206,12 +209,11 @@ func (m *Metrics) convertMetricValueToString(metricDTO *dto.MetricDTO) (string, 
 }
 
 func (m *Metrics) ExportMetrics(ctx context.Context) ([]*dto.MetricDTO, error) {
-	allMetrics := m.store.GetAll(ctx)
-	exportData := make([]*dto.MetricDTO, 0, len(allMetrics))
-	for _, metricValue := range allMetrics {
-		exportData = append(exportData, metricValue)
+	allMetrics, err := m.store.GetAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read all metrics for export: %w", err)
 	}
-	return exportData, nil
+	return allMetrics, nil
 }
 
 func (m *Metrics) ImportMetrics(ctx context.Context, metricsToImport []*dto.MetricDTO) error {
@@ -238,7 +240,7 @@ type Store interface {
 	Create(ctx context.Context, value *dto.MetricDTO) error
 	Read(ctx context.Context, key string) (*dto.MetricDTO, error)
 	Update(ctx context.Context, value *dto.MetricDTO) error
-	GetAll(ctx context.Context) map[string]*dto.MetricDTO
+	GetAll(ctx context.Context) ([]*dto.MetricDTO, error)
 }
 
 type Metrics struct {

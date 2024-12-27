@@ -14,11 +14,6 @@ import (
 	"github.com/Kopleman/metcol/internal/server/config"
 )
 
-type Store interface {
-	Create(key string, value any) error
-	GetAll() map[string]any
-}
-
 type MetricService interface {
 	ExportMetrics(ctx context.Context) ([]*dto.MetricDTO, error)
 	ImportMetrics(ctx context.Context, metricsToImport []*dto.MetricDTO) error
