@@ -1,21 +1,41 @@
 package httpclient
 
 import (
+	"compress/gzip"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/Kopleman/metcol/internal/agent/config"
+	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
 )
 
 func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, error) {
 	finalURL := c.BaseURL + url
 	var respBody []byte
-	res, err := c.client.Post(finalURL, contentType, body)
+
+	req, err := http.NewRequest(http.MethodPost, finalURL, body)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+	req.Header.Set(common.ContentType, contentType)
+	req.Header.Set(common.AcceptEncoding, "gzip")
+
+	res, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send post req to '%s': %w", finalURL, err)
 	}
+
+	gz, err := gzip.NewReader(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decompress response: %w", err)
+	}
+	defer func() {
+		if gzErr := gz.Close(); gzErr != nil {
+			c.logger.Error(gzErr)
+		}
+	}()
 
 	defer func() {
 		if bodyParseErr := res.Body.Close(); bodyParseErr != nil {
@@ -23,7 +43,7 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 		}
 	}()
 
-	respBody, err = io.ReadAll(res.Body)
+	respBody, err = io.ReadAll(gz)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse response body: %w", err)
 	}

@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"bytes"
 	"net/http"
 	"sort"
 
@@ -13,11 +12,20 @@ type MetricsForMainPage interface {
 	GetAllValuesAsString() (map[string]string, error)
 }
 
-func MainPage(logger log.Logger, metricsService MetricsForMainPage) func(http.ResponseWriter, *http.Request) {
+type MainPageController struct {
+	logger         log.Logger
+	metricsService MetricsForMainPage
+}
+
+func NewMainPageController(logger log.Logger, metricsService MetricsForMainPage) *MainPageController {
+	return &MainPageController{logger, metricsService}
+}
+
+func (ctrl *MainPageController) MainPage() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		allMetrics, err := metricsService.GetAllValuesAsString()
+		allMetrics, err := ctrl.metricsService.GetAllValuesAsString()
 		if err != nil {
-			logger.Error(err)
+			ctrl.logger.Error(err)
 			http.Error(w, common.Err500Message, http.StatusInternalServerError)
 			return
 		}
@@ -27,20 +35,23 @@ func MainPage(logger log.Logger, metricsService MetricsForMainPage) func(http.Re
 			metricNameList = append(metricNameList, metricName)
 		}
 		sort.Strings(metricNameList)
+		resp := ""
 		for _, metricName := range metricNameList {
 			metricValue, ok := allMetrics[metricName]
 			if !ok {
-				logger.Errorf("unable to find metrcia by name '%s", metricName)
+				ctrl.logger.Errorf("unable to find metric by name '%s", metricName)
 				http.Error(w, common.Err500Message, http.StatusInternalServerError)
 				return
 			}
+			resp += metricName + ":" + metricValue + "\n"
+		}
 
-			kvw := bytes.NewBufferString(metricName + ":" + metricValue + "\n")
-			if _, err := kvw.WriteTo(w); err != nil {
-				logger.Error(err)
-				http.Error(w, common.Err500Message, http.StatusInternalServerError)
-				return
-			}
+		w.Header().Set(common.ContentType, "text/html")
+		w.WriteHeader(http.StatusOK)
+		if _, err = w.Write([]byte(resp)); err != nil {
+			ctrl.logger.Error(err)
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
+			return
 		}
 	}
 }

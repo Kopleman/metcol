@@ -16,7 +16,7 @@ type mockHTTP struct {
 
 func (m *mockHTTP) Post(_, _ string, _ io.Reader) ([]byte, error) {
 	m.postCallCount++
-	return make([]byte, 0), nil
+	return []byte("{}"), nil
 }
 
 func TestMetricsCollector_CollectMetrics(t *testing.T) {

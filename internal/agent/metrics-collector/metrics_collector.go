@@ -2,15 +2,18 @@ package metricscollector
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand/v2"
+	"os"
 	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/Kopleman/metcol/internal/agent/config"
 	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 )
 
@@ -141,15 +144,15 @@ func (mc *MetricsCollector) CollectMetrics() error {
 }
 
 func (mc *MetricsCollector) increasePollCounter() error {
-	currentPCValue, err := strconv.ParseInt(mc.currentMetricState["PollCount"].value, 10, 64)
+	currentPCValue, err := strconv.ParseInt(mc.currentMetricState[pollCountMetricName].value, 10, 64)
 	if err != nil {
 		return fmt.Errorf(
-			"unable to parse counterpoll value ('%s') on poll counter inc",
-			mc.currentMetricState["PollCount"].value,
+			"unable to parse pollcount value ('%s') on poll counter inc",
+			mc.currentMetricState[pollCountMetricName].value,
 		)
 	}
 
-	mc.currentMetricState["PollCount"] = MetricItem{
+	mc.currentMetricState[pollCountMetricName] = MetricItem{
 		value:      strconv.FormatInt(currentPCValue+1, 10),
 		metricType: common.CounterMetricType,
 	}
@@ -158,14 +161,14 @@ func (mc *MetricsCollector) increasePollCounter() error {
 }
 
 func (mc *MetricsCollector) resetPollCounter() {
-	mc.currentMetricState["PollCount"] = MetricItem{
-		value:      "",
+	mc.currentMetricState[pollCountMetricName] = MetricItem{
+		value:      "0",
 		metricType: common.CounterMetricType,
 	}
 }
 
 func (mc *MetricsCollector) assignNewRandomValue() {
-	mc.currentMetricState["RandomValue"] = MetricItem{
+	mc.currentMetricState[randomValueMetricName] = MetricItem{
 		value:      strconv.FormatFloat(rand.Float64(), 'f', -1, 64),
 		metricType: common.GougeMetricType,
 	}
@@ -183,19 +186,55 @@ func (mc *MetricsCollector) SendMetrics() error {
 	return nil
 }
 
-func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
-	url := "/update/" + string(item.metricType) + "/" + name + "/" + item.value
+func (mc *MetricsCollector) convertMetricItemToDto(name string, item MetricItem) (*dto.MetricDTO, error) {
+	metricDto := &dto.MetricDTO{
+		ID:    name,
+		MType: item.metricType,
+	}
+	switch item.metricType {
+	case common.CounterMetricType:
+		parsedDelta, err := strconv.ParseInt(item.value, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse value ('%s') for metric '%s': %w", item.value, name, err)
+		}
+		metricDto.Delta = &parsedDelta
+	case common.GougeMetricType:
+		parsedValue, err := strconv.ParseFloat(item.value, 64)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse value ('%s') for metric '%s': %w", item.value, name, err)
+		}
+		metricDto.Value = &parsedValue
+	default:
+		return nil, fmt.Errorf("unknown metric type: %s", item.metricType)
+	}
 
-	body := []byte("")
-	_, err := mc.client.Post(url, "text/plain", bytes.NewBuffer(body))
+	return metricDto, nil
+}
+
+func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
+	metricDto, err := mc.convertMetricItemToDto(name, item)
+	if err != nil {
+		return err
+	}
+	body, marshalErr := json.Marshal(metricDto)
+	if marshalErr != nil {
+		return fmt.Errorf("unable to marshal metric dto: %w", err)
+	}
+	url := "/update"
+	respBytes, err := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("unable to sent %s metric: %w", name, err)
+	}
+
+	var t interface{}
+	if err := json.Unmarshal(respBytes, &t); err != nil {
+		return fmt.Errorf("unable to unmarshal metric response: %w", err)
 	}
 
 	return nil
 }
 
-func (mc *MetricsCollector) Run() {
+func (mc *MetricsCollector) Run(sig chan os.Signal) error {
 	now := time.Now()
 
 	pollDuration := time.Duration(mc.cfg.PollInterval) * time.Second
@@ -210,14 +249,16 @@ func (mc *MetricsCollector) Run() {
 	}
 
 	ticker := time.NewTicker(1 * time.Second)
-	quit := make(chan bool)
 	for {
 		select {
 		case <-ticker.C:
-			mc.doIntervalJobs(&args, quit)
-		case <-quit:
+			if err := mc.doIntervalJobs(&args); err != nil {
+				ticker.Stop()
+				return err
+			}
+		case <-sig:
 			ticker.Stop()
-			return
+			return nil
 		}
 	}
 }
@@ -230,15 +271,13 @@ type intervalJobsArg struct {
 	reportInProgress bool
 }
 
-func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg, quitChan chan bool) {
+func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg) error {
 	now := time.Now()
 	if now.After(args.collectTimer) {
 		err := mc.CollectMetrics()
 
 		if err != nil {
-			mc.logger.Error(err)
-			quitChan <- true
-			return
+			return fmt.Errorf("collect metrics: %w", err)
 		}
 
 		mc.logger.Info("collected metrics")
@@ -247,7 +286,7 @@ func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg, quitChan chan 
 	}
 
 	if args.reportInProgress {
-		return
+		return nil
 	}
 
 	if now.After(args.reportTimer) {
@@ -262,9 +301,10 @@ func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg, quitChan chan 
 		}
 
 		args.reportTimer = now.Add(args.reportInterval)
-
 		args.reportInProgress = false
 	}
+
+	return nil
 }
 
 type HTTPClient interface {
@@ -280,11 +320,11 @@ type MetricsCollector struct {
 
 func NewMetricsCollector(cfg *config.Config, logger log.Logger, client HTTPClient) *MetricsCollector {
 	baseState := map[string]MetricItem{
-		"PollCount": {
+		pollCountMetricName: {
 			value:      "0",
 			metricType: common.CounterMetricType,
 		},
-		"RandomValue": {
+		randomValueMetricName: {
 			value:      "0",
 			metricType: common.CounterMetricType,
 		},

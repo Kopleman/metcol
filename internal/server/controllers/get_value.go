@@ -1,24 +1,34 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"strings"
 
 	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/Kopleman/metcol/internal/server/store"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-chi/chi/v5"
 )
 
 type MetricsForGetValue interface {
 	GetValueAsString(metricType common.MetricType, name string) (string, error)
+	GetMetricAsDTO(metricType common.MetricType, name string) (*dto.MetricDTO, error)
 }
 
-func GetValue(logger log.Logger, metricsService MetricsForGetValue) func(http.ResponseWriter, *http.Request) {
+type GetValueController struct {
+	logger         log.Logger
+	metricsService MetricsForGetValue
+}
+
+func NewGetValueController(logger log.Logger, metricsService MetricsForGetValue) *GetValueController {
+	return &GetValueController{logger, metricsService}
+}
+
+func (ctrl *GetValueController) GetValue() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		metricTypeStringAsString := strings.ToLower(chi.URLParam(req, "metricType"))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
@@ -33,24 +43,60 @@ func GetValue(logger log.Logger, metricsService MetricsForGetValue) func(http.Re
 			return
 		}
 
-		logger.Infof("getValue called with metricType='%s', metricName='%s' at %s", metricType, metricName)
+		ctrl.logger.Infof("getValue called with metricType='%s', metricName='%s' at %s", metricType, metricName)
 
-		value, err := metricsService.GetValueAsString(metricType, metricName)
-		spew.Dump(err)
+		value, err := ctrl.metricsService.GetValueAsString(metricType, metricName)
+
 		if err != nil {
-			spew.Dump(errors.Is(err, store.ErrNotFound))
 			if errors.Is(err, store.ErrNotFound) {
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}
 
-			logger.Error(err)
+			ctrl.logger.Error(err)
 			http.Error(w, common.Err500Message, http.StatusInternalServerError)
 			return
 		}
 
-		if _, err := io.WriteString(w, value); err != nil {
+		w.Header().Set(common.ContentType, "text/html")
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write([]byte(value)); err != nil {
 			http.Error(w, common.Err500Message, http.StatusInternalServerError)
+		}
+	}
+}
+
+func (ctrl *GetValueController) GetValueAsDTO() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		reqDto := new(dto.GetValueRequest)
+		if err := json.NewDecoder(req.Body).Decode(&reqDto); err != nil {
+			http.Error(w, "unable to parse dto", http.StatusBadRequest)
+			return
+		}
+
+		ctrl.logger.Infow(
+			"get value called via JSON endpoint",
+			metricTypeField, reqDto.MType,
+			metricNameField, reqDto.ID,
+		)
+
+		value, err := ctrl.metricsService.GetMetricAsDTO(reqDto.MType, reqDto.ID)
+		if err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+
+			ctrl.logger.Error(err)
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set(common.ContentType, "application/json")
+		w.WriteHeader(http.StatusOK)
+		if err = json.NewEncoder(w).Encode(value); err != nil {
+			http.Error(w, common.Err500Message, http.StatusBadRequest)
+			return
 		}
 	}
 }

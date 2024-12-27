@@ -8,8 +8,8 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
-const minReportInterval int64 = 10
-const minPollInterval int64 = 2
+const defaultReportInterval int64 = 10
+const defaultPollInterval int64 = 2
 
 type Config struct {
 	EndPoint       *flags.NetAddress
@@ -34,9 +34,9 @@ func ParseAgentConfig() (*Config, error) {
 	netAddrValue := flag.Value(netAddr)
 	flag.Var(netAddrValue, "a", "address and port of collector-server")
 
-	flag.Int64Var(&config.ReportInterval, "r", minReportInterval, "report interval")
+	flag.Int64Var(&config.ReportInterval, "r", defaultReportInterval, "report interval")
 
-	flag.Int64Var(&config.PollInterval, "p", minPollInterval, "poll interval")
+	flag.Int64Var(&config.PollInterval, "p", defaultPollInterval, "poll interval")
 
 	flag.Parse()
 
