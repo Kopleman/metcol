@@ -38,15 +38,6 @@ func NewPostgresSQL(ctx context.Context, logger log.Logger, dsn string) (*Postgr
 	return psql, nil
 }
 
-func (p *PostgreSQL) pingDB() error {
-	err := p.Ping(context.Background())
-	if err != nil {
-		return fmt.Errorf("PingDB: %w", err)
-	}
-
-	return nil
-}
-
 func (p *PostgreSQL) Interface() IPgxPool {
 	return p
 }
