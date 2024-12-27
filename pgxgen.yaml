@@ -1,0 +1,41 @@
+version: "1"
+sqlc:
+  - # directory with migrations. required
+    schema_dir: sql/migrations
+
+    crud:
+      auto_remove_generated_files: true
+      exclude_table_name_from_methods: false
+      tables:
+        metrics:
+          primary_column: id
+          methods:
+            create:
+              skip_columns:
+                - id
+                - updated_at
+              column_values:
+                created_at: now()
+              returning: "*"
+            update:
+              skip_columns:
+                - id
+                - created_at
+              column_values:
+                updated_at: now()
+              returning: "*"
+            find:
+              where:
+                name:
+                  operator: "="
+                type:
+                  operator: "="
+                deleted_at:
+                  value: "IS NULL"
+              order:
+                by: created_at
+                direction: DESC
+              limit: true
+            get:
+            delete:
+            total:
