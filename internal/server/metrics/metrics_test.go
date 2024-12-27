@@ -14,7 +14,7 @@ import (
 
 func TestMetrics_SetGauge(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	type args struct {
 		name  string
@@ -29,7 +29,14 @@ func TestMetrics_SetGauge(t *testing.T) {
 		{
 			name: "add gauge metric 1",
 			fields: fields{
-				db: map[string]any{"foo-gouge": 0},
+				db: map[string]*dto.MetricDTO{
+					"foo-gouge": {
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(0.0),
+					},
+				},
 			},
 			args: args{
 				name:  "foo",
@@ -40,7 +47,14 @@ func TestMetrics_SetGauge(t *testing.T) {
 		{
 			name: "add gauge metric 2",
 			fields: fields{
-				db: map[string]any{"foo-gouge": 1},
+				db: map[string]*dto.MetricDTO{
+					"foo-gouge": {
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(1.0),
+					},
+				},
 			},
 			args: args{
 				name:  "foo",
@@ -51,7 +65,7 @@ func TestMetrics_SetGauge(t *testing.T) {
 		{
 			name: "add gauge metric 3",
 			fields: fields{
-				db: make(map[string]any),
+				db: make(map[string]*dto.MetricDTO),
 			},
 			args: args{
 				name:  "foo",
@@ -70,16 +84,19 @@ func TestMetrics_SetGauge(t *testing.T) {
 				t.Errorf("SetGauge() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(tt.fields.db[tt.args.name+"-"+string(common.GougeMetricType)], tt.args.value) {
-				t.Errorf("SetGauge() got = %v, want %v", tt.fields.db[tt.args.name], tt.args.value)
+			metric, ok := tt.fields.db[tt.args.name+"-"+string(common.GougeMetricType)]
+			if !ok {
+				t.Errorf("metric not found in store")
+				return
 			}
+			assert.Equalf(t, tt.args.value, *metric.Value, "SetGauge()")
 		})
 	}
 }
 
 func TestMetrics_SetCounter(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	type args struct {
 		name  string
@@ -94,7 +111,14 @@ func TestMetrics_SetCounter(t *testing.T) {
 		{
 			name: "add counter metric 1",
 			fields: fields{
-				db: map[string]any{"foo-counter": int64(0)},
+				db: map[string]*dto.MetricDTO{
+					"foo-gouge": {
+						ID:    "foo",
+						MType: "counter",
+						Delta: testutils.Pointer(int64(0)),
+						Value: nil,
+					},
+				},
 			},
 			args: args{
 				name:  "foo",
@@ -105,7 +129,14 @@ func TestMetrics_SetCounter(t *testing.T) {
 		{
 			name: "add counter metric 2",
 			fields: fields{
-				db: map[string]any{"foo-counter": int64(1)},
+				db: map[string]*dto.MetricDTO{
+					"foo-gouge": {
+						ID:    "foo",
+						MType: "counter",
+						Delta: testutils.Pointer(int64(1)),
+						Value: nil,
+					},
+				},
 			},
 			args: args{
 				name:  "foo",
@@ -116,7 +147,7 @@ func TestMetrics_SetCounter(t *testing.T) {
 		{
 			name: "add counter metric 3",
 			fields: fields{
-				db: make(map[string]any),
+				db: make(map[string]*dto.MetricDTO),
 			},
 			args: args{
 				name:  "foo",
@@ -132,12 +163,12 @@ func TestMetrics_SetCounter(t *testing.T) {
 			}
 			beforeUpdate, ok := tt.fields.db[tt.args.name+"-"+string(common.CounterMetricType)]
 			if !ok {
-				beforeUpdate = int64(0)
-			}
-			parsed, pOk := beforeUpdate.(int64)
-			if !pOk {
-				t.Error("beforeUpdate parse error")
-				return
+				beforeUpdate = &dto.MetricDTO{
+					Delta: testutils.Pointer(int64(0)),
+					Value: nil,
+					ID:    tt.args.name,
+					MType: common.CounterMetricType,
+				}
 			}
 
 			_, err := m.SetCounter(tt.args.name, tt.args.value)
@@ -146,31 +177,43 @@ func TestMetrics_SetCounter(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(tt.fields.db[tt.args.name+"-"+string(common.CounterMetricType)], tt.args.value+parsed) {
-				t.Errorf("SetCounter() got = %v, want %v", tt.fields.db[tt.args.name], tt.args.value)
+			metric, ok := tt.fields.db[tt.args.name+"-"+string(common.CounterMetricType)]
+			if !ok {
+				t.Errorf("metric not found in store")
+				return
 			}
+			assert.Equalf(t, tt.args.value+*beforeUpdate.Delta, *metric.Delta, "SetCounter()")
 		})
 	}
 }
 
 func TestMetrics_GetValueAsString(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	type args struct {
 		metricType common.MetricType
 		name       string
 	}
 	tests := []struct {
-		want    any
+		want    string
 		fields  fields
 		args    args
 		name    string
 		wantErr bool
 	}{
 		{
-			name:   "get gauge metric",
-			fields: fields{db: map[string]any{"foo-gauge": float64(1)}},
+			name: "get gauge metric",
+			fields: fields{
+				db: map[string]*dto.MetricDTO{
+					"foo-gauge": {
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(1.0),
+					},
+				},
+			},
 			args: args{
 				metricType: "gauge",
 				name:       "foo",
@@ -179,8 +222,17 @@ func TestMetrics_GetValueAsString(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:   "get counter metric",
-			fields: fields{db: map[string]any{"foo-counter": int64(1)}},
+			name: "get counter metric",
+			fields: fields{
+				db: map[string]*dto.MetricDTO{
+					"foo-counter": {
+						ID:    "foo",
+						MType: "counter",
+						Delta: testutils.Pointer(int64(1)),
+						Value: nil,
+					},
+				},
+			},
 			args: args{
 				metricType: "counter",
 				name:       "foo",
@@ -189,8 +241,17 @@ func TestMetrics_GetValueAsString(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:   "get counter metric",
-			fields: fields{db: map[string]any{"foo-gauge": 1}},
+			name: "get counter metric",
+			fields: fields{
+				db: map[string]*dto.MetricDTO{
+					"foo-gouge": {
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(1.0),
+					},
+				},
+			},
 			args: args{
 				metricType: "counter",
 				name:       "foo",
@@ -218,7 +279,7 @@ func TestMetrics_GetValueAsString(t *testing.T) {
 
 func TestMetrics_SetMetric(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	type args struct {
 		metricType common.MetricType
@@ -232,8 +293,8 @@ func TestMetrics_SetMetric(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:   "add gouge metric",
-			fields: fields{db: make(map[string]any)},
+			name:   "add gauge metric",
+			fields: fields{db: make(map[string]*dto.MetricDTO)},
 			args: args{
 				metricType: "gauge",
 				name:       "foo",
@@ -243,7 +304,7 @@ func TestMetrics_SetMetric(t *testing.T) {
 		},
 		{
 			name:   "add counter metric",
-			fields: fields{db: make(map[string]any)},
+			fields: fields{db: make(map[string]*dto.MetricDTO)},
 			args: args{
 				metricType: "counter",
 				name:       "foo",
@@ -267,19 +328,19 @@ func TestMetrics_SetMetric(t *testing.T) {
 			var valueToCheck string
 			switch tt.args.metricType {
 			case common.GougeMetricType:
-				parsed, pOk := tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)].(float64)
+				metric, pOk := tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)]
 				if !pOk {
-					t.Error("GougeMetricType parse error")
+					t.Error("GaugeMetricType parse error")
 					return
 				}
-				valueToCheck = strconv.FormatFloat(parsed, 'f', -1, 64)
+				valueToCheck = strconv.FormatFloat(*metric.Value, 'f', -1, 64)
 			case common.CounterMetricType:
-				parsed, pOk := tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)].(int64)
+				metric, pOk := tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)]
 				if !pOk {
 					t.Error("CounterMetricType parse error")
 					return
 				}
-				valueToCheck = strconv.FormatInt(parsed, 10)
+				valueToCheck = strconv.FormatInt(*metric.Delta, 10)
 			default:
 				valueToCheck = ""
 			}
@@ -291,7 +352,7 @@ func TestMetrics_SetMetric(t *testing.T) {
 
 func TestMetrics_GetAllValuesAsString(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	tests := []struct {
 		fields  fields
@@ -300,22 +361,31 @@ func TestMetrics_GetAllValuesAsString(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "get stored metrics",
-			fields:  fields{db: map[string]any{"foo-gauge": float64(0.1), "bar-counter": int64(2)}},
+			name: "get stored metrics",
+			fields: fields{
+				db: map[string]*dto.MetricDTO{
+					"foo-gauge": {
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(0.1),
+					},
+					"bar-counter": {
+						ID:    "bar",
+						MType: "counter",
+						Delta: testutils.Pointer(int64(2)),
+						Value: nil,
+					},
+				},
+			},
 			want:    map[string]string{"foo": "0.1", "bar": "2"},
 			wantErr: false,
 		},
 		{
-			name:    "empty memstore",
-			fields:  fields{db: map[string]any{}},
+			name:    "empty store",
+			fields:  fields{db: map[string]*dto.MetricDTO{}},
 			want:    map[string]string{},
 			wantErr: false,
-		},
-		{
-			name:    "empty memstore",
-			fields:  fields{db: map[string]any{"foo-gauge": 1}},
-			want:    map[string]string{},
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -337,7 +407,7 @@ func TestMetrics_GetAllValuesAsString(t *testing.T) {
 
 func TestMetrics_SetMetricByDto(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	type args struct {
 		metricDto *dto.MetricDTO
@@ -351,7 +421,7 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 	}{
 		{
 			name:   "add gouge metric",
-			fields: fields{db: make(map[string]any)},
+			fields: fields{db: make(map[string]*dto.MetricDTO)},
 			args: args{
 				metricDto: &dto.MetricDTO{
 					ID:    "foo",
@@ -368,7 +438,7 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 		},
 		{
 			name:   "add counter metric",
-			fields: fields{db: make(map[string]any)},
+			fields: fields{db: make(map[string]*dto.MetricDTO)},
 			args: args{
 				metricDto: &dto.MetricDTO{
 					ID:    "foo",
@@ -402,7 +472,7 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 
 func TestMetrics_GetMetricAsDTO(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	type args struct {
 		metricType common.MetricType
@@ -416,8 +486,15 @@ func TestMetrics_GetMetricAsDTO(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:   "get gauge metric",
-			fields: fields{db: map[string]any{"foo-gauge": 1.1}},
+			name: "get gauge metric",
+			fields: fields{db: map[string]*dto.MetricDTO{
+				"foo-gauge": {
+					ID:    "foo",
+					MType: "gauge",
+					Delta: nil,
+					Value: testutils.Pointer(1.1),
+				},
+			}},
 			args: args{
 				metricType: "gauge",
 				name:       "foo",
@@ -431,8 +508,14 @@ func TestMetrics_GetMetricAsDTO(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:   "get counter metric",
-			fields: fields{db: map[string]any{"foo-counter": int64(100)}},
+			name: "get counter metric",
+			fields: fields{db: map[string]*dto.MetricDTO{
+				"foo-counter": {
+					ID:    "foo",
+					MType: "counter",
+					Delta: testutils.Pointer(int64(100)),
+				}},
+			},
 			args: args{
 				metricType: "counter",
 				name:       "foo",
@@ -445,8 +528,13 @@ func TestMetrics_GetMetricAsDTO(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:   "get counter metric",
-			fields: fields{db: map[string]any{"foo-gauge": 1}},
+			name: "get counter metric",
+			fields: fields{db: map[string]*dto.MetricDTO{
+				"foo-gauge": {
+					ID:    "foo",
+					MType: "counter",
+					Delta: testutils.Pointer(int64(100)),
+				}}},
 			args: args{
 				metricType: "counter",
 				name:       "foo",
@@ -472,7 +560,7 @@ func TestMetrics_GetMetricAsDTO(t *testing.T) {
 
 func TestMetrics_ExportMetrics(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	tests := []struct {
 		name    string
@@ -481,8 +569,15 @@ func TestMetrics_ExportMetrics(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:   "export 1 metric",
-			fields: fields{db: map[string]any{"foo-gauge": 1.1}},
+			name: "export 1 metric",
+			fields: fields{db: map[string]*dto.MetricDTO{
+				"foo": {
+					ID:    "foo",
+					MType: "gauge",
+					Delta: nil,
+					Value: testutils.Pointer(1.1),
+				},
+			}},
 			want: []*dto.MetricDTO{
 				{
 					ID:    "foo",
@@ -494,8 +589,21 @@ func TestMetrics_ExportMetrics(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:   "export 2 metrics",
-			fields: fields{db: map[string]any{"foo-gauge": float64(0.1), "bar-counter": int64(2)}},
+			name: "export 2 metrics",
+			fields: fields{db: map[string]*dto.MetricDTO{
+				"foo-gauge": {
+					ID:    "foo",
+					MType: "gauge",
+					Delta: nil,
+					Value: testutils.Pointer(0.1),
+				},
+				"bar-counter": {
+					ID:    "bar",
+					MType: "counter",
+					Delta: testutils.Pointer(int64(2)),
+					Value: nil,
+				},
+			}},
 			want: []*dto.MetricDTO{
 				{
 					ID:    "foo",
@@ -511,12 +619,6 @@ func TestMetrics_ExportMetrics(t *testing.T) {
 				},
 			},
 			wantErr: false,
-		},
-		{
-			name:    "export bad metric",
-			fields:  fields{db: map[string]any{"foo-gauge": "bad staff"}},
-			want:    nil,
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -536,21 +638,21 @@ func TestMetrics_ExportMetrics(t *testing.T) {
 
 func TestMetrics_ImportMetrics(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	type args struct {
 		metricsToImport []*dto.MetricDTO
 	}
 	tests := []struct {
 		fields  fields
-		want    map[string]any
+		want    map[string]*dto.MetricDTO
 		name    string
 		args    args
 		wantErr bool
 	}{
 		{
 			name:   "import 1 metric",
-			fields: fields{db: make(map[string]any)},
+			fields: fields{db: make(map[string]*dto.MetricDTO)},
 			args: args{
 				metricsToImport: []*dto.MetricDTO{
 					{
@@ -561,12 +663,19 @@ func TestMetrics_ImportMetrics(t *testing.T) {
 					},
 				},
 			},
-			want:    map[string]any{"foo-gauge": 1.1},
+			want: map[string]*dto.MetricDTO{
+				"foo-gauge": {
+					ID:    "foo",
+					MType: "gauge",
+					Delta: nil,
+					Value: testutils.Pointer(1.1),
+				},
+			},
 			wantErr: false,
 		},
 		{
 			name:   "import 2 metric",
-			fields: fields{db: make(map[string]any)},
+			fields: fields{db: make(map[string]*dto.MetricDTO)},
 			args: args{
 				metricsToImport: []*dto.MetricDTO{
 					{
@@ -583,12 +692,25 @@ func TestMetrics_ImportMetrics(t *testing.T) {
 					},
 				},
 			},
-			want:    map[string]any{"foo-gauge": float64(0.1), "bar-counter": int64(2)},
+			want: map[string]*dto.MetricDTO{
+				"foo-gauge": {
+					ID:    "foo",
+					MType: "gauge",
+					Delta: nil,
+					Value: testutils.Pointer(0.1),
+				},
+				"bar-counter": {
+					ID:    "bar",
+					MType: "counter",
+					Delta: testutils.Pointer(int64(2)),
+					Value: nil,
+				},
+			},
 			wantErr: false,
 		},
 		{
 			name:   "import bad metric",
-			fields: fields{db: make(map[string]any)},
+			fields: fields{db: make(map[string]*dto.MetricDTO)},
 			args: args{
 				metricsToImport: []*dto.MetricDTO{
 					{
@@ -599,7 +721,7 @@ func TestMetrics_ImportMetrics(t *testing.T) {
 					},
 				},
 			},
-			want:    map[string]any{},
+			want:    make(map[string]*dto.MetricDTO),
 			wantErr: true,
 		},
 	}
@@ -613,7 +735,7 @@ func TestMetrics_ImportMetrics(t *testing.T) {
 				t.Errorf("ImportMetrics() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			assert.Equalf(t, tt.want, tt.fields.db, "ImportMetrics()")
+			assert.Equal(t, tt.want, tt.fields.db, "ImportMetrics()")
 		})
 	}
 }

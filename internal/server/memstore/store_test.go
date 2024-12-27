@@ -3,15 +3,18 @@ package memstore
 import (
 	"reflect"
 	"testing"
+
+	"github.com/Kopleman/metcol/internal/common/dto"
+	"github.com/Kopleman/metcol/internal/testutils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStore_Create(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	type args struct {
-		value any
-		key   string
+		value *dto.MetricDTO
 	}
 	tests := []struct {
 		args    args
@@ -21,19 +24,36 @@ func TestStore_Create(t *testing.T) {
 	}{
 		{
 			name:   "add record to db",
-			fields: fields{db: make(map[string]any)},
+			fields: fields{db: make(map[string]*dto.MetricDTO)},
 			args: args{
-				key:   "foo",
-				value: "bar",
+				value: &dto.MetricDTO{
+					ID:    "foo",
+					MType: "gauge",
+					Delta: nil,
+					Value: testutils.Pointer(0.0),
+				},
 			},
 			wantErr: false,
 		},
 		{
-			name:   "should throw error on duplicates",
-			fields: fields{db: map[string]any{"foo": "bar"}},
+			name: "should throw error on duplicates",
+			fields: fields{
+				db: map[string]*dto.MetricDTO{
+					"foo-gauge": {
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(0.0),
+					},
+				},
+			},
 			args: args{
-				key:   "foo",
-				value: "bar",
+				value: &dto.MetricDTO{
+					ID:    "foo",
+					MType: "gauge",
+					Delta: nil,
+					Value: testutils.Pointer(0.0),
+				},
 			},
 			wantErr: true,
 		},
@@ -41,7 +61,7 @@ func TestStore_Create(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewStore(tt.fields.db)
-			if err := s.Create(tt.args.key, tt.args.value); (err != nil) != tt.wantErr {
+			if err := s.Create(tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -50,28 +70,51 @@ func TestStore_Create(t *testing.T) {
 
 func TestStore_Read(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	type args struct {
 		key string
 	}
 	tests := []struct {
-		want    any
+		want    *dto.MetricDTO
 		fields  fields
 		name    string
 		args    args
 		wantErr bool
 	}{
 		{
-			name:    "should read value from memstore",
-			fields:  fields{db: map[string]any{"foo": "bar"}},
-			args:    args{key: "foo"},
-			want:    "bar",
+			name: "should read value from memstore",
+			fields: fields{
+				db: map[string]*dto.MetricDTO{
+					"foo-gouge": {
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(0.0),
+					},
+				},
+			},
+			args: args{key: "foo-gouge"},
+			want: &dto.MetricDTO{
+				ID:    "foo",
+				MType: "gauge",
+				Delta: nil,
+				Value: testutils.Pointer(0.0),
+			},
 			wantErr: false,
 		},
 		{
-			name:    "should throw error if value not presented",
-			fields:  fields{db: map[string]any{"foo": "bar"}},
+			name: "should throw error if value not presented",
+			fields: fields{
+				db: map[string]*dto.MetricDTO{
+					"foo-gouge": {
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(0.0),
+					},
+				},
+			},
 			args:    args{key: "another-foo"},
 			want:    nil,
 			wantErr: true,
@@ -96,11 +139,10 @@ func TestStore_Read(t *testing.T) {
 
 func TestStore_Update(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	type args struct {
-		value any
-		key   string
+		value *dto.MetricDTO
 	}
 	tests := []struct {
 		args    args
@@ -109,15 +151,47 @@ func TestStore_Update(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "should update record",
-			fields:  fields{db: map[string]any{"foo": "bar"}},
-			args:    args{key: "foo", value: "baz"},
+			name: "should update record",
+			fields: fields{
+				db: map[string]*dto.MetricDTO{
+					"foo-gauge": {
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(0.0),
+					},
+				},
+			},
+			args: args{
+				value: &dto.MetricDTO{
+					ID:    "foo",
+					MType: "gauge",
+					Delta: nil,
+					Value: testutils.Pointer(1.0),
+				},
+			},
 			wantErr: false,
 		},
 		{
-			name:    "should throw error if value not presented",
-			fields:  fields{db: map[string]any{"foo": "bar"}},
-			args:    args{key: "another-foo"},
+			name: "should throw error if value not presented",
+			fields: fields{
+				db: map[string]*dto.MetricDTO{
+					"foo-gauge": {
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(0.0),
+					},
+				},
+			},
+			args: args{
+				value: &dto.MetricDTO{
+					ID:    "bar",
+					MType: "gauge",
+					Delta: nil,
+					Value: testutils.Pointer(1.0),
+				},
+			},
 			wantErr: true,
 		},
 	}
@@ -126,21 +200,27 @@ func TestStore_Update(t *testing.T) {
 			s := &Store{
 				db: tt.fields.db,
 			}
-			err := s.Update(tt.args.key, tt.args.value)
+			err := s.Update(tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(tt.fields.db[tt.args.key], tt.args.value) {
-				t.Errorf("Update() got = %v, want %v", tt.fields.db[tt.args.key], tt.args.value)
+			if tt.wantErr {
+				return
 			}
+			metric, ok := tt.fields.db[tt.args.value.ID+"-"+string(tt.args.value.MType)]
+			if !ok {
+				t.Errorf("metric not found in store")
+				return
+			}
+			assert.Equalf(t, tt.args.value, metric, "SetGauge()")
 		})
 	}
 }
 
 func TestStore_Delete(t *testing.T) {
 	type fields struct {
-		db map[string]any
+		db map[string]*dto.MetricDTO
 	}
 	type args struct {
 		key string
@@ -152,14 +232,32 @@ func TestStore_Delete(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "should delete record",
-			fields:  fields{db: map[string]any{"foo": "bar"}},
-			args:    args{key: "foo"},
+			name: "should delete record",
+			fields: fields{
+				db: map[string]*dto.MetricDTO{
+					"foo-gouge": {
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(0.0),
+					},
+				},
+			},
+			args:    args{key: "foo-gouge"},
 			wantErr: false,
 		},
 		{
-			name:    "should throw error if value not presented",
-			fields:  fields{db: map[string]any{"foo": "bar"}},
+			name: "should throw error if value not presented",
+			fields: fields{
+				db: map[string]*dto.MetricDTO{
+					"foo-gouge": {
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(0.0),
+					},
+				},
+			},
 			args:    args{key: "another-foo"},
 			wantErr: true,
 		},

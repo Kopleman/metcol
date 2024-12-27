@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/config"
 	filestorage "github.com/Kopleman/metcol/internal/server/file_storage"
@@ -39,7 +40,7 @@ func (s *Server) Start(ctx context.Context) error {
 		s.db = pg
 	}
 
-	storeService := memstore.NewStore(make(map[string]any))
+	storeService := memstore.NewStore(make(map[string]*dto.MetricDTO))
 	metricsService := metrics.NewMetrics(storeService)
 	fs := filestorage.NewFileStorage(s.config, s.logger, metricsService)
 	if err := fs.Init(); err != nil {

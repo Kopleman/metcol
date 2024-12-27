@@ -8,7 +8,8 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
-	errors2 "github.com/Kopleman/metcol/internal/server/errors"
+	"github.com/Kopleman/metcol/internal/server/store_errors"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func (m *Metrics) buildStoreKey(name string, metricType common.MetricType) string {
@@ -39,9 +40,15 @@ func (m *Metrics) SetGauge(name string, value float64) (*float64, error) {
 
 	_, err := m.store.Read(storeKey)
 
+	metricDTO := &dto.MetricDTO{
+		Delta: nil,
+		Value: &value,
+		ID:    name,
+		MType: common.GougeMetricType,
+	}
 	if err != nil {
-		if errors.Is(err, errors2.ErrNotFound) {
-			storeErr := m.store.Create(storeKey, value)
+		if errors.Is(err, store_errors.ErrNotFound) {
+			storeErr := m.store.Create(metricDTO)
 			if storeErr != nil {
 				return nil, fmt.Errorf("failed to create gauge metric '%s': %w", storeKey, err)
 			}
@@ -51,7 +58,7 @@ func (m *Metrics) SetGauge(name string, value float64) (*float64, error) {
 		return nil, fmt.Errorf("failed to read gauge metric '%s': %w", storeKey, err)
 	}
 
-	updateErr := m.store.Update(storeKey, value)
+	updateErr := m.store.Update(metricDTO)
 	if updateErr != nil {
 		return nil, fmt.Errorf("failed to update gauge metric '%s': %w", storeKey, err)
 	}
@@ -62,11 +69,17 @@ func (m *Metrics) SetGauge(name string, value float64) (*float64, error) {
 func (m *Metrics) SetCounter(name string, value int64) (*int64, error) {
 	storeKey := m.buildStoreKey(name, common.CounterMetricType)
 
-	counterValue, err := m.store.Read(storeKey)
+	existedCounter, err := m.store.Read(storeKey)
 
 	if err != nil {
-		if errors.Is(err, errors2.ErrNotFound) {
-			storeErr := m.store.Create(storeKey, value)
+		if errors.Is(err, store_errors.ErrNotFound) {
+			metricDTO := &dto.MetricDTO{
+				Delta: &value,
+				Value: nil,
+				ID:    name,
+				MType: common.CounterMetricType,
+			}
+			storeErr := m.store.Create(metricDTO)
 			if storeErr != nil {
 				return nil, fmt.Errorf("failed to create counter metric '%s': %w", storeKey, err)
 			}
@@ -76,14 +89,13 @@ func (m *Metrics) SetCounter(name string, value int64) (*int64, error) {
 		return nil, fmt.Errorf("failed to read counter metric '%s': %w", storeKey, err)
 	}
 
-	parsedValue, ok := counterValue.(int64)
-
-	if !ok {
+	if existedCounter.Delta == nil {
 		return nil, ErrCounterValueParse
 	}
 
-	newValue := parsedValue + value
-	updateErr := m.store.Update(storeKey, newValue)
+	newValue := *existedCounter.Delta + value
+	existedCounter.Delta = &newValue
+	updateErr := m.store.Update(existedCounter)
 	if updateErr != nil {
 		return nil, fmt.Errorf("failed to update counter metric '%s': %w", storeKey, err)
 	}
@@ -146,73 +158,47 @@ func (m *Metrics) GetValueAsString(metricType common.MetricType, name string) (s
 		return "", fmt.Errorf("failed to read metric '%s': %w", storeKey, err)
 	}
 
-	return m.convertMetricValueToString(metricType, value)
+	return m.convertMetricValueToString(value)
 }
 
 func (m *Metrics) GetMetricAsDTO(metricType common.MetricType, name string) (*dto.MetricDTO, error) {
-	metricDTO := dto.MetricDTO{
-		MType: metricType,
-		ID:    name,
-	}
 	storeKey := m.buildStoreKey(name, metricType)
 	value, err := m.store.Read(storeKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read metric '%s': %w", storeKey, err)
 	}
 
-	switch metricType {
-	case common.CounterMetricType:
-		typedValue, ok := value.(int64)
-		if !ok {
-			return nil, ErrCounterValueParse
-		}
-		metricDTO.Delta = &typedValue
-	case common.GougeMetricType:
-		typedValue, ok := value.(float64)
-		if !ok {
-			return nil, ErrGougeValueParse
-		}
-		metricDTO.Value = &typedValue
-	default:
-		return nil, ErrUnknownMetricType
-	}
-
-	return &metricDTO, nil
+	return value, nil
 }
 
 func (m *Metrics) GetAllValuesAsString() (map[string]string, error) {
 	dataToReturn := make(map[string]string)
 	allMetrics := m.store.GetAll()
 
-	for metricKey, metricValue := range allMetrics {
-		metricName, metricType, err := m.parseStoreKey(metricKey)
+	for _, metricValue := range allMetrics {
+		valueAsString, err := m.convertMetricValueToString(metricValue)
 		if err != nil {
 			return dataToReturn, err
 		}
-		valueAsString, err := m.convertMetricValueToString(metricType, metricValue)
-		if err != nil {
-			return dataToReturn, err
-		}
-		dataToReturn[metricName] = valueAsString
+		dataToReturn[metricValue.ID] = valueAsString
 	}
 
 	return dataToReturn, nil
 }
 
-func (m *Metrics) convertMetricValueToString(metricType common.MetricType, value any) (string, error) {
-	switch metricType {
+func (m *Metrics) convertMetricValueToString(metricDTO *dto.MetricDTO) (string, error) {
+	switch metricDTO.MType {
 	case common.CounterMetricType:
-		typedValue, ok := value.(int64)
-		if !ok {
+		if metricDTO.Delta == nil {
 			return "", ErrCounterValueParse
 		}
-		return strconv.FormatInt(typedValue, 10), nil
+		return strconv.FormatInt(*metricDTO.Delta, 10), nil
 	case common.GougeMetricType:
-		typedValue, ok := value.(float64)
-		if !ok {
-			return "", ErrGougeValueParse
+		spew.Dump(metricDTO)
+		if metricDTO.Value == nil {
+			return "", ErrGaugeValueParse
 		}
-		return strconv.FormatFloat(typedValue, 'f', -1, 64), nil
+		return strconv.FormatFloat(*metricDTO.Value, 'f', -1, 64), nil
 	default:
 		return "", ErrUnknownMetricType
 	}
@@ -221,35 +207,8 @@ func (m *Metrics) convertMetricValueToString(metricType common.MetricType, value
 func (m *Metrics) ExportMetrics() ([]*dto.MetricDTO, error) {
 	allMetrics := m.store.GetAll()
 	exportData := make([]*dto.MetricDTO, 0, len(allMetrics))
-	for metricKey, metricValue := range allMetrics {
-		metricName, metricType, err := m.parseStoreKey(metricKey)
-		if err != nil {
-			return nil, err
-		}
-		metricDTO := dto.MetricDTO{
-			ID:    metricName,
-			MType: metricType,
-			Delta: nil,
-			Value: nil,
-		}
-		switch metricType {
-		case common.CounterMetricType:
-			typedValue, ok := metricValue.(int64)
-			if !ok {
-				return nil, ErrCounterValueParse
-			}
-			metricDTO.Delta = &typedValue
-		case common.GougeMetricType:
-			typedValue, ok := metricValue.(float64)
-			if !ok {
-				return nil, ErrGougeValueParse
-			}
-			metricDTO.Value = &typedValue
-		default:
-			return nil, ErrUnknownMetricType
-		}
-
-		exportData = append(exportData, &metricDTO)
+	for _, metricValue := range allMetrics {
+		exportData = append(exportData, metricValue)
 	}
 	return exportData, nil
 }
@@ -275,10 +234,10 @@ func ParseMetricType(typeAsString string) (common.MetricType, error) {
 }
 
 type Store interface {
-	Create(key string, value any) error
-	Read(key string) (any, error)
-	Update(key string, value any) error
-	GetAll() map[string]any
+	Create(value *dto.MetricDTO) error
+	Read(key string) (*dto.MetricDTO, error)
+	Update(value *dto.MetricDTO) error
+	GetAll() map[string]*dto.MetricDTO
 }
 
 type Metrics struct {

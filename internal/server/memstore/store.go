@@ -1,15 +1,24 @@
 package memstore
 
-import "github.com/Kopleman/metcol/internal/server/errors"
+import (
+	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/common/dto"
+	"github.com/Kopleman/metcol/internal/server/store_errors"
+)
+
+func (s *Store) buildStoreKey(name string, metricType common.MetricType) string {
+	return name + "-" + string(metricType)
+}
 
 func (s *Store) existed(key string) bool {
 	_, existed := s.db[key]
 	return existed
 }
 
-func (s *Store) Create(key string, value any) error {
+func (s *Store) Create(value *dto.MetricDTO) error {
+	key := s.buildStoreKey(value.ID, value.MType)
 	if s.existed(key) {
-		return errors.ErrAlreadyExists
+		return store_errors.ErrAlreadyExists
 	}
 
 	s.db[key] = value
@@ -17,17 +26,18 @@ func (s *Store) Create(key string, value any) error {
 	return nil
 }
 
-func (s *Store) Read(key string) (any, error) {
+func (s *Store) Read(key string) (*dto.MetricDTO, error) {
 	value, existed := s.db[key]
 
 	if !existed {
-		return nil, errors.ErrNotFound
+		return nil, store_errors.ErrNotFound
 	}
 
 	return value, nil
 }
 
-func (s *Store) Update(key string, value any) error {
+func (s *Store) Update(value *dto.MetricDTO) error {
+	key := s.buildStoreKey(value.ID, value.MType)
 	if _, err := s.Read(key); err != nil {
 		return err
 	}
@@ -47,15 +57,15 @@ func (s *Store) Delete(key string) error {
 	return nil
 }
 
-func (s *Store) GetAll() map[string]any {
+func (s *Store) GetAll() map[string]*dto.MetricDTO {
 	return s.db
 }
 
 type Store struct {
-	db map[string]any
+	db map[string]*dto.MetricDTO
 }
 
-func NewStore(db map[string]any) *Store {
+func NewStore(db map[string]*dto.MetricDTO) *Store {
 	return &Store{
 		db,
 	}
