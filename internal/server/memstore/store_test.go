@@ -2,9 +2,11 @@ package memstore
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/testutils"
 	"github.com/stretchr/testify/assert"
@@ -75,7 +77,8 @@ func TestStore_Read(t *testing.T) {
 		db map[string]*dto.MetricDTO
 	}
 	type args struct {
-		key string
+		name  string
+		mType common.MetricType
 	}
 	tests := []struct {
 		want    *dto.MetricDTO
@@ -88,7 +91,7 @@ func TestStore_Read(t *testing.T) {
 			name: "should read value from memstore",
 			fields: fields{
 				db: map[string]*dto.MetricDTO{
-					"foo-gouge": {
+					"foo-gauge": {
 						ID:    "foo",
 						MType: "gauge",
 						Delta: nil,
@@ -96,7 +99,7 @@ func TestStore_Read(t *testing.T) {
 					},
 				},
 			},
-			args: args{key: "foo-gouge"},
+			args: args{name: "foo", mType: "gauge"},
 			want: &dto.MetricDTO{
 				ID:    "foo",
 				MType: "gauge",
@@ -117,7 +120,7 @@ func TestStore_Read(t *testing.T) {
 					},
 				},
 			},
-			args:    args{key: "another-foo"},
+			args:    args{name: "foo", mType: "counter"},
 			want:    nil,
 			wantErr: true,
 		},
@@ -128,7 +131,7 @@ func TestStore_Read(t *testing.T) {
 			s := &Store{
 				db: tt.fields.db,
 			}
-			got, err := s.Read(ctx, tt.args.key)
+			got, err := s.Read(ctx, tt.args.mType, tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Read() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -227,7 +230,8 @@ func TestStore_Delete(t *testing.T) {
 		db map[string]*dto.MetricDTO
 	}
 	type args struct {
-		key string
+		name  string
+		mType common.MetricType
 	}
 	tests := []struct {
 		name    string
@@ -239,7 +243,7 @@ func TestStore_Delete(t *testing.T) {
 			name: "should delete record",
 			fields: fields{
 				db: map[string]*dto.MetricDTO{
-					"foo-gouge": {
+					"foo-gauge": {
 						ID:    "foo",
 						MType: "gauge",
 						Delta: nil,
@@ -247,14 +251,14 @@ func TestStore_Delete(t *testing.T) {
 					},
 				},
 			},
-			args:    args{key: "foo-gouge"},
+			args:    args{name: "foo", mType: "gauge"},
 			wantErr: false,
 		},
 		{
 			name: "should throw error if value not presented",
 			fields: fields{
 				db: map[string]*dto.MetricDTO{
-					"foo-gouge": {
+					"foo-gauge": {
 						ID:    "foo",
 						MType: "gauge",
 						Delta: nil,
@@ -262,7 +266,7 @@ func TestStore_Delete(t *testing.T) {
 					},
 				},
 			},
-			args:    args{key: "another-foo"},
+			args:    args{name: "foo", mType: "counter"},
 			wantErr: true,
 		},
 	}
@@ -272,14 +276,15 @@ func TestStore_Delete(t *testing.T) {
 			s := &Store{
 				db: tt.fields.db,
 			}
-			err := s.Delete(ctx, tt.args.key)
+			err := s.Delete(ctx, tt.args.mType, tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
-			if tt.fields.db[tt.args.key] != nil {
-				t.Errorf("Delete() got = %v, want nil", tt.fields.db[tt.args.key])
+			key := fmt.Sprintf("%s-%s", tt.args.name, tt.args.mType)
+			if tt.fields.db[key] != nil {
+				t.Errorf("Delete() got = %v, want nil", tt.fields.db[key])
 			}
 		})
 	}

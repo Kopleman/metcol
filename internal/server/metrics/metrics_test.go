@@ -86,7 +86,7 @@ func TestMetrics_SetGauge(t *testing.T) {
 				t.Errorf("SetGauge() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			metric, ok := tt.fields.db[tt.args.name+"-"+string(common.GougeMetricType)]
+			metric, ok := tt.fields.db[tt.args.name+"-"+string(common.GaugeMetricType)]
 			if !ok {
 				t.Errorf("metric not found in store")
 				return
@@ -332,7 +332,7 @@ func TestMetrics_SetMetric(t *testing.T) {
 
 			var valueToCheck string
 			switch tt.args.metricType {
-			case common.GougeMetricType:
+			case common.GaugeMetricType:
 				metric, pOk := tt.fields.db[tt.args.name+"-"+string(tt.args.metricType)]
 				if !pOk {
 					t.Error("GaugeMetricType parse error")

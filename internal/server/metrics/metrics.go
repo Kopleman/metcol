@@ -29,48 +29,44 @@ func (m *Metrics) parseStoreKey(key string) (string, common.MetricType, error) {
 	switch typeAsString {
 	case string(common.CounterMetricType):
 		return parts[0], common.CounterMetricType, nil
-	case string(common.GougeMetricType):
-		return parts[0], common.GougeMetricType, nil
+	case string(common.GaugeMetricType):
+		return parts[0], common.GaugeMetricType, nil
 	default:
 		return parts[0], common.UnknownMetricType, ErrUnknownMetricType
 	}
 }
 
 func (m *Metrics) SetGauge(ctx context.Context, name string, value float64) (*float64, error) {
-	storeKey := m.buildStoreKey(name, common.GougeMetricType)
-
-	_, err := m.store.Read(ctx, storeKey)
+	_, err := m.store.Read(ctx, common.GaugeMetricType, name)
 
 	metricDTO := &dto.MetricDTO{
 		Delta: nil,
 		Value: &value,
 		ID:    name,
-		MType: common.GougeMetricType,
+		MType: common.GaugeMetricType,
 	}
 	if err != nil {
 		if errors.Is(err, store_errors.ErrNotFound) {
 			storeErr := m.store.Create(ctx, metricDTO)
 			if storeErr != nil {
-				return nil, fmt.Errorf("failed to create gauge metric '%s': %w", storeKey, err)
+				return nil, fmt.Errorf("failed to create gauge metric '%s': %w", name, err)
 			}
 			return &value, nil
 		}
 
-		return nil, fmt.Errorf("failed to read gauge metric '%s': %w", storeKey, err)
+		return nil, fmt.Errorf("failed to read gauge metric '%s': %w", name, err)
 	}
 
 	updateErr := m.store.Update(ctx, metricDTO)
 	if updateErr != nil {
-		return nil, fmt.Errorf("failed to update gauge metric '%s': %w", storeKey, err)
+		return nil, fmt.Errorf("failed to update gauge metric '%s': %w", name, err)
 	}
 
 	return &value, nil
 }
 
 func (m *Metrics) SetCounter(ctx context.Context, name string, value int64) (*int64, error) {
-	storeKey := m.buildStoreKey(name, common.CounterMetricType)
-
-	existedCounter, err := m.store.Read(ctx, storeKey)
+	existedCounter, err := m.store.Read(ctx, common.CounterMetricType, name)
 
 	if err != nil {
 		if errors.Is(err, store_errors.ErrNotFound) {
@@ -82,12 +78,12 @@ func (m *Metrics) SetCounter(ctx context.Context, name string, value int64) (*in
 			}
 			storeErr := m.store.Create(ctx, metricDTO)
 			if storeErr != nil {
-				return nil, fmt.Errorf("failed to create counter metric '%s': %w", storeKey, err)
+				return nil, fmt.Errorf("failed to create counter metric '%s': %w", name, err)
 			}
 			return &value, nil
 		}
 
-		return nil, fmt.Errorf("failed to read counter metric '%s': %w", storeKey, err)
+		return nil, fmt.Errorf("failed to read counter metric '%s': %w", name, err)
 	}
 
 	if existedCounter.Delta == nil {
@@ -98,7 +94,7 @@ func (m *Metrics) SetCounter(ctx context.Context, name string, value int64) (*in
 	existedCounter.Delta = &newValue
 	updateErr := m.store.Update(ctx, existedCounter)
 	if updateErr != nil {
-		return nil, fmt.Errorf("failed to update counter metric '%s': %w", storeKey, err)
+		return nil, fmt.Errorf("failed to update counter metric '%s': %w", name, err)
 	}
 
 	return &newValue, nil
@@ -113,7 +109,7 @@ func (m *Metrics) SetMetric(ctx context.Context, metricType common.MetricType, n
 		}
 		_, err = m.SetCounter(ctx, name, parsedValue)
 		return err
-	case common.GougeMetricType:
+	case common.GaugeMetricType:
 		parsedValue, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return ErrValueParse
@@ -137,7 +133,7 @@ func (m *Metrics) SetMetricByDto(ctx context.Context, d *dto.MetricDTO) error {
 		}
 		d.Delta = newDelta
 		return nil
-	case common.GougeMetricType:
+	case common.GaugeMetricType:
 		if d.Value == nil {
 			return ErrValueParse
 		}
@@ -153,20 +149,18 @@ func (m *Metrics) SetMetricByDto(ctx context.Context, d *dto.MetricDTO) error {
 }
 
 func (m *Metrics) GetValueAsString(ctx context.Context, metricType common.MetricType, name string) (string, error) {
-	storeKey := m.buildStoreKey(name, metricType)
-	value, err := m.store.Read(ctx, storeKey)
+	value, err := m.store.Read(ctx, metricType, name)
 	if err != nil {
-		return "", fmt.Errorf("failed to read metric '%s': %w", storeKey, err)
+		return "", fmt.Errorf("failed to read metric '%s': %w", name, err)
 	}
 
 	return m.convertMetricValueToString(value)
 }
 
 func (m *Metrics) GetMetricAsDTO(ctx context.Context, metricType common.MetricType, name string) (*dto.MetricDTO, error) {
-	storeKey := m.buildStoreKey(name, metricType)
-	value, err := m.store.Read(ctx, storeKey)
+	value, err := m.store.Read(ctx, metricType, name)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read metric '%s': %w", storeKey, err)
+		return nil, fmt.Errorf("failed to read metric '%s': %w", name, err)
 	}
 
 	return value, nil
@@ -197,7 +191,7 @@ func (m *Metrics) convertMetricValueToString(metricDTO *dto.MetricDTO) (string, 
 			return "", ErrCounterValueParse
 		}
 		return strconv.FormatInt(*metricDTO.Delta, 10), nil
-	case common.GougeMetricType:
+	case common.GaugeMetricType:
 		spew.Dump(metricDTO)
 		if metricDTO.Value == nil {
 			return "", ErrGaugeValueParse
@@ -229,8 +223,8 @@ func ParseMetricType(typeAsString string) (common.MetricType, error) {
 	switch typeAsString {
 	case string(common.CounterMetricType):
 		return common.CounterMetricType, nil
-	case string(common.GougeMetricType):
-		return common.GougeMetricType, nil
+	case string(common.GaugeMetricType):
+		return common.GaugeMetricType, nil
 	default:
 		return common.UnknownMetricType, ErrUnknownMetricType
 	}
@@ -238,7 +232,7 @@ func ParseMetricType(typeAsString string) (common.MetricType, error) {
 
 type Store interface {
 	Create(ctx context.Context, value *dto.MetricDTO) error
-	Read(ctx context.Context, key string) (*dto.MetricDTO, error)
+	Read(ctx context.Context, mType common.MetricType, name string) (*dto.MetricDTO, error)
 	Update(ctx context.Context, value *dto.MetricDTO) error
 	GetAll(ctx context.Context) ([]*dto.MetricDTO, error)
 }
