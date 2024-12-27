@@ -7,7 +7,7 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
-	"github.com/Kopleman/metcol/internal/server/store"
+	"github.com/Kopleman/metcol/internal/server/memstore"
 	"github.com/Kopleman/metcol/internal/testutils"
 	"github.com/stretchr/testify/assert"
 )
@@ -63,7 +63,7 @@ func TestMetrics_SetGauge(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Metrics{
-				store: store.NewStore(tt.fields.db),
+				store: memstore.NewStore(tt.fields.db),
 			}
 			_, err := m.SetGauge(tt.args.name, tt.args.value)
 			if (err != nil) != tt.wantErr {
@@ -128,7 +128,7 @@ func TestMetrics_SetCounter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Metrics{
-				store: store.NewStore(tt.fields.db),
+				store: memstore.NewStore(tt.fields.db),
 			}
 			beforeUpdate, ok := tt.fields.db[tt.args.name+"-"+string(common.CounterMetricType)]
 			if !ok {
@@ -202,7 +202,7 @@ func TestMetrics_GetValueAsString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Metrics{
-				store: store.NewStore(tt.fields.db),
+				store: memstore.NewStore(tt.fields.db),
 			}
 			got, err := m.GetValueAsString(tt.args.metricType, tt.args.name)
 			if (err != nil) != tt.wantErr {
@@ -255,7 +255,7 @@ func TestMetrics_SetMetric(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Metrics{
-				store: store.NewStore(tt.fields.db),
+				store: memstore.NewStore(tt.fields.db),
 			}
 			err := m.SetMetric(tt.args.metricType, tt.args.name, tt.args.value)
 
@@ -306,13 +306,13 @@ func TestMetrics_GetAllValuesAsString(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "empty store",
+			name:    "empty memstore",
 			fields:  fields{db: map[string]any{}},
 			want:    map[string]string{},
 			wantErr: false,
 		},
 		{
-			name:    "empty store",
+			name:    "empty memstore",
 			fields:  fields{db: map[string]any{"foo-gauge": 1}},
 			want:    map[string]string{},
 			wantErr: true,
@@ -321,7 +321,7 @@ func TestMetrics_GetAllValuesAsString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Metrics{
-				store: store.NewStore(tt.fields.db),
+				store: memstore.NewStore(tt.fields.db),
 			}
 			got, err := m.GetAllValuesAsString()
 
@@ -387,7 +387,7 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Metrics{
-				store: store.NewStore(tt.fields.db),
+				store: memstore.NewStore(tt.fields.db),
 			}
 			err := m.SetMetricByDto(tt.args.metricDto)
 
@@ -458,7 +458,7 @@ func TestMetrics_GetMetricAsDTO(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Metrics{
-				store: store.NewStore(tt.fields.db),
+				store: memstore.NewStore(tt.fields.db),
 			}
 			got, err := m.GetMetricAsDTO(tt.args.metricType, tt.args.name)
 			if (err != nil) != tt.wantErr {
@@ -522,7 +522,7 @@ func TestMetrics_ExportMetrics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Metrics{
-				store: store.NewStore(tt.fields.db),
+				store: memstore.NewStore(tt.fields.db),
 			}
 			got, err := m.ExportMetrics()
 			if (err != nil) != tt.wantErr {
@@ -606,7 +606,7 @@ func TestMetrics_ImportMetrics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Metrics{
-				store: store.NewStore(tt.fields.db),
+				store: memstore.NewStore(tt.fields.db),
 			}
 			err := m.ImportMetrics(tt.args.metricsToImport)
 			if (err != nil) != tt.wantErr {

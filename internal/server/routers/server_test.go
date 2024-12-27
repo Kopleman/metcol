@@ -10,9 +10,9 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
+	"github.com/Kopleman/metcol/internal/server/memstore"
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	mock "github.com/Kopleman/metcol/internal/server/routers/mocks"
-	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
@@ -46,7 +46,7 @@ func TestRouters_Server(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPgx := mock.NewMockPgxPool(ctrl)
 
-	storeService := store.NewStore(make(map[string]any))
+	storeService := memstore.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
 	routes := BuildServerRoutes(&log.MockLogger{}, metricsService, mockPgx)
 

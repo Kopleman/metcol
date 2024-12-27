@@ -1,4 +1,4 @@
-package store
+package memstore
 
 import (
 	"reflect"
@@ -63,7 +63,7 @@ func TestStore_Read(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "should read value from store",
+			name:    "should read value from memstore",
 			fields:  fields{db: map[string]any{"foo": "bar"}},
 			args:    args{key: "foo"},
 			want:    "bar",

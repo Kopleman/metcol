@@ -1,4 +1,4 @@
-package store
+package memstore
 
 import "github.com/Kopleman/metcol/internal/server/errors"
 

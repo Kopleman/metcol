@@ -8,10 +8,10 @@ import (
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/config"
 	filestorage "github.com/Kopleman/metcol/internal/server/file_storage"
+	"github.com/Kopleman/metcol/internal/server/memstore"
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/Kopleman/metcol/internal/server/postgres"
 	"github.com/Kopleman/metcol/internal/server/routers"
-	"github.com/Kopleman/metcol/internal/server/store"
 )
 
 type Server struct {
@@ -39,7 +39,7 @@ func (s *Server) Start(ctx context.Context) error {
 		s.db = pg
 	}
 
-	storeService := store.NewStore(make(map[string]any))
+	storeService := memstore.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
 	fs := filestorage.NewFileStorage(s.config, s.logger, metricsService)
 	if err := fs.Init(); err != nil {
