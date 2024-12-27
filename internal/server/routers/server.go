@@ -13,11 +13,11 @@ import (
 )
 
 type Metrics interface {
-	SetMetric(metricType common.MetricType, name string, value string) error
-	SetMetricByDto(metricDto *dto.MetricDTO) error
-	GetValueAsString(metricType common.MetricType, name string) (string, error)
-	GetMetricAsDTO(metricType common.MetricType, name string) (*dto.MetricDTO, error)
-	GetAllValuesAsString() (map[string]string, error)
+	SetMetric(ctx context.Context, metricType common.MetricType, name string, value string) error
+	SetMetricByDto(ctx context.Context, metricDto *dto.MetricDTO) error
+	GetValueAsString(ctx context.Context, metricType common.MetricType, name string) (string, error)
+	GetMetricAsDTO(ctx context.Context, metricType common.MetricType, name string) (*dto.MetricDTO, error)
+	GetAllValuesAsString(ctx context.Context) (map[string]string, error)
 }
 
 type PgxPool interface {

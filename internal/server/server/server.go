@@ -43,7 +43,7 @@ func (s *Server) Start(ctx context.Context) error {
 	storeService := memstore.NewStore(make(map[string]*dto.MetricDTO))
 	metricsService := metrics.NewMetrics(storeService)
 	fs := filestorage.NewFileStorage(s.config, s.logger, metricsService)
-	if err := fs.Init(); err != nil {
+	if err := fs.Init(ctx); err != nil {
 		return fmt.Errorf("failed to init filestorage: %w", err)
 	}
 	defer fs.Close()

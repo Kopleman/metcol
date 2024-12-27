@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -35,10 +36,10 @@ func (m *Metrics) parseStoreKey(key string) (string, common.MetricType, error) {
 	}
 }
 
-func (m *Metrics) SetGauge(name string, value float64) (*float64, error) {
+func (m *Metrics) SetGauge(ctx context.Context, name string, value float64) (*float64, error) {
 	storeKey := m.buildStoreKey(name, common.GougeMetricType)
 
-	_, err := m.store.Read(storeKey)
+	_, err := m.store.Read(ctx, storeKey)
 
 	metricDTO := &dto.MetricDTO{
 		Delta: nil,
@@ -48,7 +49,7 @@ func (m *Metrics) SetGauge(name string, value float64) (*float64, error) {
 	}
 	if err != nil {
 		if errors.Is(err, store_errors.ErrNotFound) {
-			storeErr := m.store.Create(metricDTO)
+			storeErr := m.store.Create(ctx, metricDTO)
 			if storeErr != nil {
 				return nil, fmt.Errorf("failed to create gauge metric '%s': %w", storeKey, err)
 			}
@@ -58,7 +59,7 @@ func (m *Metrics) SetGauge(name string, value float64) (*float64, error) {
 		return nil, fmt.Errorf("failed to read gauge metric '%s': %w", storeKey, err)
 	}
 
-	updateErr := m.store.Update(metricDTO)
+	updateErr := m.store.Update(ctx, metricDTO)
 	if updateErr != nil {
 		return nil, fmt.Errorf("failed to update gauge metric '%s': %w", storeKey, err)
 	}
@@ -66,10 +67,10 @@ func (m *Metrics) SetGauge(name string, value float64) (*float64, error) {
 	return &value, nil
 }
 
-func (m *Metrics) SetCounter(name string, value int64) (*int64, error) {
+func (m *Metrics) SetCounter(ctx context.Context, name string, value int64) (*int64, error) {
 	storeKey := m.buildStoreKey(name, common.CounterMetricType)
 
-	existedCounter, err := m.store.Read(storeKey)
+	existedCounter, err := m.store.Read(ctx, storeKey)
 
 	if err != nil {
 		if errors.Is(err, store_errors.ErrNotFound) {
@@ -79,7 +80,7 @@ func (m *Metrics) SetCounter(name string, value int64) (*int64, error) {
 				ID:    name,
 				MType: common.CounterMetricType,
 			}
-			storeErr := m.store.Create(metricDTO)
+			storeErr := m.store.Create(ctx, metricDTO)
 			if storeErr != nil {
 				return nil, fmt.Errorf("failed to create counter metric '%s': %w", storeKey, err)
 			}
@@ -95,7 +96,7 @@ func (m *Metrics) SetCounter(name string, value int64) (*int64, error) {
 
 	newValue := *existedCounter.Delta + value
 	existedCounter.Delta = &newValue
-	updateErr := m.store.Update(existedCounter)
+	updateErr := m.store.Update(ctx, existedCounter)
 	if updateErr != nil {
 		return nil, fmt.Errorf("failed to update counter metric '%s': %w", storeKey, err)
 	}
@@ -103,34 +104,34 @@ func (m *Metrics) SetCounter(name string, value int64) (*int64, error) {
 	return &newValue, nil
 }
 
-func (m *Metrics) SetMetric(metricType common.MetricType, name string, value string) error {
+func (m *Metrics) SetMetric(ctx context.Context, metricType common.MetricType, name string, value string) error {
 	switch metricType {
 	case common.CounterMetricType:
 		parsedValue, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return ErrValueParse
 		}
-		_, err = m.SetCounter(name, parsedValue)
+		_, err = m.SetCounter(ctx, name, parsedValue)
 		return err
 	case common.GougeMetricType:
 		parsedValue, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return ErrValueParse
 		}
-		_, err = m.SetGauge(name, parsedValue)
+		_, err = m.SetGauge(ctx, name, parsedValue)
 		return err
 	default:
 		return ErrUnknownMetricType
 	}
 }
 
-func (m *Metrics) SetMetricByDto(d *dto.MetricDTO) error {
+func (m *Metrics) SetMetricByDto(ctx context.Context, d *dto.MetricDTO) error {
 	switch d.MType {
 	case common.CounterMetricType:
 		if d.Delta == nil {
 			return ErrValueParse
 		}
-		newDelta, err := m.SetCounter(d.ID, *d.Delta)
+		newDelta, err := m.SetCounter(ctx, d.ID, *d.Delta)
 		if err != nil {
 			return err
 		}
@@ -140,7 +141,7 @@ func (m *Metrics) SetMetricByDto(d *dto.MetricDTO) error {
 		if d.Value == nil {
 			return ErrValueParse
 		}
-		newValue, err := m.SetGauge(d.ID, *d.Value)
+		newValue, err := m.SetGauge(ctx, d.ID, *d.Value)
 		if err != nil {
 			return err
 		}
@@ -151,9 +152,9 @@ func (m *Metrics) SetMetricByDto(d *dto.MetricDTO) error {
 	}
 }
 
-func (m *Metrics) GetValueAsString(metricType common.MetricType, name string) (string, error) {
+func (m *Metrics) GetValueAsString(ctx context.Context, metricType common.MetricType, name string) (string, error) {
 	storeKey := m.buildStoreKey(name, metricType)
-	value, err := m.store.Read(storeKey)
+	value, err := m.store.Read(ctx, storeKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to read metric '%s': %w", storeKey, err)
 	}
@@ -161,9 +162,9 @@ func (m *Metrics) GetValueAsString(metricType common.MetricType, name string) (s
 	return m.convertMetricValueToString(value)
 }
 
-func (m *Metrics) GetMetricAsDTO(metricType common.MetricType, name string) (*dto.MetricDTO, error) {
+func (m *Metrics) GetMetricAsDTO(ctx context.Context, metricType common.MetricType, name string) (*dto.MetricDTO, error) {
 	storeKey := m.buildStoreKey(name, metricType)
-	value, err := m.store.Read(storeKey)
+	value, err := m.store.Read(ctx, storeKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read metric '%s': %w", storeKey, err)
 	}
@@ -171,9 +172,9 @@ func (m *Metrics) GetMetricAsDTO(metricType common.MetricType, name string) (*dt
 	return value, nil
 }
 
-func (m *Metrics) GetAllValuesAsString() (map[string]string, error) {
+func (m *Metrics) GetAllValuesAsString(ctx context.Context) (map[string]string, error) {
 	dataToReturn := make(map[string]string)
-	allMetrics := m.store.GetAll()
+	allMetrics := m.store.GetAll(ctx)
 
 	for _, metricValue := range allMetrics {
 		valueAsString, err := m.convertMetricValueToString(metricValue)
@@ -204,8 +205,8 @@ func (m *Metrics) convertMetricValueToString(metricDTO *dto.MetricDTO) (string, 
 	}
 }
 
-func (m *Metrics) ExportMetrics() ([]*dto.MetricDTO, error) {
-	allMetrics := m.store.GetAll()
+func (m *Metrics) ExportMetrics(ctx context.Context) ([]*dto.MetricDTO, error) {
+	allMetrics := m.store.GetAll(ctx)
 	exportData := make([]*dto.MetricDTO, 0, len(allMetrics))
 	for _, metricValue := range allMetrics {
 		exportData = append(exportData, metricValue)
@@ -213,9 +214,9 @@ func (m *Metrics) ExportMetrics() ([]*dto.MetricDTO, error) {
 	return exportData, nil
 }
 
-func (m *Metrics) ImportMetrics(metricsToImport []*dto.MetricDTO) error {
+func (m *Metrics) ImportMetrics(ctx context.Context, metricsToImport []*dto.MetricDTO) error {
 	for _, metricToImport := range metricsToImport {
-		if err := m.SetMetricByDto(metricToImport); err != nil {
+		if err := m.SetMetricByDto(ctx, metricToImport); err != nil {
 			return fmt.Errorf("failed to import metric '%s': %w", metricToImport.ID, err)
 		}
 	}
@@ -234,10 +235,10 @@ func ParseMetricType(typeAsString string) (common.MetricType, error) {
 }
 
 type Store interface {
-	Create(value *dto.MetricDTO) error
-	Read(key string) (*dto.MetricDTO, error)
-	Update(value *dto.MetricDTO) error
-	GetAll() map[string]*dto.MetricDTO
+	Create(ctx context.Context, value *dto.MetricDTO) error
+	Read(ctx context.Context, key string) (*dto.MetricDTO, error)
+	Update(ctx context.Context, value *dto.MetricDTO) error
+	GetAll(ctx context.Context) map[string]*dto.MetricDTO
 }
 
 type Metrics struct {

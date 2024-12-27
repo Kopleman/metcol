@@ -21,7 +21,8 @@ func NewPingController(db PgxPool) *PingController {
 
 func (ctrl *PingController) Ping() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		if err := ctrl.db.Ping(context.TODO()); err != nil {
+		ctx := req.Context()
+		if err := ctrl.db.Ping(ctx); err != nil {
 			http.Error(w, common.Err500Message, http.StatusInternalServerError)
 			return
 		}

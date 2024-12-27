@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"reflect"
 	"strconv"
 	"testing"
@@ -76,10 +77,11 @@ func TestMetrics_SetGauge(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			m := &Metrics{
 				store: memstore.NewStore(tt.fields.db),
 			}
-			_, err := m.SetGauge(tt.args.name, tt.args.value)
+			_, err := m.SetGauge(ctx, tt.args.name, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SetGauge() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -158,6 +160,7 @@ func TestMetrics_SetCounter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			m := &Metrics{
 				store: memstore.NewStore(tt.fields.db),
 			}
@@ -171,7 +174,7 @@ func TestMetrics_SetCounter(t *testing.T) {
 				}
 			}
 
-			_, err := m.SetCounter(tt.args.name, tt.args.value)
+			_, err := m.SetCounter(ctx, tt.args.name, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SetCounter() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -262,10 +265,11 @@ func TestMetrics_GetValueAsString(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			m := &Metrics{
 				store: memstore.NewStore(tt.fields.db),
 			}
-			got, err := m.GetValueAsString(tt.args.metricType, tt.args.name)
+			got, err := m.GetValueAsString(ctx, tt.args.metricType, tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetValueAsString() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -315,10 +319,11 @@ func TestMetrics_SetMetric(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			m := &Metrics{
 				store: memstore.NewStore(tt.fields.db),
 			}
-			err := m.SetMetric(tt.args.metricType, tt.args.name, tt.args.value)
+			err := m.SetMetric(ctx, tt.args.metricType, tt.args.name, tt.args.value)
 
 			if tt.wantErr {
 				assert.Error(t, err, "SetMetric() error = %v, wantErr %v", err, tt.wantErr)
@@ -390,10 +395,11 @@ func TestMetrics_GetAllValuesAsString(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			m := &Metrics{
 				store: memstore.NewStore(tt.fields.db),
 			}
-			got, err := m.GetAllValuesAsString()
+			got, err := m.GetAllValuesAsString(ctx)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetAllValuesAsString() error = %v, wantErr %v", err, tt.wantErr)
@@ -456,10 +462,11 @@ func TestMetrics_SetMetricByDto(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			m := &Metrics{
 				store: memstore.NewStore(tt.fields.db),
 			}
-			err := m.SetMetricByDto(tt.args.metricDto)
+			err := m.SetMetricByDto(ctx, tt.args.metricDto)
 
 			if tt.wantErr {
 				assert.Error(t, err, "SetMetric() error = %v, wantErr %v", err, tt.wantErr)
@@ -545,10 +552,11 @@ func TestMetrics_GetMetricAsDTO(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			m := &Metrics{
 				store: memstore.NewStore(tt.fields.db),
 			}
-			got, err := m.GetMetricAsDTO(tt.args.metricType, tt.args.name)
+			got, err := m.GetMetricAsDTO(ctx, tt.args.metricType, tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetMetricAsDTO() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -623,10 +631,11 @@ func TestMetrics_ExportMetrics(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			m := &Metrics{
 				store: memstore.NewStore(tt.fields.db),
 			}
-			got, err := m.ExportMetrics()
+			got, err := m.ExportMetrics(ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ExportMetrics() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -727,10 +736,11 @@ func TestMetrics_ImportMetrics(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			m := &Metrics{
 				store: memstore.NewStore(tt.fields.db),
 			}
-			err := m.ImportMetrics(tt.args.metricsToImport)
+			err := m.ImportMetrics(ctx, tt.args.metricsToImport)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ImportMetrics() error = %v, wantErr %v", err, tt.wantErr)
 				return

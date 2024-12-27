@@ -1,6 +1,7 @@
 package memstore
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -60,8 +61,9 @@ func TestStore_Create(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			s := NewStore(tt.fields.db)
-			if err := s.Create(tt.args.value); (err != nil) != tt.wantErr {
+			if err := s.Create(ctx, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -122,10 +124,11 @@ func TestStore_Read(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			s := &Store{
 				db: tt.fields.db,
 			}
-			got, err := s.Read(tt.args.key)
+			got, err := s.Read(ctx, tt.args.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Read() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -197,10 +200,11 @@ func TestStore_Update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			s := &Store{
 				db: tt.fields.db,
 			}
-			err := s.Update(tt.args.value)
+			err := s.Update(ctx, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -264,10 +268,11 @@ func TestStore_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			s := &Store{
 				db: tt.fields.db,
 			}
-			err := s.Delete(tt.args.key)
+			err := s.Delete(ctx, tt.args.key)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 				return

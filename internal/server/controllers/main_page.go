@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"net/http"
 	"sort"
 
@@ -9,7 +10,7 @@ import (
 )
 
 type MetricsForMainPage interface {
-	GetAllValuesAsString() (map[string]string, error)
+	GetAllValuesAsString(ctx context.Context) (map[string]string, error)
 }
 
 type MainPageController struct {
@@ -23,7 +24,8 @@ func NewMainPageController(logger log.Logger, metricsService MetricsForMainPage)
 
 func (ctrl *MainPageController) MainPage() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		allMetrics, err := ctrl.metricsService.GetAllValuesAsString()
+		ctx := req.Context()
+		allMetrics, err := ctrl.metricsService.GetAllValuesAsString(ctx)
 		if err != nil {
 			ctrl.logger.Error(err)
 			http.Error(w, common.Err500Message, http.StatusInternalServerError)
