@@ -17,7 +17,7 @@ func (s *Store) existed(key string) bool {
 	return existed
 }
 
-func (s *Store) Create(ctx context.Context, value *dto.MetricDTO) error {
+func (s *Store) Create(_ context.Context, value *dto.MetricDTO) error {
 	key := s.buildStoreKey(value.ID, value.MType)
 	if s.existed(key) {
 		return store_errors.ErrAlreadyExists
@@ -28,7 +28,7 @@ func (s *Store) Create(ctx context.Context, value *dto.MetricDTO) error {
 	return nil
 }
 
-func (s *Store) Read(ctx context.Context, key string) (*dto.MetricDTO, error) {
+func (s *Store) Read(_ context.Context, key string) (*dto.MetricDTO, error) {
 	value, existed := s.db[key]
 
 	if !existed {
@@ -59,7 +59,7 @@ func (s *Store) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-func (s *Store) GetAll(ctx context.Context) ([]*dto.MetricDTO, error) {
+func (s *Store) GetAll(_ context.Context) ([]*dto.MetricDTO, error) {
 	exportData := make([]*dto.MetricDTO, 0, len(s.db))
 	for _, metricValue := range s.db {
 		exportData = append(exportData, metricValue)
