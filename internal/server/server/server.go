@@ -31,29 +31,32 @@ func NewServer(logger log.Logger, cfg *config.Config) *Server {
 
 func (s *Server) Start(ctx context.Context) error {
 	defer s.Shutdown()
-	pg, err := postgres.NewPostgresSQL(ctx, s.logger, s.config.DataBaseDSN)
-	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
+	if s.config.DataBaseDSN != "" {
+		pg, err := postgres.NewPostgresSQL(ctx, s.logger, s.config.DataBaseDSN)
+		if err != nil {
+			return fmt.Errorf("failed to connect to database: %w", err)
+		}
+		s.db = pg
 	}
 
 	storeService := store.NewStore(make(map[string]any))
 	metricsService := metrics.NewMetrics(storeService)
 	fs := filestorage.NewFileStorage(s.config, s.logger, metricsService)
-	if err = fs.Init(); err != nil {
+	if err := fs.Init(); err != nil {
 		return fmt.Errorf("failed to init filestorage: %w", err)
 	}
 	defer fs.Close()
 
 	runTimeError := make(chan error, 1)
 	go func() {
-		err = fs.RunBackupJob()
+		err := fs.RunBackupJob()
 		if err != nil {
 			runTimeError <- fmt.Errorf("backup job error: %w", err)
 		}
 	}()
 
 	go func() {
-		routes := routers.BuildServerRoutes(s.logger, metricsService, pg)
+		routes := routers.BuildServerRoutes(s.logger, metricsService, s.db)
 		if listenAndServeErr := http.ListenAndServe(s.config.NetAddr.String(), routes); listenAndServeErr != nil {
 			runTimeError <- fmt.Errorf("internal server error: %w", listenAndServeErr)
 		}
@@ -65,14 +68,12 @@ func (s *Server) Start(ctx context.Context) error {
 		return fmt.Errorf("server error: %w", serverError)
 	}
 
-	// Wait context
 	<-ctx.Done()
 
 	return nil
 }
 
 func (s *Server) Shutdown() {
-	// stop database
 	if s.db != nil {
 		s.db.Close()
 	}
