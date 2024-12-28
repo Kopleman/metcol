@@ -7,7 +7,7 @@ CREATE TABLE metrics
     name       VARCHAR(255) NOT NULL,
     type       METRIC_TYPE  NOT NULL,
     value      DOUBLE PRECISION NULL,
-    delta      INTEGER  NULL,
+    delta      BIGINT  NULL,
     created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP    NULL,
     deleted_at TIMESTAMP    NULL,
