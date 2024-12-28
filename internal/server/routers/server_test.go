@@ -71,7 +71,7 @@ func TestRouters_Server(t *testing.T) {
 			"GET",
 			"/value/gauge/testUnknown94",
 			http.NoBody,
-			"failed to read metric 'testunknown94-gauge': not found\n",
+			"failed to read metric 'testunknown94': not found\n",
 			http.StatusNotFound,
 			false,
 		},
