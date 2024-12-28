@@ -2,7 +2,8 @@ version: "1"
 sqlc:
   - # directory with migrations. required
     schema_dir: sql/migrations
-
+    models:
+      replace_sqlc_nullable_types: true
     crud:
       auto_remove_generated_files: true
       exclude_table_name_from_methods: false
@@ -14,28 +15,13 @@ sqlc:
               skip_columns:
                 - id
                 - updated_at
+                - deleted_at
               column_values:
                 created_at: now()
               returning: "*"
-            update:
-              skip_columns:
-                - id
-                - created_at
-              column_values:
-                updated_at: now()
-              returning: "*"
-            find:
+            exists:
               where:
                 name:
                   operator: "="
                 type:
                   operator: "="
-                deleted_at:
-                  value: "IS NULL"
-              order:
-                by: created_at
-                direction: DESC
-              limit: true
-            get:
-            delete:
-            total:
