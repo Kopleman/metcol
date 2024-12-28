@@ -5,36 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
-	"github.com/Kopleman/metcol/internal/server/store_errors"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/Kopleman/metcol/internal/server/sterrors"
 )
-
-func (m *Metrics) buildStoreKey(name string, metricType common.MetricType) string {
-	return name + "-" + string(metricType)
-}
-
-const metricsStoreKeyPartsNum = 2
-
-func (m *Metrics) parseStoreKey(key string) (string, common.MetricType, error) {
-	parts := strings.Split(key, "-")
-	if len(parts) != metricsStoreKeyPartsNum {
-		return "", common.UnknownMetricType, ErrStoreKeyParse
-	}
-
-	typeAsString := parts[1]
-	switch typeAsString {
-	case string(common.CounterMetricType):
-		return parts[0], common.CounterMetricType, nil
-	case string(common.GaugeMetricType):
-		return parts[0], common.GaugeMetricType, nil
-	default:
-		return parts[0], common.UnknownMetricType, ErrUnknownMetricType
-	}
-}
 
 func (m *Metrics) SetGauge(ctx context.Context, name string, value float64) (*float64, error) {
 	_, err := m.store.Read(ctx, common.GaugeMetricType, name)
@@ -46,7 +21,7 @@ func (m *Metrics) SetGauge(ctx context.Context, name string, value float64) (*fl
 		MType: common.GaugeMetricType,
 	}
 	if err != nil {
-		if errors.Is(err, store_errors.ErrNotFound) {
+		if errors.Is(err, sterrors.ErrNotFound) {
 			storeErr := m.store.Create(ctx, metricDTO)
 			if storeErr != nil {
 				return nil, fmt.Errorf("failed to create gauge metric '%s': %w", name, err)
@@ -69,7 +44,7 @@ func (m *Metrics) SetCounter(ctx context.Context, name string, value int64) (*in
 	existedCounter, err := m.store.Read(ctx, common.CounterMetricType, name)
 
 	if err != nil {
-		if errors.Is(err, store_errors.ErrNotFound) {
+		if errors.Is(err, sterrors.ErrNotFound) {
 			metricDTO := &dto.MetricDTO{
 				Delta: &value,
 				Value: nil,
@@ -157,7 +132,10 @@ func (m *Metrics) GetValueAsString(ctx context.Context, metricType common.Metric
 	return m.convertMetricValueToString(value)
 }
 
-func (m *Metrics) GetMetricAsDTO(ctx context.Context, metricType common.MetricType, name string) (*dto.MetricDTO, error) {
+func (m *Metrics) GetMetricAsDTO(
+	ctx context.Context,
+	metricType common.MetricType,
+	name string) (*dto.MetricDTO, error) {
 	value, err := m.store.Read(ctx, metricType, name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read metric '%s': %w", name, err)
@@ -192,7 +170,6 @@ func (m *Metrics) convertMetricValueToString(metricDTO *dto.MetricDTO) (string, 
 		}
 		return strconv.FormatInt(*metricDTO.Delta, 10), nil
 	case common.GaugeMetricType:
-		spew.Dump(metricDTO)
 		if metricDTO.Value == nil {
 			return "", ErrGaugeValueParse
 		}

@@ -11,7 +11,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/metrics"
-	"github.com/Kopleman/metcol/internal/server/store_errors"
+	"github.com/Kopleman/metcol/internal/server/sterrors"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -50,7 +50,7 @@ func (ctrl *GetValueController) GetValue() func(http.ResponseWriter, *http.Reque
 		value, err := ctrl.metricsService.GetValueAsString(ctx, metricType, metricName)
 
 		if err != nil {
-			if errors.Is(err, store_errors.ErrNotFound) {
+			if errors.Is(err, sterrors.ErrNotFound) {
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}
@@ -85,7 +85,7 @@ func (ctrl *GetValueController) GetValueAsDTO() func(http.ResponseWriter, *http.
 
 		value, err := ctrl.metricsService.GetMetricAsDTO(ctx, reqDto.MType, reqDto.ID)
 		if err != nil {
-			if errors.Is(err, store_errors.ErrNotFound) {
+			if errors.Is(err, sterrors.ErrNotFound) {
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}

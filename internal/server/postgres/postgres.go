@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Kopleman/metcol/internal/common/log"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type PostgreSQL struct {
@@ -22,7 +22,7 @@ func NewPostgresSQL(ctx context.Context, logger log.Logger, dsn string) (*Postgr
 
 	config.MaxConns = 6
 
-	pool, err := pgxpool.NewWithConfig(ctx, config)
+	pool, err := pgxpool.ConnectConfig(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("NewPostgresSQL: pool conection error: %w", err)
 	}
@@ -36,8 +36,4 @@ func NewPostgresSQL(ctx context.Context, logger log.Logger, dsn string) (*Postgr
 	logger.Info("connected to postgres")
 
 	return psql, nil
-}
-
-func (p *PostgreSQL) Interface() IPgxPool {
-	return p
 }

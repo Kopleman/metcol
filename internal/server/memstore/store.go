@@ -5,7 +5,7 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
-	"github.com/Kopleman/metcol/internal/server/store_errors"
+	"github.com/Kopleman/metcol/internal/server/sterrors"
 )
 
 func (s *Store) buildStoreKey(name string, metricType common.MetricType) string {
@@ -20,7 +20,7 @@ func (s *Store) existed(key string) bool {
 func (s *Store) Create(_ context.Context, value *dto.MetricDTO) error {
 	key := s.buildStoreKey(value.ID, value.MType)
 	if s.existed(key) {
-		return store_errors.ErrAlreadyExists
+		return sterrors.ErrAlreadyExists
 	}
 
 	s.db[key] = value
@@ -33,7 +33,7 @@ func (s *Store) Read(_ context.Context, mType common.MetricType, name string) (*
 	value, existed := s.db[key]
 
 	if !existed {
-		return nil, store_errors.ErrNotFound
+		return nil, sterrors.ErrNotFound
 	}
 
 	return value, nil

@@ -5,20 +5,32 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/config"
 	filestorage "github.com/Kopleman/metcol/internal/server/file_storage"
 	"github.com/Kopleman/metcol/internal/server/memstore"
 	"github.com/Kopleman/metcol/internal/server/metrics"
+	"github.com/Kopleman/metcol/internal/server/pgxstore"
 	"github.com/Kopleman/metcol/internal/server/postgres"
 	"github.com/Kopleman/metcol/internal/server/routers"
 )
 
+type Store interface {
+	Create(ctx context.Context, value *dto.MetricDTO) error
+	Read(ctx context.Context, mType common.MetricType, name string) (*dto.MetricDTO, error)
+	Update(ctx context.Context, value *dto.MetricDTO) error
+	GetAll(ctx context.Context) ([]*dto.MetricDTO, error)
+}
+
 type Server struct {
-	logger log.Logger
-	config *config.Config
-	db     *postgres.PostgreSQL
+	logger        log.Logger
+	config        *config.Config
+	db            *postgres.PostgreSQL
+	store         Store
+	fs            *filestorage.FileStorage
+	metricService *metrics.Metrics
 }
 
 func NewServer(logger log.Logger, cfg *config.Config) *Server {
@@ -30,34 +42,46 @@ func NewServer(logger log.Logger, cfg *config.Config) *Server {
 	return s
 }
 
-func (s *Server) Start(ctx context.Context) error {
-	defer s.Shutdown()
+func (s *Server) prepareStore(ctx context.Context) error {
 	if s.config.DataBaseDSN != "" {
 		pg, err := postgres.NewPostgresSQL(ctx, s.logger, s.config.DataBaseDSN)
 		if err != nil {
 			return fmt.Errorf("failed to connect to database: %w", err)
 		}
 		s.db = pg
+		s.store = pgxstore.NewPGXStore(s.logger, s.db)
+		s.metricService = metrics.NewMetrics(s.store)
+		return nil
 	}
 
 	storeService := memstore.NewStore(make(map[string]*dto.MetricDTO))
-	metricsService := metrics.NewMetrics(storeService)
-	fs := filestorage.NewFileStorage(s.config, s.logger, metricsService)
-	if err := fs.Init(ctx); err != nil {
+	s.store = storeService
+	s.metricService = metrics.NewMetrics(s.store)
+	s.fs = filestorage.NewFileStorage(s.config, s.logger, s.metricService)
+	if err := s.fs.Init(ctx); err != nil {
 		return fmt.Errorf("failed to init filestorage: %w", err)
 	}
-	defer fs.Close()
+	return nil
+}
+
+func (s *Server) Start(ctx context.Context) error {
+	defer s.Shutdown()
+	if err := s.prepareStore(ctx); err != nil {
+		return fmt.Errorf("failed to prepare store: %w", err)
+	}
 
 	runTimeError := make(chan error, 1)
-	go func() {
-		err := fs.RunBackupJob()
-		if err != nil {
-			runTimeError <- fmt.Errorf("backup job error: %w", err)
-		}
-	}()
+	if s.fs != nil {
+		go func() {
+			err := s.fs.RunBackupJob()
+			if err != nil {
+				runTimeError <- fmt.Errorf("backup job error: %w", err)
+			}
+		}()
+	}
 
 	go func() {
-		routes := routers.BuildServerRoutes(s.logger, metricsService, s.db)
+		routes := routers.BuildServerRoutes(s.logger, s.metricService, s.db)
 		if listenAndServeErr := http.ListenAndServe(s.config.NetAddr.String(), routes); listenAndServeErr != nil {
 			runTimeError <- fmt.Errorf("internal server error: %w", listenAndServeErr)
 		}
@@ -75,6 +99,10 @@ func (s *Server) Start(ctx context.Context) error {
 }
 
 func (s *Server) Shutdown() {
+	if s.fs != nil {
+		s.fs.Close()
+	}
+
 	if s.db != nil {
 		s.db.Close()
 	}

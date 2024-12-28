@@ -1,4 +1,4 @@
-package store_errors
+package sterrors
 
 import "errors"
 
