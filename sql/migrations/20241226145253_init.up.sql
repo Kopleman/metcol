@@ -1,7 +1,7 @@
 DROP TYPE IF EXISTS METRIC_TYPE;
 CREATE TYPE METRIC_TYPE AS ENUM ('gauge', 'counter');
 
-CREATE TABLE metrics
+CREATE TABLE IF NOT EXISTS metrics
 (
     id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
     name       VARCHAR(255) NOT NULL,

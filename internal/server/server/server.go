@@ -44,6 +44,10 @@ func NewServer(logger log.Logger, cfg *config.Config) *Server {
 
 func (s *Server) prepareStore(ctx context.Context) error {
 	if s.config.DataBaseDSN != "" {
+		if err := postgres.RunMigrations(s.config.DataBaseDSN); err != nil {
+			return fmt.Errorf("failed to run migrations on store prepare: %w", err)
+		}
+
 		pg, err := postgres.NewPostgresSQL(ctx, s.logger, s.config.DataBaseDSN)
 		if err != nil {
 			return fmt.Errorf("failed to connect to database: %w", err)
