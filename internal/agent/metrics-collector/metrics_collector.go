@@ -174,7 +174,7 @@ func (mc *MetricsCollector) assignNewRandomValue() {
 	}
 }
 
-func (mc *MetricsCollector) SendMetrics() error {
+func (mc *MetricsCollector) SendMetricsByOne() error {
 	for name, item := range mc.currentMetricState {
 		if err := mc.sendMetricItem(name, item); err != nil {
 			return err
@@ -218,18 +218,53 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 	}
 	body, marshalErr := json.Marshal(metricDto)
 	if marshalErr != nil {
-		return fmt.Errorf("unable to marshal metric dto: %w", err)
+		return fmt.Errorf("unable to marshal metric dto: %w", marshalErr)
 	}
 	url := "/update"
-	respBytes, err := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
-	if err != nil {
-		return fmt.Errorf("unable to sent %s metric: %w", name, err)
+	respBytes, sendErr := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
+	if sendErr != nil {
+		return fmt.Errorf("unable to sent %s metric: %w", name, sendErr)
+	}
+
+	var t interface{}
+	if err = json.Unmarshal(respBytes, &t); err != nil {
+		return fmt.Errorf("unable to unmarshal metric response: %w", err)
+	}
+
+	return nil
+}
+
+func (mc *MetricsCollector) SendMetrics() error {
+	metricsBatch := make([]*dto.MetricDTO, 0, len(mc.currentMetricState))
+	for name, item := range mc.currentMetricState {
+		metricDto, err := mc.convertMetricItemToDto(name, item)
+		if err != nil {
+			return err
+		}
+		metricsBatch = append(metricsBatch, metricDto)
+	}
+
+	if len(metricsBatch) == 0 {
+		return nil
+	}
+
+	body, marshalErr := json.Marshal(metricsBatch)
+	if marshalErr != nil {
+		return fmt.Errorf("unable to marshal metrics batch: %w", marshalErr)
+	}
+
+	url := "/update"
+	respBytes, sendErr := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
+	if sendErr != nil {
+		return fmt.Errorf("unable to sent metrics batch: %w", sendErr)
 	}
 
 	var t interface{}
 	if err := json.Unmarshal(respBytes, &t); err != nil {
 		return fmt.Errorf("unable to unmarshal metric response: %w", err)
 	}
+
+	mc.resetPollCounter()
 
 	return nil
 }
