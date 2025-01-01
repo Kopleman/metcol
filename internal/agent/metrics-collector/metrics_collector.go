@@ -253,7 +253,7 @@ func (mc *MetricsCollector) SendMetrics() error {
 		return fmt.Errorf("unable to marshal metrics batch: %w", marshalErr)
 	}
 
-	url := "/update"
+	url := "/updates"
 	respBytes, sendErr := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
 	if sendErr != nil {
 		return fmt.Errorf("unable to sent metrics batch: %w", sendErr)
