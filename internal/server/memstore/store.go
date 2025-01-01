@@ -6,6 +6,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/server/sterrors"
+	"github.com/Kopleman/metcol/internal/server/store"
 )
 
 func (s *Store) buildStoreKey(name string, metricType common.MetricType) string {
@@ -67,6 +68,17 @@ func (s *Store) GetAll(_ context.Context) ([]*dto.MetricDTO, error) {
 		exportData = append(exportData, metricValue)
 	}
 	return exportData, nil
+}
+
+func (s *Store) StartTx(_ context.Context) (store.Store, error) {
+	return s, nil
+}
+
+func (s *Store) RollbackTx(_ context.Context) error {
+	return nil
+}
+func (s *Store) CommitTx(_ context.Context) error {
+	return nil
 }
 
 type Store struct {

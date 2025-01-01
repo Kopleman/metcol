@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/config"
@@ -15,20 +14,14 @@ import (
 	"github.com/Kopleman/metcol/internal/server/pgxstore"
 	"github.com/Kopleman/metcol/internal/server/postgres"
 	"github.com/Kopleman/metcol/internal/server/routers"
+	"github.com/Kopleman/metcol/internal/server/store"
 )
-
-type Store interface {
-	Create(ctx context.Context, value *dto.MetricDTO) error
-	Read(ctx context.Context, mType common.MetricType, name string) (*dto.MetricDTO, error)
-	Update(ctx context.Context, value *dto.MetricDTO) error
-	GetAll(ctx context.Context) ([]*dto.MetricDTO, error)
-}
 
 type Server struct {
 	logger        log.Logger
 	config        *config.Config
 	db            *postgres.PostgreSQL
-	store         Store
+	store         store.Store
 	fs            *filestorage.FileStorage
 	metricService *metrics.Metrics
 }
@@ -54,13 +47,13 @@ func (s *Server) prepareStore(ctx context.Context) error {
 		}
 		s.db = pg
 		s.store = pgxstore.NewPGXStore(s.logger, s.db)
-		s.metricService = metrics.NewMetrics(s.store)
+		s.metricService = metrics.NewMetrics(s.store, s.logger)
 		return nil
 	}
 
 	storeService := memstore.NewStore(make(map[string]*dto.MetricDTO))
 	s.store = storeService
-	s.metricService = metrics.NewMetrics(s.store)
+	s.metricService = metrics.NewMetrics(s.store, s.logger)
 	s.fs = filestorage.NewFileStorage(s.config, s.logger, s.metricService)
 	if err := s.fs.Init(ctx); err != nil {
 		return fmt.Errorf("failed to init filestorage: %w", err)

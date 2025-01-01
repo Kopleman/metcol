@@ -8,13 +8,53 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
-	"github.com/Kopleman/metcol/internal/server/postgres"
 	"github.com/Kopleman/metcol/internal/server/sterrors"
+	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 )
 
-func (p *PGXStore) StartTx(ctx context.Context, opts *pgx.TxOptions) (pgx.Tx, error) {
+func (p *PGXStore) StartTx(ctx context.Context) (store.Store, error) {
+	tx, err := p.startTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	newQ := p.WithTx(tx)
+
+	return &PGXStore{
+		logger:   p.logger,
+		Queries:  newQ,
+		db:       p.db,
+		activeTX: tx,
+	}, err
+}
+
+func (p *PGXStore) RollbackTx(ctx context.Context) error {
+	if p.activeTX == nil {
+		return nil
+	}
+
+	if err := p.activeTX.Rollback(ctx); err != nil {
+		if errors.Is(err, pgx.ErrTxClosed) {
+			return nil
+		}
+		return fmt.Errorf("pgxstore: failed to rollback transaction: %w", err)
+	}
+
+	return nil
+}
+
+func (p *PGXStore) CommitTx(ctx context.Context) error {
+	if p.activeTX == nil {
+		return nil
+	}
+	if err := p.activeTX.Commit(ctx); err != nil {
+		return fmt.Errorf("pgxstore: failed to commit transaction: %w", err)
+	}
+	return nil
+}
+
+func (p *PGXStore) startTx(ctx context.Context, opts *pgx.TxOptions) (pgx.Tx, error) {
 	txOpts := pgx.TxOptions{}
 	if opts != nil {
 		txOpts = *opts
@@ -87,12 +127,11 @@ func (p *PGXStore) Read(ctx context.Context, mType common.MetricType, name strin
 }
 
 func (p *PGXStore) Create(ctx context.Context, metricDTO *dto.MetricDTO) error {
-	tx, err := p.StartTx(ctx, &pgx.TxOptions{})
+	tx, err := p.startTx(ctx, &pgx.TxOptions{})
 	if err != nil {
 		return fmt.Errorf("could not start transaction: %w", err)
 	}
 	defer tx.Rollback(ctx) //nolint:all // its safe
-
 	mType, err := p.commonMetricTypeToPGXMType(metricDTO.MType)
 	if err != nil {
 		return fmt.Errorf("could not get metric type for '%s': %w", metricDTO.MType, err)
@@ -127,7 +166,7 @@ func (p *PGXStore) Create(ctx context.Context, metricDTO *dto.MetricDTO) error {
 }
 
 func (p *PGXStore) Update(ctx context.Context, metricDTO *dto.MetricDTO) error {
-	tx, err := p.StartTx(ctx, &pgx.TxOptions{})
+	tx, err := p.startTx(ctx, &pgx.TxOptions{})
 	if err != nil {
 		return fmt.Errorf("could not start transaction: %w", err)
 	}
@@ -147,7 +186,7 @@ func (p *PGXStore) Update(ctx context.Context, metricDTO *dto.MetricDTO) error {
 	}
 
 	if !existed {
-		return p.Create(ctx, metricDTO)
+		return sterrors.ErrNotFound
 	}
 
 	err = p.UpdateMetric(ctx, UpdateMetricParams{
@@ -178,11 +217,12 @@ type PgxPool interface {
 
 type PGXStore struct {
 	*Queries
-	db     PgxPool
-	logger log.Logger
+	db       PgxPool
+	logger   log.Logger
+	activeTX pgx.Tx
 }
 
-func NewPGXStore(l log.Logger, db *postgres.PostgreSQL) *PGXStore {
+func NewPGXStore(l log.Logger, db PgxPool) *PGXStore {
 	return &PGXStore{
 		Queries: New(db),
 		db:      db,

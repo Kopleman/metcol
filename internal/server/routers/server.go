@@ -18,6 +18,7 @@ type Metrics interface {
 	GetValueAsString(ctx context.Context, metricType common.MetricType, name string) (string, error)
 	GetMetricAsDTO(ctx context.Context, metricType common.MetricType, name string) (*dto.MetricDTO, error)
 	GetAllValuesAsString(ctx context.Context) (map[string]string, error)
+	SetMetrics(ctx context.Context, metrics []*dto.MetricDTO) error
 }
 
 type PgxPool interface {
@@ -45,6 +46,11 @@ func BuildServerRoutes(logger log.Logger, metricsService Metrics, db PgxPool) *c
 		r.Use(middlewares.PostFilterMiddleware)
 		r.Post("/", updateCtrl.UpdateOrSetViaDTO())
 		r.Post("/{metricType}/{metricName}/{metricValue}", updateCtrl.UpdateOrSet())
+	})
+
+	r.Route("/updates", func(r chi.Router) {
+		r.Use(middlewares.PostFilterMiddleware)
+		r.Post("/", updateCtrl.UpdateMetrics())
 	})
 
 	r.Route("/value", func(r chi.Router) {

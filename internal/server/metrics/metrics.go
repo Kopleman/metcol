@@ -8,7 +8,9 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
+	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/sterrors"
+	"github.com/Kopleman/metcol/internal/server/store"
 )
 
 func (m *Metrics) SetGauge(ctx context.Context, name string, value float64) (*float64, error) {
@@ -94,6 +96,30 @@ func (m *Metrics) SetMetric(ctx context.Context, metricType common.MetricType, n
 	default:
 		return ErrUnknownMetricType
 	}
+}
+
+func (m *Metrics) SetMetrics(ctx context.Context, metricDTOs []*dto.MetricDTO) error {
+	mWithTx, err := m.withTx(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer func() {
+		if rollBackErr := mWithTx.store.RollbackTx(ctx); rollBackErr != nil {
+			m.logger.Error(rollBackErr)
+		}
+	}()
+
+	for _, dtoItem := range metricDTOs {
+		if setErr := mWithTx.SetMetricByDto(ctx, dtoItem); setErr != nil {
+			return fmt.Errorf("failed to set metric: %w", setErr)
+		}
+	}
+
+	if commitErr := mWithTx.store.CommitTx(ctx); commitErr != nil {
+		return fmt.Errorf("failed to commit transaction: %w", commitErr)
+	}
+
+	return nil
 }
 
 func (m *Metrics) SetMetricByDto(ctx context.Context, d *dto.MetricDTO) error {
@@ -196,6 +222,17 @@ func (m *Metrics) ImportMetrics(ctx context.Context, metricsToImport []*dto.Metr
 	return nil
 }
 
+func (m *Metrics) withTx(ctx context.Context) (*Metrics, error) {
+	storeWithTx, err := m.store.StartTx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start transaction: %w", err)
+	}
+
+	return &Metrics{
+		store: storeWithTx,
+	}, nil
+}
+
 func ParseMetricType(typeAsString string) (common.MetricType, error) {
 	switch typeAsString {
 	case string(common.CounterMetricType):
@@ -207,17 +244,11 @@ func ParseMetricType(typeAsString string) (common.MetricType, error) {
 	}
 }
 
-type Store interface {
-	Create(ctx context.Context, value *dto.MetricDTO) error
-	Read(ctx context.Context, mType common.MetricType, name string) (*dto.MetricDTO, error)
-	Update(ctx context.Context, value *dto.MetricDTO) error
-	GetAll(ctx context.Context) ([]*dto.MetricDTO, error)
-}
-
 type Metrics struct {
-	store Store
+	store  store.Store
+	logger log.Logger
 }
 
-func NewMetrics(s Store) *Metrics {
-	return &Metrics{store: s}
+func NewMetrics(s store.Store, logger log.Logger) *Metrics {
+	return &Metrics{store: s, logger: logger}
 }

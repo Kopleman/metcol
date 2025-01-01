@@ -48,7 +48,7 @@ func TestRouters_Server(t *testing.T) {
 	mockPgx := mock.NewMockPgxPool(ctrl)
 
 	storeService := memstore.NewStore(make(map[string]*dto.MetricDTO))
-	metricsService := metrics.NewMetrics(storeService)
+	metricsService := metrics.NewMetrics(storeService, log.MockLogger{})
 	routes := BuildServerRoutes(&log.MockLogger{}, metricsService, mockPgx)
 
 	ts := httptest.NewServer(routes)
@@ -89,6 +89,14 @@ func TestRouters_Server(t *testing.T) {
 			"/update",
 			strings.NewReader(`{"id": "foo", "type": "counter", "delta": 100}`),
 			`{"id":"foo","delta":100,"type":"counter"}`,
+			http.StatusOK,
+			true,
+		},
+		{
+			"POST",
+			"/updates/",
+			strings.NewReader(`[{"id": "baz", "type": "counter", "delta": 100}, {"id": "bar", "type": "gauge", "value": 1.2}]`),
+			`[{"id":"baz","delta":100,"type":"counter"}, {"id": "bar", "type": "gauge", "value": 1.2}]`,
 			http.StatusOK,
 			true,
 		},
