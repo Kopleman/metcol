@@ -61,12 +61,18 @@ type HTTPClient struct {
 	BaseURL string
 }
 
+const defaultRetryCount = 3
+
 func NewHTTPClient(cfg *config.Config, logger log.Logger) *HTTPClient {
 	baseURL := `http://` + cfg.EndPoint.String()
 
+	transport := NewRetryableTransport(defaultRetryCount)
+
 	return &HTTPClient{
 		BaseURL: baseURL,
-		client:  &http.Client{},
-		logger:  logger,
+		client: &http.Client{
+			Transport: transport,
+		},
+		logger: logger,
 	}
 }
