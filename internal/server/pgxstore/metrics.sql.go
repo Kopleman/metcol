@@ -9,12 +9,12 @@ import (
 	"context"
 )
 
-const getAllMetrics = `-- name: GetAllMetrics :many
+const GetAllMetrics = `-- name: GetAllMetrics :many
 SELECT id, name, type, value, delta, created_at, updated_at, deleted_at FROM metrics ORDER BY name ASC
 `
 
 func (q *Queries) GetAllMetrics(ctx context.Context) ([]*Metric, error) {
-	rows, err := q.db.Query(ctx, getAllMetrics)
+	rows, err := q.db.Query(ctx, GetAllMetrics)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (q *Queries) GetAllMetrics(ctx context.Context) ([]*Metric, error) {
 	return items, nil
 }
 
-const getMetric = `-- name: GetMetric :one
+const GetMetric = `-- name: GetMetric :one
 SELECT id, name, type, value, delta, created_at, updated_at, deleted_at FROM metrics WHERE type=$1 AND name=$2 LIMIT 1
 `
 
@@ -52,7 +52,7 @@ type GetMetricParams struct {
 }
 
 func (q *Queries) GetMetric(ctx context.Context, arg GetMetricParams) (*Metric, error) {
-	row := q.db.QueryRow(ctx, getMetric, arg.Type, arg.Name)
+	row := q.db.QueryRow(ctx, GetMetric, arg.Type, arg.Name)
 	var i Metric
 	err := row.Scan(
 		&i.ID,
@@ -67,7 +67,7 @@ func (q *Queries) GetMetric(ctx context.Context, arg GetMetricParams) (*Metric, 
 	return &i, err
 }
 
-const updateMetric = `-- name: UpdateMetric :exec
+const UpdateMetric = `-- name: UpdateMetric :exec
 UPDATE metrics
 SET value=$1, delta=$2, updated_at=now()
 WHERE type=$3 AND name=$4
@@ -82,7 +82,7 @@ type UpdateMetricParams struct {
 }
 
 func (q *Queries) UpdateMetric(ctx context.Context, arg UpdateMetricParams) error {
-	_, err := q.db.Exec(ctx, updateMetric,
+	_, err := q.db.Exec(ctx, UpdateMetric,
 		arg.Value,
 		arg.Delta,
 		arg.Type,

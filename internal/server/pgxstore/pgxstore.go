@@ -11,6 +11,7 @@ import (
 	"github.com/Kopleman/metcol/internal/server/sterrors"
 	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v4"
 )
 
@@ -127,24 +128,9 @@ func (p *PGXStore) Read(ctx context.Context, mType common.MetricType, name strin
 }
 
 func (p *PGXStore) Create(ctx context.Context, metricDTO *dto.MetricDTO) error {
-	tx, err := p.startTx(ctx, &pgx.TxOptions{})
-	if err != nil {
-		return fmt.Errorf("could not start transaction: %w", err)
-	}
-	defer tx.Rollback(ctx) //nolint:all // its safe
 	mType, err := p.commonMetricTypeToPGXMType(metricDTO.MType)
 	if err != nil {
 		return fmt.Errorf("could not get metric type for '%s': %w", metricDTO.MType, err)
-	}
-	existed, existErr := p.ExistsMetric(ctx, ExistsMetricParams{
-		Name: metricDTO.ID,
-		Type: mType,
-	})
-	if existErr != nil {
-		return fmt.Errorf("could not check if metric '%s' exists: %w", metricDTO.ID, existErr)
-	}
-	if existed {
-		return sterrors.ErrAlreadyExists
 	}
 
 	createParams := CreateMetricParams{
@@ -155,11 +141,11 @@ func (p *PGXStore) Create(ctx context.Context, metricDTO *dto.MetricDTO) error {
 	}
 	_, err = p.CreateMetric(ctx, createParams)
 	if err != nil {
+		var e *pgconn.PgError
+		if errors.As(err, &e) && e.Code == pgerrcode.UniqueViolation {
+			return sterrors.ErrAlreadyExists
+		}
 		return fmt.Errorf("could not create metric: %w", err)
-	}
-
-	if commitErr := tx.Commit(ctx); commitErr != nil {
-		return fmt.Errorf("could not commit transaction: %w", err)
 	}
 
 	return nil

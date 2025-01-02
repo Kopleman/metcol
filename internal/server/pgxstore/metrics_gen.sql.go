@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const createMetric = `-- name: CreateMetric :one
+const CreateMetric = `-- name: CreateMetric :one
 INSERT INTO metrics (name, type, value, delta, created_at)
 	VALUES ($1, $2, $3, $4, now())
 	RETURNING id, name, type, value, delta, created_at, updated_at, deleted_at
@@ -23,7 +23,7 @@ type CreateMetricParams struct {
 }
 
 func (q *Queries) CreateMetric(ctx context.Context, arg CreateMetricParams) (*Metric, error) {
-	row := q.db.QueryRow(ctx, createMetric,
+	row := q.db.QueryRow(ctx, CreateMetric,
 		arg.Name,
 		arg.Type,
 		arg.Value,
@@ -43,7 +43,7 @@ func (q *Queries) CreateMetric(ctx context.Context, arg CreateMetricParams) (*Me
 	return &i, err
 }
 
-const existsMetric = `-- name: ExistsMetric :one
+const ExistsMetric = `-- name: ExistsMetric :one
 SELECT EXISTS (SELECT id, name, type, value, delta, created_at, updated_at, deleted_at FROM metrics WHERE name=$1 AND type=$2)::boolean
 `
 
@@ -53,7 +53,7 @@ type ExistsMetricParams struct {
 }
 
 func (q *Queries) ExistsMetric(ctx context.Context, arg ExistsMetricParams) (bool, error) {
-	row := q.db.QueryRow(ctx, existsMetric, arg.Name, arg.Type)
+	row := q.db.QueryRow(ctx, ExistsMetric, arg.Name, arg.Type)
 	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err

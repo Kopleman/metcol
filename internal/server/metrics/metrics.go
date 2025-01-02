@@ -26,7 +26,7 @@ func (m *Metrics) SetGauge(ctx context.Context, name string, value float64) (*fl
 		if errors.Is(err, sterrors.ErrNotFound) {
 			storeErr := m.store.Create(ctx, metricDTO)
 			if storeErr != nil {
-				return nil, fmt.Errorf("failed to create gauge metric '%s': %w", name, err)
+				return nil, fmt.Errorf("failed to create gauge metric '%s': %w", name, storeErr)
 			}
 			return &value, nil
 		}
@@ -118,7 +118,6 @@ func (m *Metrics) SetMetrics(ctx context.Context, metricDTOs []*dto.MetricDTO) e
 	if commitErr := mWithTx.store.CommitTx(ctx); commitErr != nil {
 		return fmt.Errorf("failed to commit transaction: %w", commitErr)
 	}
-
 	return nil
 }
 
