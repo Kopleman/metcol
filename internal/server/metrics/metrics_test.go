@@ -1,3 +1,4 @@
+//nolint:dupl // test-cases dupes
 package metrics
 
 import (
@@ -6,8 +7,6 @@ import (
 	"strconv"
 	"testing"
 	"time"
-
-	//"time"
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
@@ -757,8 +756,7 @@ func TestMetrics_ImportMetrics(t *testing.T) {
 	}
 }
 
-// we just test that txWrapper does not brake memo-store flow
-func TestMetrics_SetMetrics(t *testing.T) {
+func TestMetrics_SetMetricsWithMemo(t *testing.T) {
 	type fields struct {
 		db map[string]*dto.MetricDTO
 	}
@@ -781,7 +779,7 @@ func TestMetrics_SetMetrics(t *testing.T) {
 						ID:    "foo",
 						MType: "gauge",
 						Delta: nil,
-						Value: testutils.Pointer(1.1),
+						Value: testutils.Pointer(2.0),
 					},
 				},
 			},
@@ -790,7 +788,7 @@ func TestMetrics_SetMetrics(t *testing.T) {
 					ID:    "foo",
 					MType: "gauge",
 					Delta: nil,
-					Value: testutils.Pointer(1.1),
+					Value: testutils.Pointer(2.0),
 				},
 			},
 			wantErr: false,
@@ -804,12 +802,12 @@ func TestMetrics_SetMetrics(t *testing.T) {
 						ID:    "foo",
 						MType: "gauge",
 						Delta: nil,
-						Value: testutils.Pointer(0.1),
+						Value: testutils.Pointer(1.1),
 					},
 					{
 						ID:    "bar",
 						MType: "counter",
-						Delta: testutils.Pointer(int64(2)),
+						Delta: testutils.Pointer(int64(4)),
 						Value: nil,
 					},
 				},
@@ -819,12 +817,12 @@ func TestMetrics_SetMetrics(t *testing.T) {
 					ID:    "foo",
 					MType: "gauge",
 					Delta: nil,
-					Value: testutils.Pointer(0.1),
+					Value: testutils.Pointer(1.1),
 				},
 				"bar-counter": {
 					ID:    "bar",
 					MType: "counter",
-					Delta: testutils.Pointer(int64(2)),
+					Delta: testutils.Pointer(int64(4)),
 					Value: nil,
 				},
 			},
