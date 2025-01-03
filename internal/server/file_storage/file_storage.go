@@ -33,9 +33,9 @@ func (fs *FileStorage) ExportMetrics() error {
 	if err := fs.file.Truncate(0); err != nil {
 		return fmt.Errorf("could not truncate file store: %w", err)
 	}
-	metricsAsDTO, exportError := fs.metricService.ExportMetrics(ctx)
-	if exportError != nil {
-		return fmt.Errorf("could not export metrics: %w", exportError)
+	metricsAsDTO, err := fs.metricService.ExportMetrics(ctx)
+	if err != nil {
+		return fmt.Errorf("could not export metrics: %w", err)
 	}
 	storeErr := fs.encoder.Encode(metricsAsDTO)
 	if storeErr != nil {

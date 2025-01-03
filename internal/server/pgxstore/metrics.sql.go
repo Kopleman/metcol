@@ -7,21 +7,23 @@ package pgxstore
 
 import (
 	"context"
+
+	pgxstore "github.com/Kopleman/metcol/internal/server/pgxstore/models"
 )
 
 const GetAllMetrics = `-- name: GetAllMetrics :many
 SELECT id, name, type, value, delta, created_at, updated_at, deleted_at FROM metrics ORDER BY name ASC
 `
 
-func (q *Queries) GetAllMetrics(ctx context.Context) ([]*Metric, error) {
+func (q *Queries) GetAllMetrics(ctx context.Context) ([]*pgxstore.Metric, error) {
 	rows, err := q.db.Query(ctx, GetAllMetrics)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*Metric{}
+	items := []*pgxstore.Metric{}
 	for rows.Next() {
-		var i Metric
+		var i pgxstore.Metric
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -47,13 +49,13 @@ SELECT id, name, type, value, delta, created_at, updated_at, deleted_at FROM met
 `
 
 type GetMetricParams struct {
-	Type MetricType `db:"type" json:"type"`
-	Name string     `db:"name" json:"name"`
+	Type pgxstore.MetricType `db:"type" json:"type"`
+	Name string              `db:"name" json:"name"`
 }
 
-func (q *Queries) GetMetric(ctx context.Context, arg GetMetricParams) (*Metric, error) {
+func (q *Queries) GetMetric(ctx context.Context, arg GetMetricParams) (*pgxstore.Metric, error) {
 	row := q.db.QueryRow(ctx, GetMetric, arg.Type, arg.Name)
-	var i Metric
+	var i pgxstore.Metric
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -75,10 +77,10 @@ WHERE type=$3 AND name=$4
 `
 
 type UpdateMetricParams struct {
-	Value *float64   `db:"value" json:"value"`
-	Delta *int64     `db:"delta" json:"delta"`
-	Type  MetricType `db:"type" json:"type"`
-	Name  string     `db:"name" json:"name"`
+	Value *float64            `db:"value" json:"value"`
+	Delta *int64              `db:"delta" json:"delta"`
+	Type  pgxstore.MetricType `db:"type" json:"type"`
+	Name  string              `db:"name" json:"name"`
 }
 
 func (q *Queries) UpdateMetric(ctx context.Context, arg UpdateMetricParams) error {

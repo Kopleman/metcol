@@ -6,13 +6,15 @@ package pgxstore
 
 import (
 	"context"
+
+	pgxstore "github.com/Kopleman/metcol/internal/server/pgxstore/models"
 )
 
 type Querier interface {
-	CreateMetric(ctx context.Context, arg CreateMetricParams) (*Metric, error)
+	CreateMetric(ctx context.Context, arg CreateMetricParams) (*pgxstore.Metric, error)
 	ExistsMetric(ctx context.Context, arg ExistsMetricParams) (bool, error)
-	GetAllMetrics(ctx context.Context) ([]*Metric, error)
-	GetMetric(ctx context.Context, arg GetMetricParams) (*Metric, error)
+	GetAllMetrics(ctx context.Context) ([]*pgxstore.Metric, error)
+	GetMetric(ctx context.Context, arg GetMetricParams) (*pgxstore.Metric, error)
 	UpdateMetric(ctx context.Context, arg UpdateMetricParams) error
 }
 

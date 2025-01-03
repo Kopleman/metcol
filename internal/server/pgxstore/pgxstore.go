@@ -8,6 +8,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
+	pgxstore "github.com/Kopleman/metcol/internal/server/pgxstore/models"
 	"github.com/Kopleman/metcol/internal/server/sterrors"
 	"github.com/Kopleman/metcol/internal/server/store"
 	"github.com/jackc/pgconn"
@@ -78,7 +79,7 @@ func (p *PGXStore) GetAll(ctx context.Context) ([]*dto.MetricDTO, error) {
 	}
 	exportData := make([]*dto.MetricDTO, 0, len(items))
 	for _, item := range items {
-		metricDto, err := item.toDTO()
+		metricDto, err := item.ToDTO()
 		if err != nil {
 			return nil, fmt.Errorf("could not convert metric to dto: %w", err)
 		}
@@ -87,12 +88,12 @@ func (p *PGXStore) GetAll(ctx context.Context) ([]*dto.MetricDTO, error) {
 	return exportData, nil
 }
 
-func (p *PGXStore) commonMetricTypeToPGXMType(mType common.MetricType) (MetricType, error) {
+func (p *PGXStore) commonMetricTypeToPGXMType(mType common.MetricType) (pgxstore.MetricType, error) {
 	switch mType {
 	case common.CounterMetricType:
-		return MetricTypeCounter, nil
+		return pgxstore.MetricTypeCounter, nil
 	case common.GaugeMetricType:
-		return MetricTypeGauge, nil
+		return pgxstore.MetricTypeGauge, nil
 	default:
 		return "", fmt.Errorf("unknown metric type: %v", mType)
 	}
@@ -119,7 +120,7 @@ func (p *PGXStore) Read(ctx context.Context, mType common.MetricType, name strin
 		return nil, sterrors.ErrNotFound
 	}
 
-	metricDto, dtoErr := item.toDTO()
+	metricDto, dtoErr := item.ToDTO()
 	if dtoErr != nil {
 		return nil, fmt.Errorf("could not convert metric to dto: %w", err)
 	}

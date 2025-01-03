@@ -4,6 +4,14 @@ sqlc:
     schema_dir: sql/migrations
     models:
       replace_sqlc_nullable_types: true
+      move: # required
+        output_dir: internal/server/pgxstore/models
+        # default: models.go
+        output_file_name: models_gen.go
+        # new package name. by default based on `output_dir`
+        package_name: pgxstore
+        # required. full path to new models directory
+        package_path: github.com/Kopleman/metcol/internal/server/pgxstore/models
     crud:
       auto_remove_generated_files: true
       exclude_table_name_from_methods: false
@@ -18,7 +26,7 @@ sqlc:
                 - deleted_at
               column_values:
                 created_at: now()
-              returning: "*"
+              returning: "id, name, type, value, delta, created_at, updated_at, deleted_at"
             exists:
               where:
                 name:

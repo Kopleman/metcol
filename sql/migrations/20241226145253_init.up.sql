@@ -12,5 +12,6 @@ CREATE TABLE IF NOT EXISTS metrics
     created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP    NULL,
     deleted_at TIMESTAMP    NULL,
-    UNIQUE (name, type)
+    UNIQUE (name, type),
+    CHECK (NOT(value IS NULL AND delta IS NULL))
 );

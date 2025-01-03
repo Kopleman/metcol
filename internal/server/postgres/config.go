@@ -25,15 +25,3 @@ func (c Config) Validate() error {
 
 	return nil
 }
-
-func (c Config) GetMaxConns() int32 {
-	return c.MaxConns
-}
-
-func (c Config) GetMinConns() int32 {
-	return c.MinConns
-}
-
-func (c Config) GetPreferSimpleProtocol() bool {
-	return c.PreferSimpleProtocol
-}

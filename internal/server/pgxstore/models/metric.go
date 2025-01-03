@@ -23,7 +23,7 @@ func (m *Metric) convertMetricType() (common.MetricType, error) {
 	}
 }
 
-func (m *Metric) toDTO() (*dto.MetricDTO, error) {
+func (m *Metric) ToDTO() (*dto.MetricDTO, error) {
 	if m == nil {
 		return nil, errors.New("nil metric")
 	}

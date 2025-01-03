@@ -7,6 +7,8 @@ package pgxstore
 
 import (
 	"context"
+
+	pgxstore "github.com/Kopleman/metcol/internal/server/pgxstore/models"
 )
 
 const CreateMetric = `-- name: CreateMetric :one
@@ -16,20 +18,20 @@ INSERT INTO metrics (name, type, value, delta, created_at)
 `
 
 type CreateMetricParams struct {
-	Name  string     `db:"name" json:"name"`
-	Type  MetricType `db:"type" json:"type"`
-	Value *float64   `db:"value" json:"value"`
-	Delta *int64     `db:"delta" json:"delta"`
+	Name  string              `db:"name" json:"name"`
+	Type  pgxstore.MetricType `db:"type" json:"type"`
+	Value *float64            `db:"value" json:"value"`
+	Delta *int64              `db:"delta" json:"delta"`
 }
 
-func (q *Queries) CreateMetric(ctx context.Context, arg CreateMetricParams) (*Metric, error) {
+func (q *Queries) CreateMetric(ctx context.Context, arg CreateMetricParams) (*pgxstore.Metric, error) {
 	row := q.db.QueryRow(ctx, CreateMetric,
 		arg.Name,
 		arg.Type,
 		arg.Value,
 		arg.Delta,
 	)
-	var i Metric
+	var i pgxstore.Metric
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -48,8 +50,8 @@ SELECT EXISTS (SELECT id, name, type, value, delta, created_at, updated_at, dele
 `
 
 type ExistsMetricParams struct {
-	Name string     `db:"name" json:"name"`
-	Type MetricType `db:"type" json:"type"`
+	Name string              `db:"name" json:"name"`
+	Type pgxstore.MetricType `db:"type" json:"type"`
 }
 
 func (q *Queries) ExistsMetric(ctx context.Context, arg ExistsMetricParams) (bool, error) {

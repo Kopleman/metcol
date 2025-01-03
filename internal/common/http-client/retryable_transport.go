@@ -26,34 +26,34 @@ func shouldRetry(err error, resp *http.Response) bool {
 	return false
 }
 
-func drainBody(resp *http.Response) error {
+func closeBody(resp *http.Response) error {
 	if resp != nil && resp.Body != nil {
-		if _, err := io.Copy(io.Discard, resp.Body); err != nil {
-			return fmt.Errorf("failed to drain response body: %w", err)
-		}
 		if err := resp.Body.Close(); err != nil {
 			return fmt.Errorf("failed to close response body: %w", err)
 		}
 	}
-
 	return nil
 }
 
 func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	var bodyBytes []byte
+	var initialBodyBytes []byte
 	if req.Body != nil {
-		bodyBytes, _ = io.ReadAll(req.Body)
-		req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		reRedBodyBytes, err := io.ReadAll(req.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read request body: %w", err)
+		}
+		initialBodyBytes = reRedBodyBytes
+		req.Body = io.NopCloser(bytes.NewBuffer(initialBodyBytes))
 	}
 	resp, err := t.transport.RoundTrip(req)
 	retries := 0
 	for shouldRetry(err, resp) && retries < t.retryCount {
 		time.Sleep(backoff(retries))
-		if err = drainBody(resp); err != nil {
+		if err = closeBody(resp); err != nil {
 			return nil, fmt.Errorf("round trip: %w", err)
 		}
 		if req.Body != nil {
-			req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+			req.Body = io.NopCloser(bytes.NewBuffer(initialBodyBytes))
 		}
 		resp, err = t.transport.RoundTrip(req)
 		retries++
