@@ -13,10 +13,9 @@ import (
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/memstore"
 	"github.com/Kopleman/metcol/internal/server/pgxstore"
-	pgxmodels "github.com/Kopleman/metcol/internal/server/pgxstore/models"
 	"github.com/Kopleman/metcol/internal/testutils"
-	"github.com/jackc/pgx/v4"
-	"github.com/pashagolub/pgxmock"
+	"github.com/jackc/pgx/v5"
+	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -926,6 +925,7 @@ func TestMetrics_SetMetricsWithPGS(t *testing.T) {
 
 			for index, metric := range tt.args.metrics {
 				mock.ExpectQuery(pgxstore.GetMetric).
+					WithArgs(pgxstore.MetricType(metric.MType), metric.ID).
 					WillReturnError(pgx.ErrNoRows)
 
 				indexToStr := strconv.Itoa(index)
@@ -934,7 +934,7 @@ func TestMetrics_SetMetricsWithPGS(t *testing.T) {
 					AddRow(
 						"00000000-0000-0000-0000-00000000000"+indexToStr,
 						metric.ID,
-						pgxmodels.MetricType(metric.MType),
+						pgxstore.MetricType(metric.MType),
 						metric.Value,
 						metric.Delta,
 						time.Now(),
@@ -942,7 +942,7 @@ func TestMetrics_SetMetricsWithPGS(t *testing.T) {
 						nil,
 					)
 				mock.ExpectQuery(pgxstore.CreateMetric).
-					WithArgs(metric.ID, pgxmodels.MetricType(metric.MType), metric.Value, metric.Delta).
+					WithArgs(metric.ID, pgxstore.MetricType(metric.MType), metric.Value, metric.Delta).
 					WillReturnRows(rows)
 			}
 

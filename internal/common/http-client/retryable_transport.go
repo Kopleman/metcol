@@ -46,6 +46,9 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 		req.Body = io.NopCloser(bytes.NewBuffer(initialBodyBytes))
 	}
 	resp, err := t.transport.RoundTrip(req)
+	if err == nil {
+		return resp, nil
+	}
 	retries := 0
 	for shouldRetry(err, resp) && retries < t.retryCount {
 		time.Sleep(backoff(retries))

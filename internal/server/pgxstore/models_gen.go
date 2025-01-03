@@ -7,9 +7,8 @@ package pgxstore
 import (
 	"database/sql/driver"
 	"fmt"
-	"time"
 
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type MetricType string
@@ -71,12 +70,12 @@ func AllMetricTypeValues() []MetricType {
 }
 
 type Metric struct {
-	ID        uuid.UUID  `db:"id" json:"id"`
-	Name      string     `db:"name" json:"name"`
-	Type      MetricType `db:"type" json:"type"`
-	Value     *float64   `db:"value" json:"value"`
-	Delta     *int64     `db:"delta" json:"delta"`
-	CreatedAt time.Time  `db:"created_at" json:"created_at"`
-	UpdatedAt *time.Time `db:"updated_at" json:"updated_at"`
-	DeletedAt *time.Time `db:"deleted_at" json:"deleted_at"`
+	ID        pgtype.UUID      `db:"id" json:"id"`
+	Name      string           `db:"name" json:"name"`
+	Type      MetricType       `db:"type" json:"type"`
+	Value     *float64         `db:"value" json:"value"`
+	Delta     *int64           `db:"delta" json:"delta"`
+	CreatedAt pgtype.Timestamp `db:"created_at" json:"created_at"`
+	UpdatedAt pgtype.Timestamp `db:"updated_at" json:"updated_at"`
+	DeletedAt pgtype.Timestamp `db:"deleted_at" json:"deleted_at"`
 }

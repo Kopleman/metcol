@@ -66,5 +66,4 @@ db-create-migration:
 
 .PHONY: gensql
 gensql:
-	pgxgen crud
-	pgxgen sqlc generate
+	sqlc generate
