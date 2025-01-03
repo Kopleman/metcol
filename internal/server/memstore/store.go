@@ -2,6 +2,7 @@ package memstore
 
 import (
 	"context"
+	"sync"
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
@@ -71,22 +72,28 @@ func (s *Store) GetAll(_ context.Context) ([]*dto.MetricDTO, error) {
 }
 
 func (s *Store) StartTx(_ context.Context) (store.Store, error) {
+	s.mu.Lock()
 	return s, nil
 }
 
 func (s *Store) RollbackTx(_ context.Context) error {
+	s.mu.Unlock()
 	return nil
 }
+
+// CommitTx there is no mu.unlock dut to rollback is deffered so mutex will be unlocked anyway.
 func (s *Store) CommitTx(_ context.Context) error {
 	return nil
 }
 
 type Store struct {
 	db map[string]*dto.MetricDTO
+	mu sync.Mutex
 }
 
 func NewStore(db map[string]*dto.MetricDTO) *Store {
 	return &Store{
-		db,
+		db: db,
+		mu: sync.Mutex{},
 	}
 }
