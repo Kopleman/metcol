@@ -151,30 +151,12 @@ func (p *PGXStore) Create(ctx context.Context, metricDTO *dto.MetricDTO) error {
 }
 
 func (p *PGXStore) Update(ctx context.Context, metricDTO *dto.MetricDTO) error {
-	tx, err := p.startTx(ctx, &pgx.TxOptions{})
-	if err != nil {
-		return fmt.Errorf("could not start transaction: %w", err)
-	}
-	defer tx.Rollback(ctx) //nolint:all // its safe
-
 	mType, err := p.commonMetricTypeToPGXMType(metricDTO.MType)
 	if err != nil {
 		return fmt.Errorf("could not get metric type for '%s': %w", metricDTO.MType, err)
 	}
 
-	existed, existErr := p.ExistsMetric(ctx, ExistsMetricParams{
-		Name: metricDTO.ID,
-		Type: mType,
-	})
-	if existErr != nil {
-		return fmt.Errorf("could not check if metric '%s' exists: %w", metricDTO.ID, existErr)
-	}
-
-	if !existed {
-		return sterrors.ErrNotFound
-	}
-
-	err = p.UpdateMetric(ctx, UpdateMetricParams{
+	_, err = p.UpdateMetric(ctx, UpdateMetricParams{
 		Name:  metricDTO.ID,
 		Type:  mType,
 		Delta: metricDTO.Delta,
@@ -184,8 +166,44 @@ func (p *PGXStore) Update(ctx context.Context, metricDTO *dto.MetricDTO) error {
 		return fmt.Errorf("could not update metric: %w", err)
 	}
 
+	return nil
+}
+
+func (p *PGXStore) CreateOrUpdate(ctx context.Context, metricDTO *dto.MetricDTO) error {
+	mType, err := p.commonMetricTypeToPGXMType(metricDTO.MType)
+	if err != nil {
+		return fmt.Errorf("pgxstore.CreateOrUpdate type conversion: %w", err)
+	}
+
+	_, err = p.CreateOrUpdateMetric(ctx, CreateOrUpdateMetricParams{
+		Name:  metricDTO.ID,
+		Type:  mType,
+		Delta: metricDTO.Delta,
+		Value: metricDTO.Value,
+	})
+
+	if err != nil {
+		return fmt.Errorf("pgxstore.CreateOrUpdate op: %w", err)
+	}
+
+	return nil
+}
+
+func (p *PGXStore) BulkCreateOrUpdate(ctx context.Context, metricsDTO []*dto.MetricDTO) error {
+	tx, err := p.startTx(ctx, &pgx.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("pgxstore.CreateOrUpdate could not start transaction: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:all // its safe
+
+	for _, metric := range metricsDTO {
+		if createOrUpdateErr := p.CreateOrUpdate(ctx, metric); createOrUpdateErr != nil {
+			return fmt.Errorf("pgxstore.CreateOrUpdate could not create or update metric: %w", createOrUpdateErr)
+		}
+	}
+
 	if commitErr := tx.Commit(ctx); commitErr != nil {
-		return fmt.Errorf("could not commit transaction: %w", err)
+		return fmt.Errorf("pgxstore.CreateOrUpdate could not commit transaction: %w", commitErr)
 	}
 
 	return nil

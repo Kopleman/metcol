@@ -7,7 +7,6 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/server/sterrors"
-	"github.com/Kopleman/metcol/internal/server/store"
 )
 
 func (s *Store) buildStoreKey(name string, metricType common.MetricType) string {
@@ -71,18 +70,15 @@ func (s *Store) GetAll(_ context.Context) ([]*dto.MetricDTO, error) {
 	return exportData, nil
 }
 
-func (s *Store) StartTx(_ context.Context) (store.Store, error) {
+func (s *Store) BulkCreateOrUpdate(_ context.Context, metricsDTO []*dto.MetricDTO) error {
 	s.mu.Lock()
-	return s, nil
-}
+	defer s.mu.Unlock()
 
-func (s *Store) RollbackTx(_ context.Context) error {
-	s.mu.Unlock()
-	return nil
-}
+	for _, metric := range metricsDTO {
+		key := s.buildStoreKey(metric.ID, metric.MType)
+		s.db[key] = metric
+	}
 
-// CommitTx there is no mu.unlock dut to rollback is deffered so mutex will be unlocked anyway.
-func (s *Store) CommitTx(_ context.Context) error {
 	return nil
 }
 

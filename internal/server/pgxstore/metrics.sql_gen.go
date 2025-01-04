@@ -43,6 +43,41 @@ func (q *Queries) CreateMetric(ctx context.Context, arg CreateMetricParams) (*Me
 	return &i, err
 }
 
+const CreateOrUpdateMetric = `-- name: CreateOrUpdateMetric :one
+INSERT INTO metrics (name, type, value, delta, created_at)
+VALUES ($1, $2, $3, $4, now())
+    ON CONFLICT ON CONSTRAINT name_type_uniq DO UPDATE SET value=$3, delta=$4, updated_at=now()
+    RETURNING id, name, type, value, delta, created_at, updated_at, deleted_at
+`
+
+type CreateOrUpdateMetricParams struct {
+	Name  string     `db:"name" json:"name"`
+	Type  MetricType `db:"type" json:"type"`
+	Value *float64   `db:"value" json:"value"`
+	Delta *int64     `db:"delta" json:"delta"`
+}
+
+func (q *Queries) CreateOrUpdateMetric(ctx context.Context, arg CreateOrUpdateMetricParams) (*Metric, error) {
+	row := q.db.QueryRow(ctx, CreateOrUpdateMetric,
+		arg.Name,
+		arg.Type,
+		arg.Value,
+		arg.Delta,
+	)
+	var i Metric
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Type,
+		&i.Value,
+		&i.Delta,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return &i, err
+}
+
 const ExistsMetric = `-- name: ExistsMetric :one
 SELECT EXISTS (SELECT id, name, type, value, delta, created_at, updated_at, deleted_at FROM metrics WHERE name=$1 AND type=$2)::boolean
 `
@@ -117,7 +152,7 @@ func (q *Queries) GetMetric(ctx context.Context, arg GetMetricParams) (*Metric, 
 	return &i, err
 }
 
-const UpdateMetric = `-- name: UpdateMetric :exec
+const UpdateMetric = `-- name: UpdateMetric :one
 UPDATE metrics
 SET value=$1, delta=$2, updated_at=now()
 WHERE type=$3 AND name=$4
@@ -131,12 +166,23 @@ type UpdateMetricParams struct {
 	Name  string     `db:"name" json:"name"`
 }
 
-func (q *Queries) UpdateMetric(ctx context.Context, arg UpdateMetricParams) error {
-	_, err := q.db.Exec(ctx, UpdateMetric,
+func (q *Queries) UpdateMetric(ctx context.Context, arg UpdateMetricParams) (*Metric, error) {
+	row := q.db.QueryRow(ctx, UpdateMetric,
 		arg.Value,
 		arg.Delta,
 		arg.Type,
 		arg.Name,
 	)
-	return err
+	var i Metric
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Type,
+		&i.Value,
+		&i.Delta,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return &i, err
 }

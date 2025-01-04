@@ -10,10 +10,11 @@ import (
 
 type Querier interface {
 	CreateMetric(ctx context.Context, arg CreateMetricParams) (*Metric, error)
+	CreateOrUpdateMetric(ctx context.Context, arg CreateOrUpdateMetricParams) (*Metric, error)
 	ExistsMetric(ctx context.Context, arg ExistsMetricParams) (bool, error)
 	GetAllMetrics(ctx context.Context) ([]*Metric, error)
 	GetMetric(ctx context.Context, arg GetMetricParams) (*Metric, error)
-	UpdateMetric(ctx context.Context, arg UpdateMetricParams) error
+	UpdateMetric(ctx context.Context, arg UpdateMetricParams) (*Metric, error)
 }
 
 var _ Querier = (*Queries)(nil)

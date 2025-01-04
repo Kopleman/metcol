@@ -99,25 +99,19 @@ func (m *Metrics) SetMetric(ctx context.Context, metricType common.MetricType, n
 }
 
 func (m *Metrics) SetMetrics(ctx context.Context, metricDTOs []*dto.MetricDTO) error {
-	mWithTx, err := m.withTx(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to start transaction: %w", err)
-	}
-	defer func() {
-		if rollBackErr := mWithTx.store.RollbackTx(ctx); rollBackErr != nil {
-			m.logger.Error(rollBackErr)
-		}
-	}()
-
+	dtoForSet := make([]*dto.MetricDTO, 0, len(metricDTOs))
 	for _, dtoItem := range metricDTOs {
-		if setErr := mWithTx.SetMetricByDto(ctx, dtoItem); setErr != nil {
-			return fmt.Errorf("failed to set metric: %w", setErr)
+		preparedDto, err := m.prepareMetricDTOForSet(ctx, dtoItem)
+		if err != nil {
+			return fmt.Errorf("metrics.setMetric prepare on '%s': %w", dtoItem.ID, err)
 		}
+		dtoForSet = append(dtoForSet, preparedDto)
 	}
 
-	if commitErr := mWithTx.store.CommitTx(ctx); commitErr != nil {
-		return fmt.Errorf("failed to commit transaction: %w", commitErr)
+	if err := m.store.BulkCreateOrUpdate(ctx, dtoForSet); err != nil {
+		return fmt.Errorf("metrics.setMetric BulkCreateOrUpdate: %w", err)
 	}
+
 	return nil
 }
 
@@ -146,6 +140,49 @@ func (m *Metrics) SetMetricByDto(ctx context.Context, d *dto.MetricDTO) error {
 	default:
 		return ErrUnknownMetricType
 	}
+}
+
+func (m *Metrics) validateMetricDto(d *dto.MetricDTO) error {
+	switch d.MType {
+	case common.CounterMetricType:
+		if d.Delta == nil {
+			return ErrValueParse
+		}
+		return nil
+	case common.GaugeMetricType:
+		if d.Value == nil {
+			return ErrValueParse
+		}
+		return nil
+	default:
+		return ErrUnknownMetricType
+	}
+}
+
+func (m *Metrics) prepareMetricDTOForSet(ctx context.Context, d *dto.MetricDTO) (*dto.MetricDTO, error) {
+	if err := m.validateMetricDto(d); err != nil {
+		return nil, fmt.Errorf("metrics.prepareDataForSet validate input: %w", err)
+	}
+
+	existedMetric, err := m.store.Read(ctx, common.CounterMetricType, d.ID)
+	if err != nil {
+		if errors.Is(err, sterrors.ErrNotFound) {
+			return d, nil
+		}
+		return nil, fmt.Errorf("metrics.prepareDataForSet read: %w", err)
+	}
+
+	if err = m.validateMetricDto(existedMetric); err != nil {
+		return nil, fmt.Errorf("metrics.prepareDataForSet validate existed: %w", err)
+	}
+
+	// in case of counter we should add new value
+	if existedMetric.MType == common.CounterMetricType {
+		newValue := *existedMetric.Delta + *d.Delta
+		d.Delta = &newValue
+	}
+
+	return d, nil
 }
 
 func (m *Metrics) GetValueAsString(ctx context.Context, metricType common.MetricType, name string) (string, error) {
@@ -219,17 +256,6 @@ func (m *Metrics) ImportMetrics(ctx context.Context, metricsToImport []*dto.Metr
 		}
 	}
 	return nil
-}
-
-func (m *Metrics) withTx(ctx context.Context) (*Metrics, error) {
-	storeWithTx, err := m.store.StartTx(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to start transaction: %w", err)
-	}
-
-	return &Metrics{
-		store: storeWithTx,
-	}, nil
 }
 
 func ParseMetricType(typeAsString string) (common.MetricType, error) {
