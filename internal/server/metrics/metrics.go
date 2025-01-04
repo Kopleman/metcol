@@ -157,8 +157,6 @@ func (m *Metrics) validateMetricDto(d *dto.MetricDTO) error {
 }
 
 func (m *Metrics) prepareMetricDTOForSet(ctx context.Context, metricDTOs []*dto.MetricDTO) ([]*dto.MetricDTO, error) {
-	// to pop old metrics on top.
-	slices.Reverse(metricDTOs)
 	dtoForSet := make([]*dto.MetricDTO, 0)
 	for _, d := range metricDTOs {
 		if err := m.validateMetricDto(d); err != nil {
