@@ -59,6 +59,9 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 			req.Body = io.NopCloser(bytes.NewBuffer(initialBodyBytes))
 		}
 		resp, err = t.transport.RoundTrip(req)
+		if err == nil {
+			return resp, nil
+		}
 		retries++
 	}
 	return resp, fmt.Errorf("retry amount exeeded: %w", err)

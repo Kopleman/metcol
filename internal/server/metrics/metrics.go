@@ -184,6 +184,7 @@ func (m *Metrics) prepareMetricDTOForSet(ctx context.Context, metricDTOs []*dto.
 				return nil, fmt.Errorf("metrics.prepareDataForSet read: %w", readErr)
 			}
 			existedMetric = metricInStore
+			dtoForSet = append(dtoForSet, existedMetric)
 		}
 
 		if err := m.validateMetricDto(existedMetric); err != nil {
