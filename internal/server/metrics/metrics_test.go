@@ -847,7 +847,7 @@ func TestMetrics_SetMetricsWithMemo(t *testing.T) {
 					ID:    "foo",
 					MType: "gauge",
 					Delta: nil,
-					Value: testutils.Pointer(1.1),
+					Value: testutils.Pointer(3.0),
 				},
 			},
 			wantErr: false,

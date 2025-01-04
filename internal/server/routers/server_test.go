@@ -96,7 +96,7 @@ func TestRouters_Server(t *testing.T) {
 			"POST",
 			"/updates/",
 			strings.NewReader(`[{"id": "baz", "type": "counter", "delta": 100}, {"id": "bar", "type": "gauge", "value": 1.2}]`),
-			`[{"id": "bar", "type": "gauge", "value": 1.2}, {"id":"baz","delta":100,"type":"counter"}]`,
+			`[{"id":"baz","delta":100,"type":"counter"}, {"id": "bar", "type": "gauge", "value": 1.2}]`,
 			http.StatusOK,
 			true,
 		},
