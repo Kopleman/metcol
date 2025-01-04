@@ -824,6 +824,102 @@ func TestMetrics_SetMetricsWithMemo(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:   "set 2 same gauges",
+			fields: fields{db: make(map[string]*dto.MetricDTO)},
+			args: args{
+				metrics: []*dto.MetricDTO{
+					{
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(1.1),
+					},
+					{
+						ID:    "foo",
+						MType: "gauge",
+						Delta: nil,
+						Value: testutils.Pointer(3.0),
+					},
+				},
+			},
+			want: map[string]*dto.MetricDTO{
+				"foo-gauge": {
+					ID:    "foo",
+					MType: "gauge",
+					Delta: nil,
+					Value: testutils.Pointer(1.1),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "set 2 same counters",
+			fields: fields{db: make(map[string]*dto.MetricDTO)},
+			args: args{
+				metrics: []*dto.MetricDTO{
+					{
+						ID:    "bar",
+						MType: "counter",
+						Delta: testutils.Pointer(int64(4)),
+						Value: nil,
+					},
+					{
+						ID:    "bar",
+						MType: "counter",
+						Delta: testutils.Pointer(int64(4)),
+						Value: nil,
+					},
+				},
+			},
+			want: map[string]*dto.MetricDTO{
+				"bar-counter": {
+					ID:    "bar",
+					MType: "counter",
+					Delta: testutils.Pointer(int64(8)),
+					Value: nil,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "set 2 same counters on existed",
+			fields: fields{
+				db: map[string]*dto.MetricDTO{
+					"bar-counter": {
+						ID:    "bar",
+						MType: "counter",
+						Delta: testutils.Pointer(int64(2)),
+						Value: nil,
+					},
+				},
+			},
+			args: args{
+				metrics: []*dto.MetricDTO{
+					{
+						ID:    "bar",
+						MType: "counter",
+						Delta: testutils.Pointer(int64(4)),
+						Value: nil,
+					},
+					{
+						ID:    "bar",
+						MType: "counter",
+						Delta: testutils.Pointer(int64(4)),
+						Value: nil,
+					},
+				},
+			},
+			want: map[string]*dto.MetricDTO{
+				"bar-counter": {
+					ID:    "bar",
+					MType: "counter",
+					Delta: testutils.Pointer(int64(10)),
+					Value: nil,
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name:   "set bad metric",
 			fields: fields{db: make(map[string]*dto.MetricDTO)},
 			args: args{

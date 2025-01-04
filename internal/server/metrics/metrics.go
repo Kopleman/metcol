@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 
 	"github.com/Kopleman/metcol/internal/common"
@@ -99,16 +100,12 @@ func (m *Metrics) SetMetric(ctx context.Context, metricType common.MetricType, n
 }
 
 func (m *Metrics) SetMetrics(ctx context.Context, metricDTOs []*dto.MetricDTO) error {
-	dtoForSet := make([]*dto.MetricDTO, 0, len(metricDTOs))
-	for _, dtoItem := range metricDTOs {
-		preparedDto, err := m.prepareMetricDTOForSet(ctx, dtoItem)
-		if err != nil {
-			return fmt.Errorf("metrics.setMetric prepare on '%s': %w", dtoItem.ID, err)
-		}
-		dtoForSet = append(dtoForSet, preparedDto)
+	dtoForSet, err := m.prepareMetricDTOForSet(ctx, metricDTOs)
+	if err != nil {
+		return fmt.Errorf("metrics.SetMetrics prepare metric DTOs for set: %w", err)
 	}
 
-	if err := m.store.BulkCreateOrUpdate(ctx, dtoForSet); err != nil {
+	if err = m.store.BulkCreateOrUpdate(ctx, dtoForSet); err != nil {
 		return fmt.Errorf("metrics.setMetric BulkCreateOrUpdate: %w", err)
 	}
 
@@ -159,30 +156,54 @@ func (m *Metrics) validateMetricDto(d *dto.MetricDTO) error {
 	}
 }
 
-func (m *Metrics) prepareMetricDTOForSet(ctx context.Context, d *dto.MetricDTO) (*dto.MetricDTO, error) {
-	if err := m.validateMetricDto(d); err != nil {
-		return nil, fmt.Errorf("metrics.prepareDataForSet validate input: %w", err)
-	}
-
-	existedMetric, err := m.store.Read(ctx, common.CounterMetricType, d.ID)
-	if err != nil {
-		if errors.Is(err, sterrors.ErrNotFound) {
-			return d, nil
+func (m *Metrics) prepareMetricDTOForSet(ctx context.Context, metricDTOs []*dto.MetricDTO) ([]*dto.MetricDTO, error) {
+	// to pop old metrics on top.
+	slices.Reverse(metricDTOs)
+	dtoForSet := make([]*dto.MetricDTO, 0)
+	for _, d := range metricDTOs {
+		if err := m.validateMetricDto(d); err != nil {
+			return nil, fmt.Errorf("metrics.prepareDataForSet validate input: %w", err)
 		}
-		return nil, fmt.Errorf("metrics.prepareDataForSet read: %w", err)
+
+		// check that we did not meet this metric before.
+		indexOfPrepared := slices.IndexFunc(dtoForSet,
+			func(preparedDTO *dto.MetricDTO) bool {
+				return preparedDTO.MType == d.MType && preparedDTO.ID == d.ID
+			})
+
+		var existedMetric *dto.MetricDTO
+		if indexOfPrepared != -1 {
+			existedMetric = dtoForSet[indexOfPrepared]
+		}
+
+		if existedMetric == nil {
+			metricInStore, readErr := m.store.Read(ctx, common.CounterMetricType, d.ID)
+			if readErr != nil {
+				if errors.Is(readErr, sterrors.ErrNotFound) {
+					dtoForSet = append(dtoForSet, d)
+					continue
+				}
+				return nil, fmt.Errorf("metrics.prepareDataForSet read: %w", readErr)
+			}
+			existedMetric = metricInStore
+		}
+
+		if err := m.validateMetricDto(existedMetric); err != nil {
+			return nil, fmt.Errorf("metrics.prepareDataForSet validate existed: %w", err)
+		}
+
+		switch existedMetric.MType {
+		case common.CounterMetricType:
+			newValue := *existedMetric.Delta + *d.Delta
+			existedMetric.Delta = &newValue
+		case common.GaugeMetricType:
+			existedMetric.Value = d.Value
+		default:
+			return nil, ErrUnknownMetricType
+		}
 	}
 
-	if err = m.validateMetricDto(existedMetric); err != nil {
-		return nil, fmt.Errorf("metrics.prepareDataForSet validate existed: %w", err)
-	}
-
-	// in case of counter we should add new value
-	if existedMetric.MType == common.CounterMetricType {
-		newValue := *existedMetric.Delta + *d.Delta
-		d.Delta = &newValue
-	}
-
-	return d, nil
+	return dtoForSet, nil
 }
 
 func (m *Metrics) GetValueAsString(ctx context.Context, metricType common.MetricType, name string) (string, error) {

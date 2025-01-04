@@ -8,7 +8,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
-const defaultReportInterval int64 = 5
+const defaultReportInterval int64 = 10
 const defaultPollInterval int64 = 2
 
 type Config struct {
