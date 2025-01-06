@@ -84,12 +84,12 @@ func (s *Store) BulkCreateOrUpdate(_ context.Context, metricsDTO []*dto.MetricDT
 
 type Store struct {
 	db map[string]*dto.MetricDTO
-	mu sync.Mutex
+	mu *sync.Mutex
 }
 
 func NewStore(db map[string]*dto.MetricDTO) *Store {
 	return &Store{
 		db: db,
-		mu: sync.Mutex{},
+		mu: &sync.Mutex{},
 	}
 }

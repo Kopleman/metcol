@@ -148,7 +148,7 @@ func (m *Metrics) validateMetricDto(d *dto.MetricDTO) error {
 		return nil
 	case common.GaugeMetricType:
 		if d.Value == nil {
-			return ErrValueParse
+			return fmt.Errorf("%w: field Value cannot be nil", ErrValueParse)
 		}
 		return nil
 	default:

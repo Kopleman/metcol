@@ -13,5 +13,5 @@ CREATE TABLE IF NOT EXISTS metrics
     updated_at TIMESTAMP    NULL,
     deleted_at TIMESTAMP    NULL,
     CONSTRAINT name_type_uniq UNIQUE(name, type),
-    CHECK (NOT(value IS NULL AND delta IS NULL))
+    CONSTRAINT value_delta_null_check CHECK (NOT(value IS NULL AND delta IS NULL))
 );
