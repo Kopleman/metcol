@@ -143,7 +143,7 @@ func (m *Metrics) validateMetricDto(d *dto.MetricDTO) error {
 	switch d.MType {
 	case common.CounterMetricType:
 		if d.Delta == nil {
-			return ErrValueParse
+			return fmt.Errorf("%w: field Delta cannot be nil", ErrValueParse)
 		}
 		return nil
 	case common.GaugeMetricType:
