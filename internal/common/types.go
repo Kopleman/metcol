@@ -4,19 +4,19 @@ type MetricType string
 
 const (
 	CounterMetricType MetricType = "counter"
-	GougeMetricType   MetricType = "gauge"
+	GaugeMetricType   MetricType = "gauge"
 	UnknownMetricType MetricType = "unknown"
 )
 
 var (
 	metricTypeName = map[MetricType]string{
 		CounterMetricType: "counter",
-		GougeMetricType:   "gauge",
+		GaugeMetricType:   "gauge",
 		UnknownMetricType: "unknown",
 	}
 	metricTypeValue = map[string]MetricType{
 		"counter": CounterMetricType,
-		"gauge":   GougeMetricType,
+		"gauge":   GaugeMetricType,
 		"unknown": UnknownMetricType,
 	}
 )

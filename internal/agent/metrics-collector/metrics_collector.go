@@ -27,111 +27,111 @@ func (mc *MetricsCollector) CollectMetrics() error {
 
 	mc.currentMetricState["Alloc"] = MetricItem{
 		value:      strconv.FormatUint(mem.Alloc, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["BuckHashSys"] = MetricItem{
 		value:      strconv.FormatUint(mem.BuckHashSys, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["Frees"] = MetricItem{
 		value:      strconv.FormatUint(mem.Frees, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["GCCPUFraction"] = MetricItem{
 		value:      strconv.FormatFloat(mem.GCCPUFraction, 'f', -1, 64),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["GCSys"] = MetricItem{
 		value:      strconv.FormatUint(mem.GCSys, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["HeapAlloc"] = MetricItem{
 		value:      strconv.FormatUint(mem.HeapAlloc, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["HeapIdle"] = MetricItem{
 		value:      strconv.FormatUint(mem.HeapIdle, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["HeapInuse"] = MetricItem{
 		value:      strconv.FormatUint(mem.HeapInuse, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["HeapObjects"] = MetricItem{
 		value:      strconv.FormatUint(mem.HeapObjects, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["HeapReleased"] = MetricItem{
 		value:      strconv.FormatUint(mem.HeapReleased, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["HeapSys"] = MetricItem{
 		value:      strconv.FormatUint(mem.HeapSys, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["LastGC"] = MetricItem{
 		value:      strconv.FormatUint(mem.LastGC, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["Lookups"] = MetricItem{
 		value:      strconv.FormatUint(mem.Lookups, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["MCacheInuse"] = MetricItem{
 		value:      strconv.FormatUint(mem.MCacheInuse, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["MCacheSys"] = MetricItem{
 		value:      strconv.FormatUint(mem.MCacheSys, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["MSpanInuse"] = MetricItem{
 		value:      strconv.FormatUint(mem.MSpanInuse, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["MSpanSys"] = MetricItem{
 		value:      strconv.FormatUint(mem.MSpanSys, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["Mallocs"] = MetricItem{
 		value:      strconv.FormatUint(mem.Mallocs, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["NextGC"] = MetricItem{
 		value:      strconv.FormatUint(mem.NextGC, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["NumForcedGC"] = MetricItem{
 		value:      strconv.FormatUint(uint64(mem.NumForcedGC), 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["NumGC"] = MetricItem{
 		value:      strconv.FormatUint(uint64(mem.NumGC), 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["OtherSys"] = MetricItem{
 		value:      strconv.FormatUint(mem.OtherSys, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["PauseTotalNs"] = MetricItem{
 		value:      strconv.FormatUint(mem.PauseTotalNs, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["StackInuse"] = MetricItem{
 		value:      strconv.FormatUint(mem.StackInuse, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["StackSys"] = MetricItem{
 		value:      strconv.FormatUint(mem.StackSys, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["Sys"] = MetricItem{
 		value:      strconv.FormatUint(mem.Sys, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["TotalAlloc"] = MetricItem{
 		value:      strconv.FormatUint(mem.TotalAlloc, 10),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 
 	if err := mc.increasePollCounter(); err != nil {
@@ -170,11 +170,11 @@ func (mc *MetricsCollector) resetPollCounter() {
 func (mc *MetricsCollector) assignNewRandomValue() {
 	mc.currentMetricState[randomValueMetricName] = MetricItem{
 		value:      strconv.FormatFloat(rand.Float64(), 'f', -1, 64),
-		metricType: common.GougeMetricType,
+		metricType: common.GaugeMetricType,
 	}
 }
 
-func (mc *MetricsCollector) SendMetrics() error {
+func (mc *MetricsCollector) SendMetricsByOne() error {
 	for name, item := range mc.currentMetricState {
 		if err := mc.sendMetricItem(name, item); err != nil {
 			return err
@@ -198,7 +198,7 @@ func (mc *MetricsCollector) convertMetricItemToDto(name string, item MetricItem)
 			return nil, fmt.Errorf("unable to parse value ('%s') for metric '%s': %w", item.value, name, err)
 		}
 		metricDto.Delta = &parsedDelta
-	case common.GougeMetricType:
+	case common.GaugeMetricType:
 		parsedValue, err := strconv.ParseFloat(item.value, 64)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse value ('%s') for metric '%s': %w", item.value, name, err)
@@ -218,18 +218,53 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 	}
 	body, marshalErr := json.Marshal(metricDto)
 	if marshalErr != nil {
-		return fmt.Errorf("unable to marshal metric dto: %w", err)
+		return fmt.Errorf("unable to marshal metric dto: %w", marshalErr)
 	}
 	url := "/update"
-	respBytes, err := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
-	if err != nil {
-		return fmt.Errorf("unable to sent %s metric: %w", name, err)
+	respBytes, sendErr := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
+	if sendErr != nil {
+		return fmt.Errorf("unable to sent %s metric: %w", name, sendErr)
+	}
+
+	var t interface{}
+	if err = json.Unmarshal(respBytes, &t); err != nil {
+		return fmt.Errorf("unable to unmarshal metric response: %w", err)
+	}
+
+	return nil
+}
+
+func (mc *MetricsCollector) SendMetrics() error {
+	metricsBatch := make([]*dto.MetricDTO, 0, len(mc.currentMetricState))
+	for name, item := range mc.currentMetricState {
+		metricDto, err := mc.convertMetricItemToDto(name, item)
+		if err != nil {
+			return err
+		}
+		metricsBatch = append(metricsBatch, metricDto)
+	}
+
+	if len(metricsBatch) == 0 {
+		return nil
+	}
+
+	body, marshalErr := json.Marshal(metricsBatch)
+	if marshalErr != nil {
+		return fmt.Errorf("unable to marshal metrics batch: %w", marshalErr)
+	}
+
+	url := "/updates"
+	respBytes, sendErr := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
+	if sendErr != nil {
+		return fmt.Errorf("unable to sent metrics batch: %w", sendErr)
 	}
 
 	var t interface{}
 	if err := json.Unmarshal(respBytes, &t); err != nil {
 		return fmt.Errorf("unable to unmarshal metric response: %w", err)
 	}
+
+	mc.resetPollCounter()
 
 	return nil
 }

@@ -22,13 +22,17 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 	req.Header.Set(common.ContentType, contentType)
 	req.Header.Set(common.AcceptEncoding, "gzip")
 
-	res, err := c.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send post req to '%s': %w", finalURL, err)
+	res, respErr := c.client.Do(req)
+	if respErr != nil {
+		return nil, fmt.Errorf("failed to send post req to '%s': %w", finalURL, respErr)
 	}
 
-	gz, err := gzip.NewReader(res.Body)
-	if err != nil {
+	if res.StatusCode >= http.StatusBadRequest {
+		return nil, fmt.Errorf("failed to send post req to '%s': status code %d", finalURL, res.StatusCode)
+	}
+
+	gz, gzipErr := gzip.NewReader(res.Body)
+	if gzipErr != nil {
 		return nil, fmt.Errorf("failed to decompress response: %w", err)
 	}
 	defer func() {
@@ -57,12 +61,18 @@ type HTTPClient struct {
 	BaseURL string
 }
 
+const defaultRetryCount = 3
+
 func NewHTTPClient(cfg *config.Config, logger log.Logger) *HTTPClient {
 	baseURL := `http://` + cfg.EndPoint.String()
 
+	transport := NewRetryableTransport(defaultRetryCount)
+
 	return &HTTPClient{
 		BaseURL: baseURL,
-		client:  &http.Client{},
-		logger:  logger,
+		client: &http.Client{
+			Transport: transport,
+		},
+		logger: logger,
 	}
 }

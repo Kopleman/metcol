@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -10,13 +11,13 @@ import (
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/server/metrics"
-	"github.com/Kopleman/metcol/internal/server/store"
+	"github.com/Kopleman/metcol/internal/server/sterrors"
 	"github.com/go-chi/chi/v5"
 )
 
 type MetricsForGetValue interface {
-	GetValueAsString(metricType common.MetricType, name string) (string, error)
-	GetMetricAsDTO(metricType common.MetricType, name string) (*dto.MetricDTO, error)
+	GetValueAsString(ctx context.Context, metricType common.MetricType, name string) (string, error)
+	GetMetricAsDTO(ctx context.Context, metricType common.MetricType, name string) (*dto.MetricDTO, error)
 }
 
 type GetValueController struct {
@@ -30,6 +31,7 @@ func NewGetValueController(logger log.Logger, metricsService MetricsForGetValue)
 
 func (ctrl *GetValueController) GetValue() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
 		metricTypeStringAsString := strings.ToLower(chi.URLParam(req, "metricType"))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
 		if err != nil {
@@ -45,10 +47,10 @@ func (ctrl *GetValueController) GetValue() func(http.ResponseWriter, *http.Reque
 
 		ctrl.logger.Infof("getValue called with metricType='%s', metricName='%s' at %s", metricType, metricName)
 
-		value, err := ctrl.metricsService.GetValueAsString(metricType, metricName)
+		value, err := ctrl.metricsService.GetValueAsString(ctx, metricType, metricName)
 
 		if err != nil {
-			if errors.Is(err, store.ErrNotFound) {
+			if errors.Is(err, sterrors.ErrNotFound) {
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}
@@ -68,6 +70,7 @@ func (ctrl *GetValueController) GetValue() func(http.ResponseWriter, *http.Reque
 
 func (ctrl *GetValueController) GetValueAsDTO() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
 		reqDto := new(dto.GetValueRequest)
 		if err := json.NewDecoder(req.Body).Decode(&reqDto); err != nil {
 			http.Error(w, "unable to parse dto", http.StatusBadRequest)
@@ -80,9 +83,9 @@ func (ctrl *GetValueController) GetValueAsDTO() func(http.ResponseWriter, *http.
 			metricNameField, reqDto.ID,
 		)
 
-		value, err := ctrl.metricsService.GetMetricAsDTO(reqDto.MType, reqDto.ID)
+		value, err := ctrl.metricsService.GetMetricAsDTO(ctx, reqDto.MType, reqDto.ID)
 		if err != nil {
-			if errors.Is(err, store.ErrNotFound) {
+			if errors.Is(err, sterrors.ErrNotFound) {
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}

@@ -15,6 +15,7 @@ const defaultRestoreVal bool = true
 type Config struct {
 	NetAddr         *flags.NetAddress
 	FileStoragePath string
+	DataBaseDSN     string
 	StoreInterval   int64
 	Restore         bool
 }
@@ -23,6 +24,7 @@ type configFromEnv struct {
 	Restore         *bool  `env:"RESTORE"`
 	EndPoint        string `env:"ADDRESS"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	DataBaseDSN     string `env:"DATABASE_DSN"`
 	StoreInterval   int64  `env:"STORE_INTERVAL"`
 }
 
@@ -42,6 +44,8 @@ func ParseServerConfig() (*Config, error) {
 	flag.StringVar(&config.FileStoragePath, "f", defaultFileStoragePath, "store file path")
 
 	flag.BoolVar(&config.Restore, "r", defaultRestoreVal, "restore store")
+
+	flag.StringVar(&config.DataBaseDSN, "d", "", "database DSN")
 
 	flag.Parse()
 
@@ -73,6 +77,10 @@ func ParseServerConfig() (*Config, error) {
 
 	if cfgFromEnv.Restore != nil {
 		config.Restore = *cfgFromEnv.Restore
+	}
+
+	if cfgFromEnv.DataBaseDSN != "" {
+		config.DataBaseDSN = cfgFromEnv.DataBaseDSN
 	}
 
 	return config, nil

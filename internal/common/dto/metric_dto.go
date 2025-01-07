@@ -89,7 +89,7 @@ func (m *MetricDTO) UnmarshalJSON(data []byte) (err error) {
 
 	mType, parseError := parseType(aliasValue.MType)
 	if parseError != nil {
-		return fmt.Errorf("unmarshal MetricDTO: %w", parseError)
+		return fmt.Errorf("unmarshal MetricDTO type: %w", parseError)
 	}
 
 	m.MType = mType

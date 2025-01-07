@@ -1,6 +1,7 @@
 package filestorage
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,14 +14,9 @@ import (
 	"github.com/Kopleman/metcol/internal/server/config"
 )
 
-type Store interface {
-	Create(key string, value any) error
-	GetAll() map[string]any
-}
-
 type MetricService interface {
-	ExportMetrics() ([]*dto.MetricDTO, error)
-	ImportMetrics(metricsToImport []*dto.MetricDTO) error
+	ExportMetrics(ctx context.Context) ([]*dto.MetricDTO, error)
+	ImportMetrics(ctx context.Context, metricsToImport []*dto.MetricDTO) error
 }
 
 type FileStorage struct {
@@ -33,12 +29,13 @@ type FileStorage struct {
 }
 
 func (fs *FileStorage) ExportMetrics() error {
+	ctx := context.Background()
 	if err := fs.file.Truncate(0); err != nil {
 		return fmt.Errorf("could not truncate file store: %w", err)
 	}
-	metricsAsDTO, exportError := fs.metricService.ExportMetrics()
-	if exportError != nil {
-		return fmt.Errorf("could not export metrics: %w", exportError)
+	metricsAsDTO, err := fs.metricService.ExportMetrics(ctx)
+	if err != nil {
+		return fmt.Errorf("could not export metrics: %w", err)
 	}
 	storeErr := fs.encoder.Encode(metricsAsDTO)
 	if storeErr != nil {
@@ -47,7 +44,7 @@ func (fs *FileStorage) ExportMetrics() error {
 	return nil
 }
 
-func (fs *FileStorage) ImportMetrics() error {
+func (fs *FileStorage) ImportMetrics(ctx context.Context) error {
 	metricsData := make([]*dto.MetricDTO, 0)
 	if err := fs.decoder.Decode(&metricsData); err != nil {
 		if errors.Is(err, io.EOF) {
@@ -56,14 +53,14 @@ func (fs *FileStorage) ImportMetrics() error {
 		return fmt.Errorf("could not decode metrics data from file: %w", err)
 	}
 
-	if err := fs.metricService.ImportMetrics(metricsData); err != nil {
+	if err := fs.metricService.ImportMetrics(ctx, metricsData); err != nil {
 		return fmt.Errorf("could not re-store data to store: %w", err)
 	}
 
 	return nil
 }
 
-func (fs *FileStorage) Init() error {
+func (fs *FileStorage) Init(ctx context.Context) error {
 	file, err := os.OpenFile(fs.cfg.FileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666) //nolint:all // different lint behavior on perm var
 	if err != nil {
 		return fmt.Errorf("could not open storage file: %w", err)
@@ -73,7 +70,7 @@ func (fs *FileStorage) Init() error {
 	fs.decoder = json.NewDecoder(file)
 
 	if fs.cfg.Restore {
-		if reStoreErr := fs.ImportMetrics(); reStoreErr != nil {
+		if reStoreErr := fs.ImportMetrics(ctx); reStoreErr != nil {
 			return fmt.Errorf("could not re-store data: %w", reStoreErr)
 		}
 	}

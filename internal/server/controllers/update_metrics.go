@@ -1,8 +1,12 @@
 package controllers
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -14,8 +18,9 @@ import (
 )
 
 type MetricsForUpdate interface {
-	SetMetric(metricType common.MetricType, name string, value string) error
-	SetMetricByDto(metricDto *dto.MetricDTO) error
+	SetMetric(ctx context.Context, metricType common.MetricType, name string, value string) error
+	SetMetricByDto(ctx context.Context, metricDto *dto.MetricDTO) error
+	SetMetrics(ctx context.Context, metrics []*dto.MetricDTO) error
 }
 
 type UpdateMetricsController struct {
@@ -32,6 +37,7 @@ func NewUpdateMetricsController(logger log.Logger, metricsService MetricsForUpda
 
 func (ctrl *UpdateMetricsController) UpdateOrSet() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
 		metricTypeStringAsString := strings.ToLower(chi.URLParam(req, "metricType"))
 		metricType, err := metrics.ParseMetricType(metricTypeStringAsString)
 		if err != nil {
@@ -58,7 +64,7 @@ func (ctrl *UpdateMetricsController) UpdateOrSet() func(http.ResponseWriter, *ht
 			metricValue,
 		)
 
-		err = ctrl.metricsService.SetMetric(metricType, metricName, metricValue)
+		err = ctrl.metricsService.SetMetric(ctx, metricType, metricName, metricValue)
 
 		if errors.Is(err, metrics.ErrValueParse) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -77,8 +83,10 @@ func (ctrl *UpdateMetricsController) UpdateOrSet() func(http.ResponseWriter, *ht
 
 func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
 		metricDto := new(dto.MetricDTO)
 		if err := json.NewDecoder(req.Body).Decode(&metricDto); err != nil {
+			ctrl.logger.Error(err)
 			http.Error(w, "unable to parse dto", http.StatusBadRequest)
 			return
 		}
@@ -91,7 +99,7 @@ func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() func(http.ResponseWrite
 			"metricDelta", metricDto.Delta,
 		)
 
-		err := ctrl.metricsService.SetMetricByDto(metricDto)
+		err := ctrl.metricsService.SetMetricByDto(ctx, metricDto)
 
 		if errors.Is(err, metrics.ErrValueParse) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -107,6 +115,61 @@ func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() func(http.ResponseWrite
 		w.Header().Set(common.ContentType, "application/json")
 		w.WriteHeader(http.StatusOK)
 		if err = json.NewEncoder(w).Encode(metricDto); err != nil {
+			http.Error(w, common.Err500Message, http.StatusBadRequest)
+			return
+		}
+	}
+}
+
+func (ctrl *UpdateMetricsController) parseUpdateBody(req *http.Request) ([]*dto.MetricDTO, error) {
+	data, err := io.ReadAll(req.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read body: %w", err)
+	}
+	metricsBatch := make([]*dto.MetricDTO, 0)
+	err = json.NewDecoder(bytes.NewReader(data)).Decode(&metricsBatch)
+	if err == nil {
+		return metricsBatch, nil
+	}
+
+	metricDto := new(dto.MetricDTO)
+	if err = json.NewDecoder(bytes.NewReader(data)).Decode(&metricDto); err != nil {
+		return nil, fmt.Errorf("unable to parse dto: %w", err)
+	}
+	metricsBatch = append(metricsBatch, metricDto)
+	return metricsBatch, nil
+}
+
+func (ctrl *UpdateMetricsController) UpdateMetrics() func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		metricsBatch, err := ctrl.parseUpdateBody(req)
+		if err != nil {
+			ctrl.logger.Error(err)
+			http.Error(w, "unable to parse dto", http.StatusBadRequest)
+			return
+		}
+
+		ctrl.logger.Infow(
+			"metrics update called",
+			"amount", len(metricsBatch),
+		)
+
+		setError := ctrl.metricsService.SetMetrics(ctx, metricsBatch)
+
+		if setError != nil {
+			msg := common.Err500Message
+			if errors.Is(setError, metrics.ErrValueParse) {
+				msg = setError.Error()
+			}
+			ctrl.logger.Error(setError)
+			http.Error(w, msg, http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set(common.ContentType, "application/json")
+		w.WriteHeader(http.StatusOK)
+		if err = json.NewEncoder(w).Encode(metricsBatch); err != nil {
 			http.Error(w, common.Err500Message, http.StatusBadRequest)
 			return
 		}

@@ -9,9 +9,12 @@ import (
 	"testing"
 
 	"github.com/Kopleman/metcol/internal/common"
+	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
+	"github.com/Kopleman/metcol/internal/server/memstore"
 	"github.com/Kopleman/metcol/internal/server/metrics"
-	"github.com/Kopleman/metcol/internal/server/store"
+	mock "github.com/Kopleman/metcol/internal/server/routers/mocks"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
@@ -41,9 +44,12 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 }
 
 func TestRouters_Server(t *testing.T) {
-	storeService := store.NewStore(make(map[string]any))
-	metricsService := metrics.NewMetrics(storeService)
-	routes := BuildServerRoutes(&log.MockLogger{}, metricsService)
+	ctrl := gomock.NewController(t)
+	mockPgx := mock.NewMockPgxPool(ctrl)
+
+	storeService := memstore.NewStore(make(map[string]*dto.MetricDTO))
+	metricsService := metrics.NewMetrics(storeService, log.MockLogger{})
+	routes := BuildServerRoutes(&log.MockLogger{}, metricsService, mockPgx)
 
 	ts := httptest.NewServer(routes)
 	defer ts.Close()
@@ -65,7 +71,7 @@ func TestRouters_Server(t *testing.T) {
 			"GET",
 			"/value/gauge/testUnknown94",
 			http.NoBody,
-			"failed to read metric 'testunknown94-gauge': not found\n",
+			"failed to read metric 'testunknown94': not found\n",
 			http.StatusNotFound,
 			false,
 		},
@@ -83,6 +89,14 @@ func TestRouters_Server(t *testing.T) {
 			"/update",
 			strings.NewReader(`{"id": "foo", "type": "counter", "delta": 100}`),
 			`{"id":"foo","delta":100,"type":"counter"}`,
+			http.StatusOK,
+			true,
+		},
+		{
+			"POST",
+			"/updates/",
+			strings.NewReader(`[{"id": "baz", "type": "counter", "delta": 100}, {"id": "bar", "type": "gauge", "value": 1.2}]`),
+			`[{"id":"baz","delta":100,"type":"counter"}, {"id": "bar", "type": "gauge", "value": 1.2}]`,
 			http.StatusOK,
 			true,
 		},

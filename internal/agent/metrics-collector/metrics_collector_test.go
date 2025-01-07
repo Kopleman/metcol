@@ -115,7 +115,7 @@ func TestMetricsCollector_SendMetrics(t *testing.T) {
 				return
 			}
 
-			assert.Equal(t, 29, mockClient.postCallCount)
+			assert.Equal(t, 1, mockClient.postCallCount)
 		})
 	}
 }
