@@ -70,12 +70,12 @@ func AllMetricTypeValues() []MetricType {
 }
 
 type Metric struct {
-	ID        pgtype.UUID      `db:"id" json:"id"`
-	Name      string           `db:"name" json:"name"`
-	Type      MetricType       `db:"type" json:"type"`
 	Value     *float64         `db:"value" json:"value"`
 	Delta     *int64           `db:"delta" json:"delta"`
 	CreatedAt pgtype.Timestamp `db:"created_at" json:"created_at"`
 	UpdatedAt pgtype.Timestamp `db:"updated_at" json:"updated_at"`
 	DeletedAt pgtype.Timestamp `db:"deleted_at" json:"deleted_at"`
+	Name      string           `db:"name" json:"name"`
+	Type      MetricType       `db:"type" json:"type"`
+	ID        pgtype.UUID      `db:"id" json:"id"`
 }

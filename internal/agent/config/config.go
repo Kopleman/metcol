@@ -13,16 +13,16 @@ const defaultPollInterval int64 = 2
 
 type Config struct {
 	EndPoint       *flags.NetAddress
+	Key            string
 	ReportInterval int64
 	PollInterval   int64
-	Key            string
 }
 
 type configFromEnv struct {
 	EndPoint       string `env:"ADDRESS"`
+	Key            string `env:"KEY"`
 	ReportInterval int64  `env:"REPORT_INTERVAL"`
 	PollInterval   int64  `env:"POLL_INTERVAL"`
-	Key            string `env:"KEY"`
 }
 
 func ParseAgentConfig() (*Config, error) {

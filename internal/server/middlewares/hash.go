@@ -67,8 +67,8 @@ func NewHashMiddleware(l log.Logger, keyString string) *HashMiddleware {
 }
 
 type HashMiddleware struct {
-	key    []byte
 	logger log.Logger
+	key    []byte
 }
 
 func (hw *HashMiddleware) validateHash(bodyBytes []byte, hashString string) (bool, error) {
@@ -92,10 +92,7 @@ func (hw *HashMiddleware) Handler(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		ow := w
-
 		hashW := newHashWriter(w, hw.key)
-		ow = hashW
 
 		hash := r.Header.Get(common.HashSHA256)
 		bodyBytes, err := io.ReadAll(r.Body)
@@ -116,6 +113,6 @@ func (hw *HashMiddleware) Handler(next http.Handler) http.Handler {
 		}
 		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
-		next.ServeHTTP(ow, r)
+		next.ServeHTTP(hashW, r)
 	})
 }

@@ -84,8 +84,8 @@ func (c *HTTPClient) calcHashForBody(bodyBytes []byte) string {
 type HTTPClient struct {
 	logger  log.Logger
 	client  *http.Client
-	key     []byte
 	BaseURL string
+	key     []byte
 }
 
 const defaultRetryCount = 3

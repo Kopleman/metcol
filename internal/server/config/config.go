@@ -16,9 +16,9 @@ type Config struct {
 	NetAddr         *flags.NetAddress
 	FileStoragePath string
 	DataBaseDSN     string
+	Key             string
 	StoreInterval   int64
 	Restore         bool
-	Key             string
 }
 
 type configFromEnv struct {
@@ -26,8 +26,8 @@ type configFromEnv struct {
 	EndPoint        string `env:"ADDRESS"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DataBaseDSN     string `env:"DATABASE_DSN"`
-	StoreInterval   int64  `env:"STORE_INTERVAL"`
 	Key             string `env:"KEY"`
+	StoreInterval   int64  `env:"STORE_INTERVAL"`
 }
 
 func ParseServerConfig() (*Config, error) {

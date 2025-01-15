@@ -16,10 +16,10 @@ VALUES ($1, $2, $3, $4, now())
 `
 
 type CreateMetricParams struct {
-	Name  string     `db:"name" json:"name"`
-	Type  MetricType `db:"type" json:"type"`
 	Value *float64   `db:"value" json:"value"`
 	Delta *int64     `db:"delta" json:"delta"`
+	Name  string     `db:"name" json:"name"`
+	Type  MetricType `db:"type" json:"type"`
 }
 
 func (q *Queries) CreateMetric(ctx context.Context, arg CreateMetricParams) (*Metric, error) {
@@ -51,10 +51,10 @@ VALUES ($1, $2, $3, $4, now())
 `
 
 type CreateOrUpdateMetricParams struct {
-	Name  string     `db:"name" json:"name"`
-	Type  MetricType `db:"type" json:"type"`
 	Value *float64   `db:"value" json:"value"`
 	Delta *int64     `db:"delta" json:"delta"`
+	Name  string     `db:"name" json:"name"`
+	Type  MetricType `db:"type" json:"type"`
 }
 
 func (q *Queries) CreateOrUpdateMetric(ctx context.Context, arg CreateOrUpdateMetricParams) (*Metric, error) {
