@@ -15,8 +15,6 @@ import (
 	"github.com/Kopleman/metcol/internal/common/log"
 )
 
-const HashHeader = "HashSHA256"
-
 func (c *HTTPClient) Post(url, contentType string, bodyBytes []byte) ([]byte, error) {
 	body := bytes.NewBuffer(bodyBytes)
 	finalURL := c.BaseURL + url
@@ -31,7 +29,7 @@ func (c *HTTPClient) Post(url, contentType string, bodyBytes []byte) ([]byte, er
 
 	bodyHash := c.calcHashForBody(bodyBytes)
 	if bodyHash != "" {
-		req.Header.Set(HashHeader, bodyHash)
+		req.Header.Set(common.HashSHA256, bodyHash)
 	}
 
 	res, respErr := c.client.Do(req)

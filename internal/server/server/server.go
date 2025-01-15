@@ -51,6 +51,7 @@ func (s *Server) prepareStore(ctx context.Context) error {
 		return nil
 	}
 
+	s.logger.Info("no db DSN provided, using memo-store")
 	storeService := memstore.NewStore(make(map[string]*dto.MetricDTO))
 	s.store = storeService
 	s.metricService = metrics.NewMetrics(s.store, s.logger)
@@ -78,7 +79,7 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 
 	go func() {
-		routes := routers.BuildServerRoutes(s.logger, s.metricService, s.db)
+		routes := routers.BuildServerRoutes(s.config, s.logger, s.metricService, s.db)
 		if listenAndServeErr := http.ListenAndServe(s.config.NetAddr.String(), routes); listenAndServeErr != nil {
 			runTimeError <- fmt.Errorf("internal server error: %w", listenAndServeErr)
 		}

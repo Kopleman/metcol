@@ -18,6 +18,7 @@ type Config struct {
 	DataBaseDSN     string
 	StoreInterval   int64
 	Restore         bool
+	Key             string
 }
 
 type configFromEnv struct {
@@ -26,6 +27,7 @@ type configFromEnv struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DataBaseDSN     string `env:"DATABASE_DSN"`
 	StoreInterval   int64  `env:"STORE_INTERVAL"`
+	Key             string `env:"KEY"`
 }
 
 func ParseServerConfig() (*Config, error) {
@@ -46,6 +48,8 @@ func ParseServerConfig() (*Config, error) {
 	flag.BoolVar(&config.Restore, "r", defaultRestoreVal, "restore store")
 
 	flag.StringVar(&config.DataBaseDSN, "d", "", "database DSN")
+
+	flag.StringVar(&config.Key, "k", "", "cypher key")
 
 	flag.Parse()
 
@@ -81,6 +85,10 @@ func ParseServerConfig() (*Config, error) {
 
 	if cfgFromEnv.DataBaseDSN != "" {
 		config.DataBaseDSN = cfgFromEnv.DataBaseDSN
+	}
+
+	if cfgFromEnv.Key != "" {
+		config.Key = cfgFromEnv.Key
 	}
 
 	return config, nil

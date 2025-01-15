@@ -78,7 +78,7 @@ func ParseAgentConfig() (*Config, error) {
 		config.ReportInterval = cfgFromEnv.ReportInterval
 	}
 
-	if len(cfgFromEnv.Key) > 0 {
+	if cfgFromEnv.Key != "" {
 		config.Key = cfgFromEnv.Key
 	}
 
