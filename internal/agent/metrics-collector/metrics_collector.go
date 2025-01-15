@@ -1,10 +1,8 @@
 package metricscollector
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/rand/v2"
 	"os"
 	"runtime"
@@ -221,7 +219,7 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 		return fmt.Errorf("unable to marshal metric dto: %w", marshalErr)
 	}
 	url := "/update"
-	respBytes, sendErr := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
+	respBytes, sendErr := mc.client.Post(url, "application/json", body)
 	if sendErr != nil {
 		return fmt.Errorf("unable to sent %s metric: %w", name, sendErr)
 	}
@@ -254,7 +252,7 @@ func (mc *MetricsCollector) SendMetrics() error {
 	}
 
 	url := "/updates"
-	respBytes, sendErr := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
+	respBytes, sendErr := mc.client.Post(url, "application/json", body)
 	if sendErr != nil {
 		return fmt.Errorf("unable to sent metrics batch: %w", sendErr)
 	}
@@ -270,6 +268,7 @@ func (mc *MetricsCollector) SendMetrics() error {
 }
 
 func (mc *MetricsCollector) Run(sig chan os.Signal) error {
+	mc.logger.Info("Starting collect metrics")
 	now := time.Now()
 
 	pollDuration := time.Duration(mc.cfg.PollInterval) * time.Second
@@ -343,7 +342,7 @@ func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg) error {
 }
 
 type HTTPClient interface {
-	Post(url, contentType string, body io.Reader) ([]byte, error)
+	Post(url, contentType string, bodyBytes []byte) ([]byte, error)
 }
 
 type MetricsCollector struct {

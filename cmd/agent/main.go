@@ -17,6 +17,7 @@ func main() {
 		log.WithAppVersion("local"),
 	)
 
+	logger.Info("Starting metric collector agent")
 	if err := run(logger); err != nil {
 		logger.Fatal(err)
 	}

@@ -1,7 +1,6 @@
 package metricscollector
 
 import (
-	"io"
 	"strconv"
 	"testing"
 
@@ -14,7 +13,7 @@ type mockHTTP struct {
 	postCallCount int
 }
 
-func (m *mockHTTP) Post(_, _ string, _ io.Reader) ([]byte, error) {
+func (m *mockHTTP) Post(_, _ string, _ []byte) ([]byte, error) {
 	m.postCallCount++
 	return []byte("{}"), nil
 }
