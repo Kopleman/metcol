@@ -10,12 +10,14 @@ import (
 
 const defaultReportInterval int64 = 10
 const defaultPollInterval int64 = 2
+const defaultRateInterval int64 = 10
 
 type Config struct {
 	EndPoint       *flags.NetAddress
 	Key            string
 	ReportInterval int64
 	PollInterval   int64
+	RateLimit      int64
 }
 
 type configFromEnv struct {
@@ -23,6 +25,7 @@ type configFromEnv struct {
 	Key            string `env:"KEY"`
 	ReportInterval int64  `env:"REPORT_INTERVAL"`
 	PollInterval   int64  `env:"POLL_INTERVAL"`
+	RateLimit      int64  `env:"RATE_LIMIT"`
 }
 
 func ParseAgentConfig() (*Config, error) {
@@ -41,6 +44,8 @@ func ParseAgentConfig() (*Config, error) {
 	flag.Int64Var(&config.PollInterval, "p", defaultPollInterval, "poll interval")
 
 	flag.StringVar(&config.Key, "k", "", "cypher key")
+
+	flag.Int64Var(&config.RateLimit, "-l", defaultRateInterval, "output rate interval")
 
 	flag.Parse()
 
@@ -80,6 +85,10 @@ func ParseAgentConfig() (*Config, error) {
 
 	if cfgFromEnv.Key != "" {
 		config.Key = cfgFromEnv.Key
+	}
+
+	if cfgFromEnv.RateLimit > 0 {
+		config.RateLimit = cfgFromEnv.RateLimit
 	}
 
 	return config, nil
