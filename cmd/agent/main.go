@@ -34,7 +34,7 @@ func run(logger log.Logger) error {
 	httpClient := httpclient.NewHTTPClient(agentConfig, logger)
 	collector := metricscollector.NewMetricsCollector(agentConfig, logger, httpClient)
 
-	if err = collector.Run(sig); err != nil {
+	if err = collector.Handler(sig); err != nil {
 		return fmt.Errorf("metrics collector error: %w", err)
 	}
 

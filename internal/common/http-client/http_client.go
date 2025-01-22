@@ -93,7 +93,7 @@ const defaultRetryCount = 3
 func NewHTTPClient(cfg *config.Config, logger log.Logger) *HTTPClient {
 	baseURL := `http://` + cfg.EndPoint.String()
 
-	transport := NewRetryableTransport(defaultRetryCount)
+	transport := NewRetryableTransport(logger, defaultRetryCount)
 
 	return &HTTPClient{
 		BaseURL: baseURL,

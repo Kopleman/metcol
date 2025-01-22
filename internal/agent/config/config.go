@@ -45,7 +45,7 @@ func ParseAgentConfig() (*Config, error) {
 
 	flag.StringVar(&config.Key, "k", "", "cypher key")
 
-	flag.Int64Var(&config.RateLimit, "-l", defaultRateInterval, "output rate interval")
+	flag.Int64Var(&config.RateLimit, "l", defaultRateInterval, "output rate interval")
 
 	flag.Parse()
 

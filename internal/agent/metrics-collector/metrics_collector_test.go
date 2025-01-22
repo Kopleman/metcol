@@ -59,7 +59,7 @@ func TestMetricsCollector_CollectMetrics(t *testing.T) {
 			assert.Equal(t, state["PollCount"].value, "0")
 
 			for range tt.numOfRuns {
-				err := mc.CollectMetrics()
+				err := mc.CollectAllMetrics()
 				if (err != nil) != tt.wantErr {
 					t.Errorf("CollectMetrics() error = %v, wantErr %v", err, tt.wantErr)
 					return
@@ -67,7 +67,7 @@ func TestMetricsCollector_CollectMetrics(t *testing.T) {
 			}
 
 			afterCallState := mc.GetState()
-			assert.Equal(t, len(afterCallState), 29)
+			assert.Equal(t, 32, len(afterCallState))
 			assert.Equal(t, afterCallState["PollCount"].value, strconv.Itoa(tt.numOfRuns))
 		})
 	}
@@ -102,7 +102,7 @@ func TestMetricsCollector_SendMetrics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mc := NewMetricsCollector(tt.fields.cfg, tt.fields.logger, tt.fields.client)
-			err := mc.CollectMetrics()
+			err := mc.CollectAllMetrics()
 			if err != nil {
 				t.Errorf("unwanted CollectMetrics() error = %v", err)
 				return
