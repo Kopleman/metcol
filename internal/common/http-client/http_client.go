@@ -5,7 +5,7 @@ import (
 	"compress/gzip"
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/hex"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -76,7 +76,7 @@ func (c *HTTPClient) calcHashForBody(bodyBytes []byte) string {
 	h := hmac.New(sha256.New, c.key)
 	h.Write(bodyBytes)
 	hash := h.Sum(nil)
-	hashString := hex.EncodeToString(hash)
+	hashString := base64.StdEncoding.EncodeToString(hash)
 
 	return hashString
 }

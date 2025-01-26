@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -75,7 +76,7 @@ func (hw *HashMiddleware) validateHash(bodyBytes []byte, hashString string) (boo
 	if hashString == "" {
 		return true, nil
 	}
-	encrypted, err := hex.DecodeString(hashString)
+	encrypted, err := base64.StdEncoding.DecodeString(hashString)
 	if err != nil {
 		return false, fmt.Errorf("failed to decode string: %w", err)
 	}
