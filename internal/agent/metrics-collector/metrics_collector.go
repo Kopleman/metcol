@@ -397,10 +397,15 @@ func (mc *MetricsCollector) SendMetricsViaWorkers() error {
 	}
 	close(sendJobs)
 
+	numOfDoneJobs := 0
 	for result := range results {
+		numOfDoneJobs++
 		if result.err != nil {
 			close(results)
 			return fmt.Errorf("SendMetricsViaWorkers error: %w", result.err)
+		}
+		if numOfDoneJobs == metricsCount {
+			close(results)
 		}
 	}
 
@@ -684,6 +689,7 @@ func (mc *MetricsCollector) sendMetricsIntervalJob(
 		if err != nil {
 			results.jobError = fmt.Errorf("send metrics interval: %w", err)
 		}
+		mc.logger.Info("sending metrics")
 		outputChan <- results
 	}
 }
