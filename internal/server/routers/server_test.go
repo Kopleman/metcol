@@ -11,6 +11,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
+	"github.com/Kopleman/metcol/internal/server/config"
 	"github.com/Kopleman/metcol/internal/server/memstore"
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	mock "github.com/Kopleman/metcol/internal/server/routers/mocks"
@@ -49,7 +50,7 @@ func TestRouters_Server(t *testing.T) {
 
 	storeService := memstore.NewStore(make(map[string]*dto.MetricDTO))
 	metricsService := metrics.NewMetrics(storeService, log.MockLogger{})
-	routes := BuildServerRoutes(&log.MockLogger{}, metricsService, mockPgx)
+	routes := BuildServerRoutes(&config.Config{}, &log.MockLogger{}, metricsService, mockPgx)
 
 	ts := httptest.NewServer(routes)
 	defer ts.Close()

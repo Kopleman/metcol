@@ -6,6 +6,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
+	"github.com/Kopleman/metcol/internal/server/config"
 	"github.com/Kopleman/metcol/internal/server/controllers"
 	"github.com/Kopleman/metcol/internal/server/middlewares"
 	"github.com/go-chi/chi/v5"
@@ -25,7 +26,7 @@ type PgxPool interface {
 	Ping(context.Context) error
 }
 
-func BuildServerRoutes(logger log.Logger, metricsService Metrics, db PgxPool) *chi.Mux {
+func BuildServerRoutes(cfg *config.Config, logger log.Logger, metricsService Metrics, db PgxPool) *chi.Mux {
 	mainPageCtrl := controllers.NewMainPageController(logger, metricsService)
 	updateCtrl := controllers.NewUpdateMetricsController(logger, metricsService)
 	getValCtrl := controllers.NewGetValueController(logger, metricsService)
@@ -36,6 +37,7 @@ func BuildServerRoutes(logger log.Logger, metricsService Metrics, db PgxPool) *c
 	r.Use(middleware.Logger)
 	// r.Use(middleware.Compress(5, "text/html", "application/json"))
 	r.Use(middlewares.CompressMiddleware)
+	r.Use(middlewares.Hash(logger, cfg.Key))
 
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", mainPageCtrl.MainPage())

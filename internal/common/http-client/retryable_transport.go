@@ -7,6 +7,8 @@ import (
 	"math"
 	"net/http"
 	"time"
+
+	"github.com/Kopleman/metcol/internal/common/log"
 )
 
 const baseBackoffMultiplier = 2
@@ -52,6 +54,7 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 	retries := 0
 	for shouldRetry(err, resp) && retries < t.retryCount {
 		time.Sleep(backoff(retries))
+		t.logger.Infof("retry attempt %d", retries+1)
 		if err = closeBody(resp); err != nil {
 			return nil, fmt.Errorf("round trip: %w", err)
 		}
@@ -69,13 +72,15 @@ func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error
 
 type retryableTransport struct {
 	transport  http.RoundTripper
+	logger     log.Logger
 	retryCount int
 }
 
-func NewRetryableTransport(retryCount int) http.RoundTripper {
+func NewRetryableTransport(logger log.Logger, retryCount int) http.RoundTripper {
 	transport := &retryableTransport{
 		transport:  &http.Transport{},
 		retryCount: retryCount,
+		logger:     logger,
 	}
 
 	return transport

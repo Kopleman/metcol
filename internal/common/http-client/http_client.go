@@ -1,7 +1,11 @@
 package httpclient
 
 import (
+	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,7 +15,8 @@ import (
 	"github.com/Kopleman/metcol/internal/common/log"
 )
 
-func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, error) {
+func (c *HTTPClient) Post(url, contentType string, bodyBytes []byte) ([]byte, error) {
+	body := bytes.NewBuffer(bodyBytes)
 	finalURL := c.BaseURL + url
 	var respBody []byte
 
@@ -21,6 +26,11 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 	}
 	req.Header.Set(common.ContentType, contentType)
 	req.Header.Set(common.AcceptEncoding, "gzip")
+
+	bodyHash := c.calcHashForBody(bodyBytes)
+	if bodyHash != "" {
+		req.Header.Set(common.HashSHA256, bodyHash)
+	}
 
 	res, respErr := c.client.Do(req)
 	if respErr != nil {
@@ -55,10 +65,27 @@ func (c *HTTPClient) Post(url, contentType string, body io.Reader) ([]byte, erro
 	return respBody, nil
 }
 
+func (c *HTTPClient) calcHashForBody(bodyBytes []byte) string {
+	if len(c.key) == 0 {
+		return ""
+	}
+	if len(bodyBytes) == 0 {
+		return ""
+	}
+
+	h := hmac.New(sha256.New, c.key)
+	h.Write(bodyBytes)
+	hash := h.Sum(nil)
+	hashString := base64.StdEncoding.EncodeToString(hash)
+
+	return hashString
+}
+
 type HTTPClient struct {
 	logger  log.Logger
 	client  *http.Client
 	BaseURL string
+	key     []byte
 }
 
 const defaultRetryCount = 3
@@ -66,7 +93,7 @@ const defaultRetryCount = 3
 func NewHTTPClient(cfg *config.Config, logger log.Logger) *HTTPClient {
 	baseURL := `http://` + cfg.EndPoint.String()
 
-	transport := NewRetryableTransport(defaultRetryCount)
+	transport := NewRetryableTransport(logger, defaultRetryCount)
 
 	return &HTTPClient{
 		BaseURL: baseURL,
@@ -74,5 +101,6 @@ func NewHTTPClient(cfg *config.Config, logger log.Logger) *HTTPClient {
 			Transport: transport,
 		},
 		logger: logger,
+		key:    []byte(cfg.Key),
 	}
 }

@@ -1,10 +1,9 @@
 package metricscollector
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
+	"maps"
 	"math/rand/v2"
 	"os"
 	"runtime"
@@ -15,122 +14,308 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
+	"github.com/Kopleman/metcol/internal/common/utils"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
 func (mc *MetricsCollector) GetState() map[string]MetricItem {
 	return mc.currentMetricState
 }
 
+type CollectResult struct {
+	metrics map[string]MetricItem
+	err     error
+}
+
+func (mc *MetricsCollector) getMemStatMetrics(resultCh chan CollectResult) {
+	defer close(resultCh)
+	result := CollectResult{}
+	result.metrics = make(map[string]MetricItem)
+	var memstats runtime.MemStats
+	runtime.ReadMemStats(&memstats)
+	result.metrics["Alloc"] = MetricItem{
+		value:      strconv.FormatUint(memstats.Alloc, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["BuckHashSys"] = MetricItem{
+		value:      strconv.FormatUint(memstats.BuckHashSys, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["Frees"] = MetricItem{
+		value:      strconv.FormatUint(memstats.Frees, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["GCCPUFraction"] = MetricItem{
+		value:      strconv.FormatFloat(memstats.GCCPUFraction, 'f', -1, 64),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["GCSys"] = MetricItem{
+		value:      strconv.FormatUint(memstats.GCSys, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["HeapAlloc"] = MetricItem{
+		value:      strconv.FormatUint(memstats.HeapAlloc, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["HeapIdle"] = MetricItem{
+		value:      strconv.FormatUint(memstats.HeapIdle, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["HeapInuse"] = MetricItem{
+		value:      strconv.FormatUint(memstats.HeapInuse, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["HeapObjects"] = MetricItem{
+		value:      strconv.FormatUint(memstats.HeapObjects, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["HeapReleased"] = MetricItem{
+		value:      strconv.FormatUint(memstats.HeapReleased, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["HeapSys"] = MetricItem{
+		value:      strconv.FormatUint(memstats.HeapSys, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["LastGC"] = MetricItem{
+		value:      strconv.FormatUint(memstats.LastGC, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["Lookups"] = MetricItem{
+		value:      strconv.FormatUint(memstats.Lookups, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["MCacheInuse"] = MetricItem{
+		value:      strconv.FormatUint(memstats.MCacheInuse, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["MCacheSys"] = MetricItem{
+		value:      strconv.FormatUint(memstats.MCacheSys, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["MSpanInuse"] = MetricItem{
+		value:      strconv.FormatUint(memstats.MSpanInuse, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["MSpanSys"] = MetricItem{
+		value:      strconv.FormatUint(memstats.MSpanSys, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["Mallocs"] = MetricItem{
+		value:      strconv.FormatUint(memstats.Mallocs, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["NextGC"] = MetricItem{
+		value:      strconv.FormatUint(memstats.NextGC, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["NumForcedGC"] = MetricItem{
+		value:      strconv.FormatUint(uint64(memstats.NumForcedGC), 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["NumGC"] = MetricItem{
+		value:      strconv.FormatUint(uint64(memstats.NumGC), 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["OtherSys"] = MetricItem{
+		value:      strconv.FormatUint(memstats.OtherSys, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["PauseTotalNs"] = MetricItem{
+		value:      strconv.FormatUint(memstats.PauseTotalNs, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["StackInuse"] = MetricItem{
+		value:      strconv.FormatUint(memstats.StackInuse, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["StackSys"] = MetricItem{
+		value:      strconv.FormatUint(memstats.StackSys, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["Sys"] = MetricItem{
+		value:      strconv.FormatUint(memstats.Sys, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["TotalAlloc"] = MetricItem{
+		value:      strconv.FormatUint(memstats.TotalAlloc, 10),
+		metricType: common.GaugeMetricType,
+	}
+	resultCh <- result
+}
+
+func (mc *MetricsCollector) getGopsutilMetrics(resultCh chan CollectResult) {
+	defer close(resultCh)
+	result := CollectResult{}
+
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		result.err = fmt.Errorf("could not get virtual memory info: %w", err)
+		resultCh <- result
+		return
+	}
+	usages, errPercent := cpu.Percent(0, false)
+	if errPercent != nil {
+		result.err = fmt.Errorf("could not get cpu usage: %w", err)
+		resultCh <- result
+		return
+	}
+	result.metrics = make(map[string]MetricItem)
+
+	result.metrics["TotalMemory"] = MetricItem{
+		value:      strconv.FormatUint(v.Total, 10),
+		metricType: common.GaugeMetricType,
+	}
+	result.metrics["FreeMemory"] = MetricItem{
+		value:      strconv.FormatUint(v.Free, 10),
+		metricType: common.GaugeMetricType,
+	}
+
+	for index, usage := range usages {
+		metricName := fmt.Sprintf("CPUutilization%d", index+1)
+		result.metrics[metricName] = MetricItem{
+			value:      strconv.FormatUint(uint64(usage), 10),
+			metricType: common.GaugeMetricType,
+		}
+	}
+	resultCh <- result
+}
+
+func (mc *MetricsCollector) CollectAllMetrics() error {
+	gopsutilChan := make(chan CollectResult)
+	memstatChan := make(chan CollectResult)
+
+	go mc.getMemStatMetrics(memstatChan)
+	go mc.getGopsutilMetrics(gopsutilChan)
+	for result := range utils.FanIn(memstatChan, gopsutilChan) {
+		if result.err != nil {
+			fmt.Printf("CollectAllMetrics error: %s\n", result.err)
+			return result.err
+		}
+		maps.Copy(mc.currentMetricState, result.metrics)
+	}
+
+	if err := mc.increasePollCounter(); err != nil {
+		return err
+	}
+
+	mc.assignNewRandomValue()
+
+	return nil
+}
+
+// CollectMetrics deprecated.
 func (mc *MetricsCollector) CollectMetrics() error {
-	var mem runtime.MemStats
-	runtime.ReadMemStats(&mem)
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
 
 	mc.currentMetricState["Alloc"] = MetricItem{
-		value:      strconv.FormatUint(mem.Alloc, 10),
+		value:      strconv.FormatUint(memStats.Alloc, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["BuckHashSys"] = MetricItem{
-		value:      strconv.FormatUint(mem.BuckHashSys, 10),
+		value:      strconv.FormatUint(memStats.BuckHashSys, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["Frees"] = MetricItem{
-		value:      strconv.FormatUint(mem.Frees, 10),
+		value:      strconv.FormatUint(memStats.Frees, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["GCCPUFraction"] = MetricItem{
-		value:      strconv.FormatFloat(mem.GCCPUFraction, 'f', -1, 64),
+		value:      strconv.FormatFloat(memStats.GCCPUFraction, 'f', -1, 64),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["GCSys"] = MetricItem{
-		value:      strconv.FormatUint(mem.GCSys, 10),
+		value:      strconv.FormatUint(memStats.GCSys, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["HeapAlloc"] = MetricItem{
-		value:      strconv.FormatUint(mem.HeapAlloc, 10),
+		value:      strconv.FormatUint(memStats.HeapAlloc, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["HeapIdle"] = MetricItem{
-		value:      strconv.FormatUint(mem.HeapIdle, 10),
+		value:      strconv.FormatUint(memStats.HeapIdle, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["HeapInuse"] = MetricItem{
-		value:      strconv.FormatUint(mem.HeapInuse, 10),
+		value:      strconv.FormatUint(memStats.HeapInuse, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["HeapObjects"] = MetricItem{
-		value:      strconv.FormatUint(mem.HeapObjects, 10),
+		value:      strconv.FormatUint(memStats.HeapObjects, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["HeapReleased"] = MetricItem{
-		value:      strconv.FormatUint(mem.HeapReleased, 10),
+		value:      strconv.FormatUint(memStats.HeapReleased, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["HeapSys"] = MetricItem{
-		value:      strconv.FormatUint(mem.HeapSys, 10),
+		value:      strconv.FormatUint(memStats.HeapSys, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["LastGC"] = MetricItem{
-		value:      strconv.FormatUint(mem.LastGC, 10),
+		value:      strconv.FormatUint(memStats.LastGC, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["Lookups"] = MetricItem{
-		value:      strconv.FormatUint(mem.Lookups, 10),
+		value:      strconv.FormatUint(memStats.Lookups, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["MCacheInuse"] = MetricItem{
-		value:      strconv.FormatUint(mem.MCacheInuse, 10),
+		value:      strconv.FormatUint(memStats.MCacheInuse, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["MCacheSys"] = MetricItem{
-		value:      strconv.FormatUint(mem.MCacheSys, 10),
+		value:      strconv.FormatUint(memStats.MCacheSys, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["MSpanInuse"] = MetricItem{
-		value:      strconv.FormatUint(mem.MSpanInuse, 10),
+		value:      strconv.FormatUint(memStats.MSpanInuse, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["MSpanSys"] = MetricItem{
-		value:      strconv.FormatUint(mem.MSpanSys, 10),
+		value:      strconv.FormatUint(memStats.MSpanSys, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["Mallocs"] = MetricItem{
-		value:      strconv.FormatUint(mem.Mallocs, 10),
+		value:      strconv.FormatUint(memStats.Mallocs, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["NextGC"] = MetricItem{
-		value:      strconv.FormatUint(mem.NextGC, 10),
+		value:      strconv.FormatUint(memStats.NextGC, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["NumForcedGC"] = MetricItem{
-		value:      strconv.FormatUint(uint64(mem.NumForcedGC), 10),
+		value:      strconv.FormatUint(uint64(memStats.NumForcedGC), 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["NumGC"] = MetricItem{
-		value:      strconv.FormatUint(uint64(mem.NumGC), 10),
+		value:      strconv.FormatUint(uint64(memStats.NumGC), 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["OtherSys"] = MetricItem{
-		value:      strconv.FormatUint(mem.OtherSys, 10),
+		value:      strconv.FormatUint(memStats.OtherSys, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["PauseTotalNs"] = MetricItem{
-		value:      strconv.FormatUint(mem.PauseTotalNs, 10),
+		value:      strconv.FormatUint(memStats.PauseTotalNs, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["StackInuse"] = MetricItem{
-		value:      strconv.FormatUint(mem.StackInuse, 10),
+		value:      strconv.FormatUint(memStats.StackInuse, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["StackSys"] = MetricItem{
-		value:      strconv.FormatUint(mem.StackSys, 10),
+		value:      strconv.FormatUint(memStats.StackSys, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["Sys"] = MetricItem{
-		value:      strconv.FormatUint(mem.Sys, 10),
+		value:      strconv.FormatUint(memStats.Sys, 10),
 		metricType: common.GaugeMetricType,
 	}
 	mc.currentMetricState["TotalAlloc"] = MetricItem{
-		value:      strconv.FormatUint(mem.TotalAlloc, 10),
+		value:      strconv.FormatUint(memStats.TotalAlloc, 10),
 		metricType: common.GaugeMetricType,
 	}
 
@@ -186,6 +371,59 @@ func (mc *MetricsCollector) SendMetricsByOne() error {
 	return nil
 }
 
+type sendMetricResult struct {
+	err      error
+	workerID int
+}
+
+type sendMetricJob struct {
+	name   string
+	metric MetricItem
+}
+
+func (mc *MetricsCollector) SendMetricsViaWorkers() error {
+	metricsCount := len(mc.currentMetricState)
+
+	sendJobs := make(chan sendMetricJob, metricsCount)
+	results := make(chan sendMetricResult, metricsCount)
+	maxWorkerCount := int(mc.cfg.RateLimit)
+
+	for w := 1; w <= maxWorkerCount; w++ {
+		go mc.sendMetricWorker(w, sendJobs, results)
+	}
+
+	for name, item := range mc.currentMetricState {
+		sendJobs <- sendMetricJob{name: name, metric: item}
+	}
+	close(sendJobs)
+
+	numOfDoneJobs := 0
+	for result := range results {
+		numOfDoneJobs++
+		if result.err != nil {
+			close(results)
+			return fmt.Errorf("SendMetricsViaWorkers error: %w", result.err)
+		}
+		if numOfDoneJobs == metricsCount {
+			close(results)
+		}
+	}
+
+	return nil
+}
+
+func (mc *MetricsCollector) sendMetricWorker(workerID int, jobs <-chan sendMetricJob, results chan<- sendMetricResult) {
+	for j := range jobs {
+		result := sendMetricResult{
+			workerID: workerID,
+		}
+		if err := mc.sendMetricItem(j.name, j.metric); err != nil {
+			result.err = fmt.Errorf("send worker: %w", err)
+		}
+		results <- result
+	}
+}
+
 func (mc *MetricsCollector) convertMetricItemToDto(name string, item MetricItem) (*dto.MetricDTO, error) {
 	metricDto := &dto.MetricDTO{
 		ID:    name,
@@ -221,7 +459,7 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 		return fmt.Errorf("unable to marshal metric dto: %w", marshalErr)
 	}
 	url := "/update"
-	respBytes, sendErr := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
+	respBytes, sendErr := mc.client.Post(url, "application/json", body)
 	if sendErr != nil {
 		return fmt.Errorf("unable to sent %s metric: %w", name, sendErr)
 	}
@@ -254,7 +492,7 @@ func (mc *MetricsCollector) SendMetrics() error {
 	}
 
 	url := "/updates"
-	respBytes, sendErr := mc.client.Post(url, "application/json", bytes.NewBuffer(body))
+	respBytes, sendErr := mc.client.Post(url, "application/json", body)
 	if sendErr != nil {
 		return fmt.Errorf("unable to sent metrics batch: %w", sendErr)
 	}
@@ -269,15 +507,108 @@ func (mc *MetricsCollector) SendMetrics() error {
 	return nil
 }
 
+func (mc *MetricsCollector) genCollectJobParamsChan(tickerChan <-chan time.Time, args *jobsArg) chan struct{} {
+	collectIntervalChan := make(chan struct{})
+
+	go func() {
+		defer close(collectIntervalChan)
+		for currentTickerTime := range tickerChan {
+			if currentTickerTime.After(args.nextJobTime) || currentTickerTime.Equal(args.nextJobTime) {
+				args.nextJobTime = currentTickerTime.Add(args.interval)
+				collectIntervalChan <- struct{}{}
+			}
+		}
+	}()
+
+	return collectIntervalChan
+}
+
+func (mc *MetricsCollector) genSendMetricsJobChan(tickerChan <-chan time.Time, args *jobsArg) chan struct{} {
+	reportIntervalChan := make(chan struct{})
+
+	go func() {
+		defer close(reportIntervalChan)
+		for currentTickerTime := range tickerChan {
+			if currentTickerTime.After(args.nextJobTime) || currentTickerTime.Equal(args.nextJobTime) {
+				args.nextJobTime = currentTickerTime.Add(args.interval)
+				reportIntervalChan <- struct{}{}
+			}
+		}
+	}()
+
+	return reportIntervalChan
+}
+
+type collectIntervalJobResults struct {
+	jobError error
+}
+
+type intervalJobsArg struct {
+	nextCollectTime  time.Time
+	nextReportTime   time.Time
+	pollInterval     time.Duration
+	reportInterval   time.Duration
+	reportInProgress bool
+}
+
+type jobsArg struct {
+	nextJobTime time.Time
+	interval    time.Duration
+}
+
+func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
+	mc.logger.Info("Starting collect metrics")
+	pollTicker := time.NewTicker(1 * time.Second)
+	defer pollTicker.Stop()
+
+	reportTicker := time.NewTicker(1 * time.Second)
+	defer reportTicker.Stop()
+
+	now := time.Now()
+	resultChan := make(chan collectIntervalJobResults)
+	defer close(resultChan)
+
+	pollDuration := time.Duration(mc.cfg.PollInterval) * time.Second
+	reportDuration := time.Duration(mc.cfg.ReportInterval) * time.Second
+
+	collectJobArgs := jobsArg{
+		nextJobTime: now.Add(pollDuration),
+		interval:    pollDuration,
+	}
+	reportJobArgs := jobsArg{
+		nextJobTime: now.Add(reportDuration),
+		interval:    reportDuration,
+	}
+
+	collectIntervalChan := mc.genCollectJobParamsChan(pollTicker.C, &collectJobArgs)
+	sendIntervalChan := mc.genSendMetricsJobChan(reportTicker.C, &reportJobArgs)
+
+	go mc.collectIntervalJob(collectIntervalChan, resultChan)
+	go mc.sendMetricsIntervalJob(sendIntervalChan, resultChan)
+
+	for {
+		select {
+		case res := <-resultChan:
+			if res.jobError != nil {
+				return fmt.Errorf("metrics job interval: %w", res.jobError)
+			}
+		case <-sig:
+			return nil
+		}
+	}
+}
+
+// Run deprecated.
 func (mc *MetricsCollector) Run(sig chan os.Signal) error {
+	mc.logger.Info("Starting collect metrics")
 	now := time.Now()
 
 	pollDuration := time.Duration(mc.cfg.PollInterval) * time.Second
 	reportDuration := time.Duration(mc.cfg.ReportInterval) * time.Second
 
 	args := intervalJobsArg{
-		collectTimer:     now.Add(pollDuration),
-		reportTimer:      now.Add(reportDuration),
+		nextCollectTime:  now.Add(pollDuration),
+		nextReportTime:   now.Add(reportDuration),
 		pollInterval:     pollDuration,
 		reportInterval:   reportDuration,
 		reportInProgress: false,
@@ -298,18 +629,11 @@ func (mc *MetricsCollector) Run(sig chan os.Signal) error {
 	}
 }
 
-type intervalJobsArg struct {
-	collectTimer     time.Time
-	reportTimer      time.Time
-	pollInterval     time.Duration
-	reportInterval   time.Duration
-	reportInProgress bool
-}
-
+// doIntervalJobs deprecated.
 func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg) error {
 	now := time.Now()
-	if now.After(args.collectTimer) {
-		err := mc.CollectMetrics()
+	if now.After(args.nextCollectTime) {
+		err := mc.CollectAllMetrics()
 
 		if err != nil {
 			return fmt.Errorf("collect metrics: %w", err)
@@ -317,14 +641,14 @@ func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg) error {
 
 		mc.logger.Info("collected metrics")
 
-		args.collectTimer = now.Add(args.pollInterval)
+		args.nextCollectTime = now.Add(args.pollInterval)
 	}
 
 	if args.reportInProgress {
 		return nil
 	}
 
-	if now.After(args.reportTimer) {
+	if now.After(args.nextReportTime) {
 		args.reportInProgress = true
 
 		err := mc.SendMetrics()
@@ -335,15 +659,43 @@ func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg) error {
 			mc.logger.Info("sent metrics")
 		}
 
-		args.reportTimer = now.Add(args.reportInterval)
+		args.nextReportTime = now.Add(args.reportInterval)
 		args.reportInProgress = false
 	}
 
 	return nil
 }
 
+func (mc *MetricsCollector) collectIntervalJob(jobArgsCh <-chan struct{}, outputChan chan collectIntervalJobResults) {
+	for range jobArgsCh {
+		results := collectIntervalJobResults{}
+		mc.logger.Info("collecting metrics")
+		err := mc.CollectAllMetrics()
+		if err != nil {
+			results.jobError = fmt.Errorf("collect metrics interval: %w", err)
+		}
+		outputChan <- results
+	}
+}
+
+func (mc *MetricsCollector) sendMetricsIntervalJob(
+	jobArgsCh <-chan struct{},
+	outputChan chan collectIntervalJobResults,
+) {
+	for range jobArgsCh {
+		results := collectIntervalJobResults{}
+		mc.logger.Info("sending metrics")
+		err := mc.SendMetricsViaWorkers()
+		if err != nil {
+			results.jobError = fmt.Errorf("send metrics interval: %w", err)
+		}
+		mc.logger.Info("sending metrics")
+		outputChan <- results
+	}
+}
+
 type HTTPClient interface {
-	Post(url, contentType string, body io.Reader) ([]byte, error)
+	Post(url, contentType string, bodyBytes []byte) ([]byte, error)
 }
 
 type MetricsCollector struct {

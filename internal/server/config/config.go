@@ -16,6 +16,7 @@ type Config struct {
 	NetAddr         *flags.NetAddress
 	FileStoragePath string
 	DataBaseDSN     string
+	Key             string
 	StoreInterval   int64
 	Restore         bool
 }
@@ -25,6 +26,7 @@ type configFromEnv struct {
 	EndPoint        string `env:"ADDRESS"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DataBaseDSN     string `env:"DATABASE_DSN"`
+	Key             string `env:"KEY"`
 	StoreInterval   int64  `env:"STORE_INTERVAL"`
 }
 
@@ -46,6 +48,8 @@ func ParseServerConfig() (*Config, error) {
 	flag.BoolVar(&config.Restore, "r", defaultRestoreVal, "restore store")
 
 	flag.StringVar(&config.DataBaseDSN, "d", "", "database DSN")
+
+	flag.StringVar(&config.Key, "k", "", "cypher key")
 
 	flag.Parse()
 
@@ -81,6 +85,10 @@ func ParseServerConfig() (*Config, error) {
 
 	if cfgFromEnv.DataBaseDSN != "" {
 		config.DataBaseDSN = cfgFromEnv.DataBaseDSN
+	}
+
+	if cfgFromEnv.Key != "" {
+		config.Key = cfgFromEnv.Key
 	}
 
 	return config, nil
