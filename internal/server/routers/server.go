@@ -39,6 +39,8 @@ func BuildServerRoutes(cfg *config.Config, logger log.Logger, metricsService Met
 	r.Use(middlewares.CompressMiddleware)
 	r.Use(middlewares.Hash(logger, cfg.Key))
 
+	r.Mount("/debug", middleware.Profiler())
+
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", mainPageCtrl.MainPage())
 		r.Get("/ping", pingCtrl.Ping())

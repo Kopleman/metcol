@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Kopleman/metcol/internal/agent/config"
@@ -193,7 +194,9 @@ func (mc *MetricsCollector) CollectAllMetrics() error {
 			fmt.Printf("CollectAllMetrics error: %s\n", result.err)
 			return result.err
 		}
+		mc.mu.Lock()
 		maps.Copy(mc.currentMetricState, result.metrics)
+		mc.mu.Unlock()
 	}
 
 	if err := mc.increasePollCounter(); err != nil {
@@ -392,9 +395,11 @@ func (mc *MetricsCollector) SendMetricsViaWorkers() error {
 		go mc.sendMetricWorker(w, sendJobs, results)
 	}
 
+	mc.mu.Lock()
 	for name, item := range mc.currentMetricState {
 		sendJobs <- sendMetricJob{name: name, metric: item}
 	}
+	mc.mu.Unlock()
 	close(sendJobs)
 
 	numOfDoneJobs := 0
@@ -703,6 +708,7 @@ type MetricsCollector struct {
 	currentMetricState map[string]MetricItem
 	client             HTTPClient
 	logger             log.Logger
+	mu                 *sync.Mutex
 }
 
 func NewMetricsCollector(cfg *config.Config, logger log.Logger, client HTTPClient) *MetricsCollector {
@@ -716,5 +722,5 @@ func NewMetricsCollector(cfg *config.Config, logger log.Logger, client HTTPClien
 			metricType: common.CounterMetricType,
 		},
 	}
-	return &MetricsCollector{currentMetricState: baseState, client: client, cfg: cfg, logger: logger}
+	return &MetricsCollector{currentMetricState: baseState, client: client, cfg: cfg, logger: logger, mu: &sync.Mutex{}}
 }
