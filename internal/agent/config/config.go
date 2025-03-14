@@ -6,6 +6,7 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common/flags"
 	"github.com/caarlos0/env/v6"
+	"github.com/joho/godotenv"
 )
 
 const defaultReportInterval int64 = 10
@@ -29,6 +30,11 @@ type configFromEnv struct {
 }
 
 func ParseAgentConfig() (*Config, error) {
+	err := godotenv.Load()
+	if err != nil {
+		return nil, fmt.Errorf("error loading .env file: %w", err)
+	}
+
 	cfgFromEnv := new(configFromEnv)
 	config := new(Config)
 	netAddr := new(flags.NetAddress)

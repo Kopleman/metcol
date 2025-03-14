@@ -6,37 +6,53 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common/flags"
 	"github.com/caarlos0/env/v6"
+	"github.com/joho/godotenv"
 )
 
 const defaultStoreInterval int64 = 300
 const defaultFileStoragePath string = "./store.json"
 const defaultRestoreVal bool = true
+const defaultCpuProfilePath string = "./profiles/cpuprofile-1.pprof"
+const defaultMemProfilePath string = "./profiles/memprofile-1.pprof"
 
 type Config struct {
-	NetAddr         *flags.NetAddress
-	FileStoragePath string
-	DataBaseDSN     string
-	Key             string
-	StoreInterval   int64
-	Restore         bool
+	NetAddr             *flags.NetAddress
+	FileStoragePath     string
+	DataBaseDSN         string
+	Key                 string
+	ProfilerCPUFilePath string
+	ProfilerMemFilePath string
+	StoreInterval       int64
+	ProfilerCollectTime int64
+	Restore             bool
 }
 
 type configFromEnv struct {
-	Restore         *bool  `env:"RESTORE"`
-	EndPoint        string `env:"ADDRESS"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	DataBaseDSN     string `env:"DATABASE_DSN"`
-	Key             string `env:"KEY"`
-	StoreInterval   int64  `env:"STORE_INTERVAL"`
+	Restore             *bool  `env:"RESTORE"`
+	EndPoint            string `env:"ADDRESS"`
+	FileStoragePath     string `env:"FILE_STORAGE_PATH"`
+	DataBaseDSN         string `env:"DATABASE_DSN"`
+	Key                 string `env:"KEY"`
+	ProfilerCPUFilePath string `env:"PROFILER_CPU_FILE_PATH"`
+	ProfilerMemFilePath string `env:"PROFILER_MEM_FILE_PATH"`
+	StoreInterval       int64  `env:"STORE_INTERVAL"`
+	ProfilerCollectTime int64  `env:"PROFILER_COLLECT_TIME"`
 }
 
 func ParseServerConfig() (*Config, error) {
+	err := godotenv.Load()
+	if err != nil {
+		return nil, fmt.Errorf("error loading .env file: %w", err)
+	}
+
 	cfgFromEnv := new(configFromEnv)
 	config := new(Config)
 	netAddr := new(flags.NetAddress)
 	netAddr.Host = "localhost"
 	netAddr.Port = "8080"
 	config.NetAddr = netAddr
+	config.ProfilerCPUFilePath = defaultCpuProfilePath
+	config.ProfilerMemFilePath = defaultMemProfilePath
 
 	netAddrValue := flag.Value(netAddr)
 	flag.Var(netAddrValue, "a", "address and port to run server")
@@ -89,6 +105,18 @@ func ParseServerConfig() (*Config, error) {
 
 	if cfgFromEnv.Key != "" {
 		config.Key = cfgFromEnv.Key
+	}
+
+	if cfgFromEnv.ProfilerCollectTime > 0 {
+		config.ProfilerCollectTime = cfgFromEnv.ProfilerCollectTime
+	}
+
+	if cfgFromEnv.ProfilerCPUFilePath != "" {
+		config.ProfilerCPUFilePath = cfgFromEnv.ProfilerCPUFilePath
+	}
+
+	if cfgFromEnv.ProfilerMemFilePath != "" {
+		config.ProfilerMemFilePath = cfgFromEnv.ProfilerMemFilePath
 	}
 
 	return config, nil

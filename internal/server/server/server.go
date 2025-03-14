@@ -7,6 +7,7 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
+	"github.com/Kopleman/metcol/internal/common/profiler"
 	"github.com/Kopleman/metcol/internal/server/config"
 	filestorage "github.com/Kopleman/metcol/internal/server/file_storage"
 	"github.com/Kopleman/metcol/internal/server/memstore"
@@ -85,6 +86,18 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 	}()
 	s.logger.Infof("Server started on: %s", s.config.NetAddr.Port)
+
+	go func() {
+		s.logger.Info("Starting collect profiles")
+		if err := profiler.Collect(profiler.Config{
+			CpuProfilePath: s.config.ProfilerCPUFilePath,
+			MemProfilePath: s.config.ProfilerMemFilePath,
+			CollectTime:    s.config.ProfilerCollectTime,
+		}); err != nil {
+			runTimeError <- fmt.Errorf("failed to collect profiles: %w", err)
+		}
+		s.logger.Info("Finished collect profiles")
+	}()
 
 	serverError := <-runTimeError
 	if serverError != nil {
