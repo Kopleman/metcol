@@ -26,6 +26,6 @@ vendor/
 
 golangci-lint/
 
-profile/
+profiles/
 
 .env
