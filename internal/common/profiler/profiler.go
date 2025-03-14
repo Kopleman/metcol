@@ -9,7 +9,7 @@ import (
 )
 
 type Config struct {
-	CpuProfilePath string
+	CPUProfilePath string
 	MemProfilePath string
 	CollectTime    int64
 }
@@ -19,11 +19,11 @@ func Collect(cfg Config) error {
 		return nil
 	}
 
-	fcpu, err := os.Create(cfg.CpuProfilePath)
+	fcpu, err := os.Create(cfg.CPUProfilePath)
 	if err != nil {
 		return fmt.Errorf("could not create CPU profiles file: %w", err)
 	}
-	defer fcpu.Close()
+	defer fcpu.Close() //nolint:all // its safe
 	if err := pprof.StartCPUProfile(fcpu); err != nil {
 		return fmt.Errorf("could not start CPU profiling: %w", err)
 	}
@@ -35,8 +35,8 @@ func Collect(cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("could not create memory profiles file: %w", err)
 	}
-	defer fmem.Close()
-	runtime.GC() // получаем статистику по использованию памяти
+	defer fmem.Close() //nolint:all // its safe
+	runtime.GC()       // получаем статистику по использованию памяти
 	if err := pprof.WriteHeapProfile(fmem); err != nil {
 		return fmt.Errorf("could not write memory profiles to file: %w", err)
 	}

@@ -12,8 +12,8 @@ import (
 const defaultStoreInterval int64 = 300
 const defaultFileStoragePath string = "./store.json"
 const defaultRestoreVal bool = true
-const defaultCpuProfilePath string = "./profiles/cpuprofile-1.pprof"
-const defaultMemProfilePath string = "./profiles/memprofile-1.pprof"
+const defaultCPUProfilePath string = "./profiles/cpuprofile.pprof"
+const defaultMemProfilePath string = "./profiles/memprofile.pprof"
 
 type Config struct {
 	NetAddr             *flags.NetAddress
@@ -51,7 +51,7 @@ func ParseServerConfig() (*Config, error) {
 	netAddr.Host = "localhost"
 	netAddr.Port = "8080"
 	config.NetAddr = netAddr
-	config.ProfilerCPUFilePath = defaultCpuProfilePath
+	config.ProfilerCPUFilePath = defaultCPUProfilePath
 	config.ProfilerMemFilePath = defaultMemProfilePath
 
 	netAddrValue := flag.Value(netAddr)

@@ -35,7 +35,7 @@ func BuildServerRoutes(cfg *config.Config, logger log.Logger, metricsService Met
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
-	//r.Use(middleware.Compress(5, "text/html", "application/json"))
+	// r.Use(middleware.Compress(5, "text/html", "application/json"))
 	r.Use(middlewares.CompressMiddleware)
 	r.Use(middlewares.Hash(logger, cfg.Key))
 

@@ -90,7 +90,7 @@ func (s *Server) Start(ctx context.Context) error {
 	go func() {
 		s.logger.Info("Starting collect profiles")
 		if err := profiler.Collect(profiler.Config{
-			CpuProfilePath: s.config.ProfilerCPUFilePath,
+			CPUProfilePath: s.config.ProfilerCPUFilePath,
 			MemProfilePath: s.config.ProfilerMemFilePath,
 			CollectTime:    s.config.ProfilerCollectTime,
 		}); err != nil {
