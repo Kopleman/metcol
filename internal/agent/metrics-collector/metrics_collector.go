@@ -384,7 +384,7 @@ type sendMetricJob struct {
 	metric MetricItem
 }
 
-func (mc *MetricsCollector) SendMetricsViaWorkers() error {
+func (mc *MetricsCollector) sendMetricsViaWorkers() error {
 	metricsCount := len(mc.currentMetricState)
 
 	sendJobs := make(chan sendMetricJob, metricsCount)
@@ -407,7 +407,7 @@ func (mc *MetricsCollector) SendMetricsViaWorkers() error {
 		numOfDoneJobs++
 		if result.err != nil {
 			close(results)
-			return fmt.Errorf("SendMetricsViaWorkers error: %w", result.err)
+			return fmt.Errorf("sendMetricsViaWorkers error: %w", result.err)
 		}
 		if numOfDoneJobs == metricsCount {
 			close(results)
@@ -477,6 +477,7 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 	return nil
 }
 
+// SendMetrics sends all metrics to config.Endpoint.
 func (mc *MetricsCollector) SendMetrics() error {
 	metricsBatch := make([]*dto.MetricDTO, 0, len(mc.currentMetricState))
 	for name, item := range mc.currentMetricState {
@@ -548,19 +549,12 @@ type collectIntervalJobResults struct {
 	jobError error
 }
 
-type intervalJobsArg struct {
-	nextCollectTime  time.Time
-	nextReportTime   time.Time
-	pollInterval     time.Duration
-	reportInterval   time.Duration
-	reportInProgress bool
-}
-
 type jobsArg struct {
 	nextJobTime time.Time
 	interval    time.Duration
 }
 
+// Handler performs all agent work - collecting and sending data.
 func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
 	mc.logger.Info("Starting collect metrics")
 	pollTicker := time.NewTicker(1 * time.Second)
@@ -603,74 +597,6 @@ func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
 	}
 }
 
-// Run deprecated.
-func (mc *MetricsCollector) Run(sig chan os.Signal) error {
-	mc.logger.Info("Starting collect metrics")
-	now := time.Now()
-
-	pollDuration := time.Duration(mc.cfg.PollInterval) * time.Second
-	reportDuration := time.Duration(mc.cfg.ReportInterval) * time.Second
-
-	args := intervalJobsArg{
-		nextCollectTime:  now.Add(pollDuration),
-		nextReportTime:   now.Add(reportDuration),
-		pollInterval:     pollDuration,
-		reportInterval:   reportDuration,
-		reportInProgress: false,
-	}
-
-	ticker := time.NewTicker(1 * time.Second)
-	for {
-		select {
-		case <-ticker.C:
-			if err := mc.doIntervalJobs(&args); err != nil {
-				ticker.Stop()
-				return err
-			}
-		case <-sig:
-			ticker.Stop()
-			return nil
-		}
-	}
-}
-
-// doIntervalJobs deprecated.
-func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg) error {
-	now := time.Now()
-	if now.After(args.nextCollectTime) {
-		err := mc.CollectAllMetrics()
-
-		if err != nil {
-			return fmt.Errorf("collect metrics: %w", err)
-		}
-
-		mc.logger.Info("collected metrics")
-
-		args.nextCollectTime = now.Add(args.pollInterval)
-	}
-
-	if args.reportInProgress {
-		return nil
-	}
-
-	if now.After(args.nextReportTime) {
-		args.reportInProgress = true
-
-		err := mc.SendMetrics()
-
-		if err != nil {
-			mc.logger.Error(err)
-		} else {
-			mc.logger.Info("sent metrics")
-		}
-
-		args.nextReportTime = now.Add(args.reportInterval)
-		args.reportInProgress = false
-	}
-
-	return nil
-}
-
 func (mc *MetricsCollector) collectIntervalJob(jobArgsCh <-chan struct{}, outputChan chan collectIntervalJobResults) {
 	for range jobArgsCh {
 		results := collectIntervalJobResults{}
@@ -690,7 +616,7 @@ func (mc *MetricsCollector) sendMetricsIntervalJob(
 	for range jobArgsCh {
 		results := collectIntervalJobResults{}
 		mc.logger.Info("sending metrics")
-		err := mc.SendMetricsViaWorkers()
+		err := mc.sendMetricsViaWorkers()
 		if err != nil {
 			results.jobError = fmt.Errorf("send metrics interval: %w", err)
 		}
@@ -711,6 +637,7 @@ type MetricsCollector struct {
 	mu                 *sync.Mutex
 }
 
+// NewMetricsCollector creates instance of collector.
 func NewMetricsCollector(cfg *config.Config, logger log.Logger, client HTTPClient) *MetricsCollector {
 	baseState := map[string]MetricItem{
 		pollCountMetricName: {

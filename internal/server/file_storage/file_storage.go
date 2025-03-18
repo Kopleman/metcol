@@ -1,3 +1,4 @@
+// Package filestorage restore/store data from/to file.
 package filestorage
 
 import (
@@ -19,15 +20,17 @@ type MetricService interface {
 	ImportMetrics(ctx context.Context, metricsToImport []*dto.MetricDTO) error
 }
 
+// FileStorage instance.
 type FileStorage struct {
-	cfg           *config.Config
-	logger        log.Logger
-	metricService MetricService
-	file          *os.File
-	encoder       *json.Encoder
-	decoder       *json.Decoder
+	cfg           *config.Config // pointer to server cfg
+	logger        log.Logger     // logger
+	metricService MetricService  // metrics service
+	file          *os.File       // file descriptor
+	encoder       *json.Encoder  // encoder
+	decoder       *json.Decoder  // decoder
 }
 
+// ExportMetrics export metrics to file specified in config.
 func (fs *FileStorage) ExportMetrics() error {
 	ctx := context.Background()
 	if err := fs.file.Truncate(0); err != nil {
@@ -44,6 +47,7 @@ func (fs *FileStorage) ExportMetrics() error {
 	return nil
 }
 
+// ImportMetrics imports metrics from file to memo-storage.
 func (fs *FileStorage) ImportMetrics(ctx context.Context) error {
 	metricsData := make([]*dto.MetricDTO, 0)
 	if err := fs.decoder.Decode(&metricsData); err != nil {
@@ -60,6 +64,7 @@ func (fs *FileStorage) ImportMetrics(ctx context.Context) error {
 	return nil
 }
 
+// Init prepares instance for work.
 func (fs *FileStorage) Init(ctx context.Context) error {
 	file, err := os.OpenFile(fs.cfg.FileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666) //nolint:all // different lint behavior on perm var
 	if err != nil {
@@ -77,6 +82,7 @@ func (fs *FileStorage) Init(ctx context.Context) error {
 	return nil
 }
 
+// Close file descriptor and export metrics to file.
 func (fs *FileStorage) Close() {
 	if err := fs.ExportMetrics(); err != nil {
 		fs.logger.Errorf("could not store data to file: %w", err)
@@ -92,6 +98,7 @@ type intervalJobsArg struct {
 	storeInProgress bool
 }
 
+// RunBackupJob runs interval which store data to file.
 func (fs *FileStorage) RunBackupJob() error {
 	now := time.Now()
 
@@ -137,6 +144,7 @@ func (fs *FileStorage) doStoreInterval(args *intervalJobsArg, quit chan bool) {
 	args.storeInProgress = false
 }
 
+// NewFileStorage creates new instance of file storage, do not forget to call init().
 func NewFileStorage(cfg *config.Config, logger log.Logger, service MetricService) *FileStorage {
 	return &FileStorage{
 		cfg:           cfg,

@@ -1,3 +1,4 @@
+// Package server bootstrap server.
 package server
 
 import (
@@ -18,6 +19,7 @@ import (
 	"github.com/Kopleman/metcol/internal/server/store"
 )
 
+// Server instance of server.
 type Server struct {
 	logger        log.Logger
 	config        *config.Config
@@ -27,6 +29,7 @@ type Server struct {
 	metricService *metrics.Metrics
 }
 
+// NewServer creates instance of server.
 func NewServer(logger log.Logger, cfg *config.Config) *Server {
 	s := &Server{
 		logger: logger,
@@ -63,6 +66,7 @@ func (s *Server) prepareStore(ctx context.Context) error {
 	return nil
 }
 
+// Start starts new server.
 func (s *Server) Start(ctx context.Context) error {
 	defer s.Shutdown()
 	if err := s.prepareStore(ctx); err != nil {
@@ -109,6 +113,7 @@ func (s *Server) Start(ctx context.Context) error {
 	return nil
 }
 
+// Shutdown called on shutdown.
 func (s *Server) Shutdown() {
 	if s.fs != nil {
 		s.fs.Close()

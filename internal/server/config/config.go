@@ -1,3 +1,4 @@
+// Package config for server configure.
 package config
 
 import (
@@ -14,16 +15,17 @@ const defaultRestoreVal bool = true
 const defaultCPUProfilePath string = "./profiles/cpuprofile.pprof"
 const defaultMemProfilePath string = "./profiles/memprofile.pprof"
 
+// Config contains all settled via envs or flags params.
 type Config struct {
-	NetAddr             *flags.NetAddress
-	FileStoragePath     string
-	DataBaseDSN         string
-	Key                 string
-	ProfilerCPUFilePath string
-	ProfilerMemFilePath string
-	StoreInterval       int64
-	ProfilerCollectTime int64
-	Restore             bool
+	NetAddr             *flags.NetAddress // server address
+	FileStoragePath     string            // path to file for mem-store dump
+	DataBaseDSN         string            // DSN of postgres DSN
+	Key                 string            // hash key for sign received data
+	ProfilerCPUFilePath string            // where to store CPU profile
+	ProfilerMemFilePath string            // where to store mem profile
+	StoreInterval       int64             // how often dump memo store to file
+	ProfilerCollectTime int64             // how long to collect data after start-up
+	Restore             bool              // restore memo-store from file
 }
 
 type configFromEnv struct {
@@ -37,6 +39,8 @@ type configFromEnv struct {
 	StoreInterval       int64  `env:"STORE_INTERVAL"`
 	ProfilerCollectTime int64  `env:"PROFILER_COLLECT_TIME"`
 }
+
+// ParseAgentConfig produce config for server via parsing env and flags(envs preferred).
 
 func ParseServerConfig() (*Config, error) {
 	cfgFromEnv := new(configFromEnv)

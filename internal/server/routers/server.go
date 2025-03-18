@@ -1,3 +1,4 @@
+// Package routers contains routers.
 package routers
 
 import (
@@ -26,6 +27,7 @@ type PgxPool interface {
 	Ping(context.Context) error
 }
 
+// BuildServerRoutes returns chi.Mux with all routes.
 func BuildServerRoutes(cfg *config.Config, logger log.Logger, metricsService Metrics, db PgxPool) *chi.Mux {
 	mainPageCtrl := controllers.NewMainPageController(logger, metricsService)
 	updateCtrl := controllers.NewUpdateMetricsController(logger, metricsService)

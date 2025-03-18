@@ -1,3 +1,4 @@
+// Package config for agent configure.
 package config
 
 import (
@@ -12,12 +13,13 @@ const defaultReportInterval int64 = 10
 const defaultPollInterval int64 = 2
 const defaultRateInterval int64 = 10
 
+// Config contains all settled via envs or flags params.
 type Config struct {
-	EndPoint       *flags.NetAddress
-	Key            string
-	ReportInterval int64
-	PollInterval   int64
-	RateLimit      int64
+	EndPoint       *flags.NetAddress // where agent will send metrics
+	Key            string            // hash key for sign sent data
+	ReportInterval int64             // how often data will be sent
+	PollInterval   int64             // how often metrics will be collected
+	RateLimit      int64             // limits number of workers for sending
 }
 
 type configFromEnv struct {
@@ -28,6 +30,7 @@ type configFromEnv struct {
 	RateLimit      int64  `env:"RATE_LIMIT"`
 }
 
+// ParseAgentConfig produce config for agent via parsing env and flags(envs preferred).
 func ParseAgentConfig() (*Config, error) {
 	cfgFromEnv := new(configFromEnv)
 	config := new(Config)

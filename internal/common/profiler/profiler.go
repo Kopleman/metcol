@@ -1,3 +1,4 @@
+// Package profiler simple mem and cpu collector.
 package profiler
 
 import (
@@ -8,12 +9,14 @@ import (
 	"time"
 )
 
+// Config profiler collector config.
 type Config struct {
-	CPUProfilePath string
-	MemProfilePath string
-	CollectTime    int64
+	CPUProfilePath string // where to store CPU profile
+	MemProfilePath string // where to store mem profile
+	CollectTime    int64  // how long to collect data
 }
 
+// Collect mem and CPU data from profiler.
 func Collect(cfg Config) error {
 	if cfg.CollectTime <= 0 {
 		return nil
@@ -30,13 +33,12 @@ func Collect(cfg Config) error {
 	defer pprof.StopCPUProfile()
 	time.Sleep(time.Duration(cfg.CollectTime) * time.Second)
 
-	// создаём файл журнала профилирования памяти
 	fmem, err := os.Create(cfg.MemProfilePath)
 	if err != nil {
 		return fmt.Errorf("could not create memory profiles file: %w", err)
 	}
 	defer fmem.Close() //nolint:all // its safe
-	runtime.GC()       // получаем статистику по использованию памяти
+	runtime.GC()
 	if err := pprof.WriteHeapProfile(fmem); err != nil {
 		return fmt.Errorf("could not write memory profiles to file: %w", err)
 	}
