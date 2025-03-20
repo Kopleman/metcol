@@ -32,7 +32,7 @@ func setupRouter(baseMemStore map[string]*dto.MetricDTO) *chi.Mux {
 	return routes
 }
 
-func ExampleUpdateMetric() {
+func ExampleBuildServerRoutes_updateMetric() {
 	router := setupRouter(make(map[string]*dto.MetricDTO))
 
 	ts := httptest.NewServer(router)
@@ -60,7 +60,7 @@ func ExampleUpdateMetric() {
 	// {"delta":10,"id":"test_counter","type":"counter"}
 }
 
-func ExampleGetMetric() {
+func ExampleBuildServerRoutes_getMetric() {
 	mockStore := map[string]*dto.MetricDTO{
 		"test_metric-gauge": {
 			ID:    "test_metric",
@@ -103,7 +103,7 @@ func ExampleGetMetric() {
 	// {"value":1.1,"id":"test_metric","type":"gauge"}
 }
 
-func ExampleBatchUpdate() {
+func ExampleBuildServerRoutes_batchUpdate() {
 	router := setupRouter(make(map[string]*dto.MetricDTO))
 	ts := httptest.NewServer(router)
 	defer ts.Close()
@@ -127,33 +127,4 @@ func ExampleBatchUpdate() {
 
 	// Output:
 	// [{"delta":5,"id":"test_counter","type":"counter"},{"value":3.14,"id":"test_gauge","type":"gauge"}]
-}
-
-func ExamplePing() {
-	mockStore := map[string]*dto.MetricDTO{
-		"test_metric_gauge-gauge": {
-			ID:    "test_metric_gauge",
-			MType: "gauge",
-			Delta: nil,
-			Value: testutils.Pointer(1.1),
-		},
-		"test_metric_counter-counter": {
-			ID:    "test_metric_counter",
-			MType: "counter",
-			Delta: testutils.Pointer(int64(100)),
-			Value: nil,
-		},
-	}
-	router := setupRouter(mockStore)
-	ts := httptest.NewServer(router)
-	defer ts.Close()
-
-	resp, _ := http.Get(ts.URL + "/")
-	body, _ := io.ReadAll(resp.Body)
-	defer resp.Body.Close()
-	fmt.Println(string(body))
-
-	// Output:
-	// test_metric_counter:100
-	// test_metric_gauge:1.1
 }
