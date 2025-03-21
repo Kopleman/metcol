@@ -1,3 +1,4 @@
+// Package controllers contains all http handlers.
 package controllers
 
 const (

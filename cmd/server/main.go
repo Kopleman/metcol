@@ -1,6 +1,9 @@
+// Package main for run server.
 package main
 
 import (
+	_ "net/http/pprof"
+
 	"context"
 	"fmt"
 

@@ -13,15 +13,26 @@ type MetricsForMainPage interface {
 	GetAllValuesAsString(ctx context.Context) (map[string]string, error)
 }
 
+// MainPageController instance of controller.
 type MainPageController struct {
-	logger         log.Logger
-	metricsService MetricsForMainPage
+	logger         log.Logger         // logger
+	metricsService MetricsForMainPage // metrics service
 }
 
+// NewMainPageController creates instance of controller.
 func NewMainPageController(logger log.Logger, metricsService MetricsForMainPage) *MainPageController {
 	return &MainPageController{logger, metricsService}
 }
 
+// MainPage fetch metric value list
+//
+//	@MainPage		fetch metric value list
+//	@Description	fetch metric value list
+//	@Tags			metrics
+//	@Produce		plain
+//	@Success		200		{string}			"OK"
+//	@Failure		500		"Internal Server Error"
+//	@Router			/ [get]
 func (ctrl *MainPageController) MainPage() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()

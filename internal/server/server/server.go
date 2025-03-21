@@ -1,3 +1,4 @@
+// Package server bootstrap server.
 package server
 
 import (
@@ -7,6 +8,7 @@ import (
 
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
+	"github.com/Kopleman/metcol/internal/common/profiler"
 	"github.com/Kopleman/metcol/internal/server/config"
 	filestorage "github.com/Kopleman/metcol/internal/server/file_storage"
 	"github.com/Kopleman/metcol/internal/server/memstore"
@@ -17,6 +19,7 @@ import (
 	"github.com/Kopleman/metcol/internal/server/store"
 )
 
+// Server instance of server.
 type Server struct {
 	logger        log.Logger
 	config        *config.Config
@@ -26,6 +29,7 @@ type Server struct {
 	metricService *metrics.Metrics
 }
 
+// NewServer creates instance of server.
 func NewServer(logger log.Logger, cfg *config.Config) *Server {
 	s := &Server{
 		logger: logger,
@@ -62,6 +66,7 @@ func (s *Server) prepareStore(ctx context.Context) error {
 	return nil
 }
 
+// Start starts new server.
 func (s *Server) Start(ctx context.Context) error {
 	defer s.Shutdown()
 	if err := s.prepareStore(ctx); err != nil {
@@ -86,6 +91,18 @@ func (s *Server) Start(ctx context.Context) error {
 	}()
 	s.logger.Infof("Server started on: %s", s.config.NetAddr.Port)
 
+	go func() {
+		s.logger.Info("Starting collect profiles")
+		if err := profiler.Collect(profiler.Config{
+			CPUProfilePath: s.config.ProfilerCPUFilePath,
+			MemProfilePath: s.config.ProfilerMemFilePath,
+			CollectTime:    s.config.ProfilerCollectTime,
+		}); err != nil {
+			runTimeError <- fmt.Errorf("failed to collect profiles: %w", err)
+		}
+		s.logger.Info("Finished collect profiles")
+	}()
+
 	serverError := <-runTimeError
 	if serverError != nil {
 		return fmt.Errorf("server error: %w", serverError)
@@ -96,6 +113,7 @@ func (s *Server) Start(ctx context.Context) error {
 	return nil
 }
 
+// Shutdown called on shutdown.
 func (s *Server) Shutdown() {
 	if s.fs != nil {
 		s.fs.Close()

@@ -37,6 +37,7 @@ func closeBody(resp *http.Response) error {
 	return nil
 }
 
+// RoundTrip interface implementation with retries.
 func (t *retryableTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var initialBodyBytes []byte
 	if req.Body != nil {
@@ -76,6 +77,7 @@ type retryableTransport struct {
 	retryCount int
 }
 
+// NewRetryableTransport creates instance of http transport with retries under the hood.
 func NewRetryableTransport(logger log.Logger, retryCount int) http.RoundTripper {
 	transport := &retryableTransport{
 		transport:  &http.Transport{},

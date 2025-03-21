@@ -1,3 +1,4 @@
+// Package httpclient is wrapper around net/http client.
 package httpclient
 
 import (
@@ -15,6 +16,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common/log"
 )
 
+// Post perform post request to dest url.
 func (c *HTTPClient) Post(url, contentType string, bodyBytes []byte) ([]byte, error) {
 	body := bytes.NewBuffer(bodyBytes)
 	finalURL := c.BaseURL + url

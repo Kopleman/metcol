@@ -1,10 +1,16 @@
+// Package utils collection of small util funcs.
 package utils
 
 import "sync"
 
+// FanIn implements fan-in patter for goroutines.
 func FanIn[T any](chs ...chan T) chan T {
 	var wg sync.WaitGroup
 	outCh := make(chan T, len(chs))
+	if len(chs) == 0 {
+		close(outCh)
+		return outCh
+	}
 
 	// определяем функцию output для каждого канала в chs.
 	// функция output копирует значения из канала в канал outCh, пока с не будет закрыт.

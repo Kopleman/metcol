@@ -20,15 +20,31 @@ type MetricsForGetValue interface {
 	GetMetricAsDTO(ctx context.Context, metricType common.MetricType, name string) (*dto.MetricDTO, error)
 }
 
+// GetValueController instance of controller.
 type GetValueController struct {
-	logger         log.Logger
-	metricsService MetricsForGetValue
+	logger         log.Logger         // logger
+	metricsService MetricsForGetValue // metrics service
 }
 
+// NewGetValueController creates instance of controller.
 func NewGetValueController(logger log.Logger, metricsService MetricsForGetValue) *GetValueController {
 	return &GetValueController{logger, metricsService}
 }
 
+// GetValue fetch metric value
+//
+//	@Summary		fetch metric value
+//	@Description	fetch metric value
+//	@Tags			metrics
+//	@Accept			plain
+//	@Produce		plain
+//	@Param			metricType	path		string	true	"Metric type"
+//	@Param			metricName	path		string	true	"Metric name"
+//	@Success		200		{string}			"OK"
+//	@Failure		400		"Bad request"
+//	@Failure		404		"Not found"
+//	@Failure		500		"Internal Server Error"
+//	@Router			/value/{metricType}/{metricName} [get]
 func (ctrl *GetValueController) GetValue() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
@@ -68,6 +84,19 @@ func (ctrl *GetValueController) GetValue() func(http.ResponseWriter, *http.Reque
 	}
 }
 
+// GetValueAsDTO fetch metric value
+//
+//	@Summary		fetch metric value
+//	@Description	fetch metric value
+//	@Tags			metrics
+//	@Accept			json
+//	@Produce		plain
+//	@Param			data			body	dto.GetValueRequest	true	"Body params"
+//	@Success		200				{object}	dto.MetricDTO
+//	@Failure		400		"Bad request"
+//	@Failure		404		"Not found"
+//	@Failure		500		"Internal Server Error"
+//	@Router			/value [post]
 func (ctrl *GetValueController) GetValueAsDTO() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
