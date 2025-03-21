@@ -133,17 +133,16 @@ func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() func(http.ResponseWrite
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
 		if err != nil {
 			ctrl.logger.Error(err)
-			http.Error(w, common.Err500Message, http.StatusBadRequest)
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set(common.ContentType, "application/json")
 		w.WriteHeader(http.StatusOK)
 		if err = json.NewEncoder(w).Encode(metricDto); err != nil {
-			http.Error(w, common.Err500Message, http.StatusBadRequest)
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
 			return
 		}
 	}
