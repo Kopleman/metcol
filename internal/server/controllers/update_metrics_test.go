@@ -25,19 +25,24 @@ type MockMetricsService struct {
 	mock.Mock
 }
 
-func (m *MockMetricsService) SetMetric(ctx context.Context, metricType common.MetricType, name string, value string) error {
+func (m *MockMetricsService) SetMetric(
+	ctx context.Context,
+	metricType common.MetricType,
+	name string,
+	value string,
+) error {
 	args := m.Called(ctx, metricType, name, value)
-	return args.Error(0)
+	return args.Error(0) //nolint:wrapcheck // mocked-err
 }
 
 func (m *MockMetricsService) SetMetricByDto(ctx context.Context, metricDto *dto.MetricDTO) error {
 	args := m.Called(ctx, metricDto)
-	return args.Error(0)
+	return args.Error(0) //nolint:wrapcheck // mocked-err
 }
 
 func (m *MockMetricsService) SetMetrics(ctx context.Context, metrics []*dto.MetricDTO) error {
 	args := m.Called(ctx, metrics)
-	return args.Error(0)
+	return args.Error(0) //nolint:wrapcheck // mocked-err
 }
 
 func TestUpdateOrSet(t *testing.T) {
@@ -87,7 +92,7 @@ func TestUpdateOrSet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := httptest.NewRequest("POST", tt.url, nil)
+			r := httptest.NewRequest(http.MethodPost, tt.url, http.NoBody)
 			w := httptest.NewRecorder()
 
 			rctx := chi.NewRouteContext()
@@ -167,7 +172,7 @@ func TestUpdateOrSetViaDTO(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			r := httptest.NewRequest("POST", "/update", &body)
+			r := httptest.NewRequest(http.MethodPost, "/update", &body)
 			w := httptest.NewRecorder()
 
 			if tt.mockError != nil || tt.expectedStatus == http.StatusOK {
@@ -238,7 +243,7 @@ func TestUpdateMetrics(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			r := httptest.NewRequest("POST", "/updates", &body)
+			r := httptest.NewRequest(http.MethodPost, "/updates", &body)
 			w := httptest.NewRecorder()
 
 			if tt.mockError != nil || tt.expectedStatus == http.StatusOK {
@@ -304,7 +309,7 @@ func TestParseUpdateBody(t *testing.T) {
 			var body bytes.Buffer
 			require.NoError(t, json.NewEncoder(&body).Encode(tt.payload))
 
-			r := httptest.NewRequest("POST", "/", &body)
+			r := httptest.NewRequest(http.MethodPost, "/", &body)
 			result, err := ctrl.parseUpdateBody(r)
 
 			if tt.expectError {

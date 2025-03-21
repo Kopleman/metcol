@@ -20,7 +20,6 @@ func (m *MockMainPageMetricsService) GetAllValuesAsString(ctx context.Context) (
 	return m.GetAllValuesAsStringFn(ctx)
 }
 
-// MockResponseWriter с возможностью симуляции ошибок записи
 type MockResponseWriter struct {
 	header        http.Header
 	statusCode    int
@@ -107,28 +106,21 @@ func TestMainPageController_MainPage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
-			req := httptest.NewRequest("GET", "/", nil)
+			req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 
-			// Mock service
 			ms := &MockMainPageMetricsService{}
 			if tt.mockSetup != nil {
 				tt.mockSetup(ms)
 			}
 
-			// Test logger
 			logger := &log.MockLogger{}
 			ctrl := NewMainPageController(logger, ms)
 
-			// Special case for missing metric test
 			if tt.name == "missing metric after sorting" {
-				// Подменяем оригинальную мапу после получения списка ключей
 				origHandler := ctrl.MainPage()
 				handler := func(w http.ResponseWriter, r *http.Request) {
-					// Вызываем оригинальный обработчик
 					origHandler(w, r)
-
-					if allMetrics := w.(*httptest.ResponseRecorder).Body.Bytes(); len(allMetrics) > 0 {
+					if allMetrics := w.(*httptest.ResponseRecorder).Body.Bytes(); len(allMetrics) > 0 { //nolint:all // IDE goes mad
 						ctrl.metricsService = &MockMainPageMetricsService{
 							GetAllValuesAsStringFn: func(ctx context.Context) (map[string]string, error) {
 								return map[string]string{"existing": "123"}, nil
@@ -141,7 +133,6 @@ func TestMainPageController_MainPage(t *testing.T) {
 				return
 			}
 
-			// Special case for write error simulation
 			if tt.name == "write response error" {
 				w := &MockResponseWriter{
 					header:        make(http.Header),
@@ -152,11 +143,9 @@ func TestMainPageController_MainPage(t *testing.T) {
 				return
 			}
 
-			// Common case
 			rr := httptest.NewRecorder()
 			ctrl.MainPage()(rr, req)
 
-			// Assertions
 			assert.Equal(t, tt.expectedStatus, rr.Code)
 			if tt.expectedStatus == http.StatusOK {
 				assert.Equal(t, tt.expectedBody, rr.Body.String())

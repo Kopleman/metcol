@@ -32,7 +32,7 @@ func setupRouter(baseMemStore map[string]*dto.MetricDTO) *chi.Mux {
 	return routes
 }
 
-func ExampleBuildServerRouteserrupdateMetric() {
+func ExampleBuildServerRoutes_updateMetric() {
 	router := setupRouter(make(map[string]*dto.MetricDTO))
 
 	ts := httptest.NewServer(router)
@@ -75,7 +75,7 @@ func ExampleBuildServerRouteserrupdateMetric() {
 	// {"delta":10,"id":"testerrcounter","type":"counter"}
 }
 
-func ExampleBuildServerRouteserrgetMetric() {
+func ExampleBuildServerRoutes_getMetric() {
 	mockStore := map[string]*dto.MetricDTO{
 		"testerrmetric-gauge": {
 			ID:    "testerrmetric",
@@ -136,7 +136,7 @@ func ExampleBuildServerRouteserrgetMetric() {
 	// {"value":1.1,"id":"testerrmetric","type":"gauge"}
 }
 
-func ExampleBuildServerRouteserrbatchUpdate() {
+func ExampleBuildServerRoutes_batchUpdate() {
 	router := setupRouter(make(map[string]*dto.MetricDTO))
 	ts := httptest.NewServer(router)
 	defer ts.Close()

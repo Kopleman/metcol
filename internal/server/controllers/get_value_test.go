@@ -25,11 +25,18 @@ type MockMetricsService struct {
 	GetMetricAsDTOFn   func(ctx context.Context, metricType common.MetricType, name string) (*dto.MetricDTO, error)
 }
 
-func (m *MockMetricsService) GetValueAsString(ctx context.Context, metricType common.MetricType, name string) (string, error) {
+func (m *MockMetricsService) GetValueAsString(
+	ctx context.Context, metricType common.MetricType,
+	name string,
+) (string, error) {
 	return m.GetValueAsStringFn(ctx, metricType, name)
 }
 
-func (m *MockMetricsService) GetMetricAsDTO(ctx context.Context, metricType common.MetricType, name string) (*dto.MetricDTO, error) {
+func (m *MockMetricsService) GetMetricAsDTO(
+	ctx context.Context,
+	metricType common.MetricType,
+	name string,
+) (*dto.MetricDTO, error) {
 	return m.GetMetricAsDTOFn(ctx, metricType, name)
 }
 
@@ -100,7 +107,7 @@ func TestGetValueController_GetValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := httptest.NewRequest("GET", tt.url, nil)
+			r := httptest.NewRequest(http.MethodGet, tt.url, http.NoBody)
 			w := httptest.NewRecorder()
 
 			// Инициализация роутера chi
@@ -165,7 +172,7 @@ func TestGetValueController_GetValueAsDTO(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := httptest.NewRequest("POST", "/value", strings.NewReader(tt.requestBody))
+			r := httptest.NewRequest(http.MethodPost, "/value", strings.NewReader(tt.requestBody))
 			w := httptest.NewRecorder()
 
 			ms := &MockMetricsService{}

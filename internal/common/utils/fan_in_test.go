@@ -61,7 +61,6 @@ func TestFanIn(t *testing.T) {
 	})
 
 	t.Run("no input channels", func(t *testing.T) {
-
 		out := FanIn[int]()
 
 		select {
@@ -98,7 +97,7 @@ func TestFanIn(t *testing.T) {
 		var wg sync.WaitGroup
 
 		// Create channels and start writers
-		for i := 0; i < numChannels; i++ {
+		for range numChannels {
 			ch := make(chan int)
 			chs = append(chs, ch)
 
@@ -106,7 +105,7 @@ func TestFanIn(t *testing.T) {
 			go func(ch chan int) {
 				defer wg.Done()
 				defer close(ch)
-				for j := 0; j < itemsPerChannel; j++ {
+				for j := range itemsPerChannel {
 					ch <- j
 				}
 			}(ch)
