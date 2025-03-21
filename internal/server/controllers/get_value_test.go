@@ -20,7 +20,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// MockMetricsService реализует MetricsForGetValue для тестов
 type MockMetricsService struct {
 	GetValueAsStringFn func(ctx context.Context, metricType common.MetricType, name string) (string, error)
 	GetMetricAsDTOFn   func(ctx context.Context, metricType common.MetricType, name string) (*dto.MetricDTO, error)
@@ -33,15 +32,6 @@ func (m *MockMetricsService) GetValueAsString(ctx context.Context, metricType co
 func (m *MockMetricsService) GetMetricAsDTO(ctx context.Context, metricType common.MetricType, name string) (*dto.MetricDTO, error) {
 	return m.GetMetricAsDTOFn(ctx, metricType, name)
 }
-
-// TestLogger мок логгера
-type TestLogger struct {
-	Logs []string
-}
-
-func (l *TestLogger) Info(args ...interface{})                       {}
-func (l *TestLogger) Infow(msg string, keysAndValues ...interface{}) {}
-func (l *TestLogger) Error(args ...interface{})                      {}
 
 func TestGetValueController_GetValue(t *testing.T) {
 	tests := []struct {
