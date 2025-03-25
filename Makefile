@@ -16,10 +16,6 @@ build-agent:
 .PHONY: build
 build: build-server build-agent
 
-.PHONY: test
-test:
-	go test ./...
-
 .PHONY: field-alignment
 field-alignment:
 	fieldalignment -fix ./...
