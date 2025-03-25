@@ -14,5 +14,5 @@ _test-coverage_clean_up:
 _coverage_report:
 	go tool cover -func cover.out
 
-.PHONY: test-coverage
-test-coverage: _test-coverage _test-coverage_clean_up _coverage_report
+.PHONY: coverage
+coverage: _test-coverage _test-coverage_clean_up _coverage_report
