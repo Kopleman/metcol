@@ -46,7 +46,9 @@ func (s *Store) Update(ctx context.Context, value *dto.MetricDTO) error {
 	}
 
 	key := s.buildStoreKey(value.ID, value.MType)
+	s.mu.Lock()
 	s.db[key] = value
+	s.mu.Unlock()
 
 	return nil
 }
