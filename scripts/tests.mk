@@ -8,7 +8,7 @@ _test-coverage:
 
 .PHONY: _test-coverage_clean_up
 _test-coverage_clean_up:
-	go test -v -coverpkg=./... -coverprofile=profile.cov.tmp ./...
+	cat profile.cov.tmp | grep -v "_gen.go" | grep -v "sql_gen.go" | grep -v "mock.go" > cover.ou
 
 .PHONY: _coverage_report
 _coverage_report:

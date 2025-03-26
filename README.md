@@ -32,5 +32,5 @@ git fetch template && git checkout template/main .github
 Подробнее про локальный и автоматический запуск читайте в [README автотестов](https://github.com/Yandex-Practicum/go-autotests).
 
 ## Test-coverage
-Для просмотра отчета по покрытию тестами выполнить `make test-coverage`
+Для просмотра отчета по покрытию тестами выполнить `make coverage`
 Скрипт снимет профиль о покрытию тестами выкинет все сгенерированные файлы и моки, и сделает отчет.
