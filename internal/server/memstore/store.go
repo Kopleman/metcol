@@ -31,6 +31,8 @@ func (s *Store) Create(_ context.Context, value *dto.MetricDTO) error {
 
 func (s *Store) Read(_ context.Context, mType common.MetricType, name string) (*dto.MetricDTO, error) {
 	key := s.buildStoreKey(name, mType)
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	value, existed := s.db[key]
 
 	if !existed {
@@ -47,8 +49,8 @@ func (s *Store) Update(ctx context.Context, value *dto.MetricDTO) error {
 
 	key := s.buildStoreKey(value.ID, value.MType)
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.db[key] = value
-	s.mu.Unlock()
 
 	return nil
 }
