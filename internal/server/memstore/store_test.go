@@ -128,9 +128,7 @@ func TestStore_Read(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			s := &Store{
-				db: tt.fields.db,
-			}
+			s := NewStore(tt.fields.db)
 			got, err := s.Read(ctx, tt.args.mType, tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Read() error = %v, wantErr %v", err, tt.wantErr)
@@ -204,9 +202,7 @@ func TestStore_Update(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			s := &Store{
-				db: tt.fields.db,
-			}
+			s := NewStore(tt.fields.db)
 			err := s.Update(ctx, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
@@ -273,9 +269,7 @@ func TestStore_Delete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			s := &Store{
-				db: tt.fields.db,
-			}
+			s := NewStore(tt.fields.db)
 			err := s.Delete(ctx, tt.args.mType, tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
