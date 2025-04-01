@@ -1,3 +1,4 @@
+// Package metrics contains server-side metrics collector
 package metrics
 
 import (

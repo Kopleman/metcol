@@ -1,3 +1,4 @@
+// Package metricscollector allow to collect basic metrics and send them to desired endpoint
 package metricscollector
 
 import (
