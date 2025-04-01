@@ -152,11 +152,10 @@ func (q *Queries) GetMetric(ctx context.Context, arg GetMetricParams) (*Metric, 
 	return &i, err
 }
 
-const UpdateMetric = `-- name: UpdateMetric :one
+const UpdateMetric = `-- name: UpdateMetric :exec
 UPDATE metrics
 SET value=$1, delta=$2, updated_at=now()
 WHERE type=$3 AND name=$4
-    RETURNING id, name, type, value, delta, created_at, updated_at, deleted_at
 `
 
 type UpdateMetricParams struct {
@@ -166,8 +165,32 @@ type UpdateMetricParams struct {
 	Name  string     `db:"name" json:"name"`
 }
 
-func (q *Queries) UpdateMetric(ctx context.Context, arg UpdateMetricParams) (*Metric, error) {
-	row := q.db.QueryRow(ctx, UpdateMetric,
+func (q *Queries) UpdateMetric(ctx context.Context, arg UpdateMetricParams) error {
+	_, err := q.db.Exec(ctx, UpdateMetric,
+		arg.Value,
+		arg.Delta,
+		arg.Type,
+		arg.Name,
+	)
+	return err
+}
+
+const UpdateMetricAndGet = `-- name: UpdateMetricAndGet :one
+UPDATE metrics
+SET value=$1, delta=$2, updated_at=now()
+WHERE type=$3 AND name=$4
+    RETURNING id, name, type, value, delta, created_at, updated_at, deleted_at
+`
+
+type UpdateMetricAndGetParams struct {
+	Value *float64   `db:"value" json:"value"`
+	Delta *int64     `db:"delta" json:"delta"`
+	Type  MetricType `db:"type" json:"type"`
+	Name  string     `db:"name" json:"name"`
+}
+
+func (q *Queries) UpdateMetricAndGet(ctx context.Context, arg UpdateMetricAndGetParams) (*Metric, error) {
+	row := q.db.QueryRow(ctx, UpdateMetricAndGet,
 		arg.Value,
 		arg.Delta,
 		arg.Type,

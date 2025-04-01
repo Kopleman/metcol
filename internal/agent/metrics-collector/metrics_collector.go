@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Kopleman/metcol/internal/agent/config"
@@ -193,130 +194,9 @@ func (mc *MetricsCollector) CollectAllMetrics() error {
 			fmt.Printf("CollectAllMetrics error: %s\n", result.err)
 			return result.err
 		}
+		mc.mu.Lock()
 		maps.Copy(mc.currentMetricState, result.metrics)
-	}
-
-	if err := mc.increasePollCounter(); err != nil {
-		return err
-	}
-
-	mc.assignNewRandomValue()
-
-	return nil
-}
-
-// CollectMetrics deprecated.
-func (mc *MetricsCollector) CollectMetrics() error {
-	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
-
-	mc.currentMetricState["Alloc"] = MetricItem{
-		value:      strconv.FormatUint(memStats.Alloc, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["BuckHashSys"] = MetricItem{
-		value:      strconv.FormatUint(memStats.BuckHashSys, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["Frees"] = MetricItem{
-		value:      strconv.FormatUint(memStats.Frees, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["GCCPUFraction"] = MetricItem{
-		value:      strconv.FormatFloat(memStats.GCCPUFraction, 'f', -1, 64),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["GCSys"] = MetricItem{
-		value:      strconv.FormatUint(memStats.GCSys, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["HeapAlloc"] = MetricItem{
-		value:      strconv.FormatUint(memStats.HeapAlloc, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["HeapIdle"] = MetricItem{
-		value:      strconv.FormatUint(memStats.HeapIdle, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["HeapInuse"] = MetricItem{
-		value:      strconv.FormatUint(memStats.HeapInuse, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["HeapObjects"] = MetricItem{
-		value:      strconv.FormatUint(memStats.HeapObjects, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["HeapReleased"] = MetricItem{
-		value:      strconv.FormatUint(memStats.HeapReleased, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["HeapSys"] = MetricItem{
-		value:      strconv.FormatUint(memStats.HeapSys, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["LastGC"] = MetricItem{
-		value:      strconv.FormatUint(memStats.LastGC, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["Lookups"] = MetricItem{
-		value:      strconv.FormatUint(memStats.Lookups, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["MCacheInuse"] = MetricItem{
-		value:      strconv.FormatUint(memStats.MCacheInuse, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["MCacheSys"] = MetricItem{
-		value:      strconv.FormatUint(memStats.MCacheSys, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["MSpanInuse"] = MetricItem{
-		value:      strconv.FormatUint(memStats.MSpanInuse, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["MSpanSys"] = MetricItem{
-		value:      strconv.FormatUint(memStats.MSpanSys, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["Mallocs"] = MetricItem{
-		value:      strconv.FormatUint(memStats.Mallocs, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["NextGC"] = MetricItem{
-		value:      strconv.FormatUint(memStats.NextGC, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["NumForcedGC"] = MetricItem{
-		value:      strconv.FormatUint(uint64(memStats.NumForcedGC), 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["NumGC"] = MetricItem{
-		value:      strconv.FormatUint(uint64(memStats.NumGC), 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["OtherSys"] = MetricItem{
-		value:      strconv.FormatUint(memStats.OtherSys, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["PauseTotalNs"] = MetricItem{
-		value:      strconv.FormatUint(memStats.PauseTotalNs, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["StackInuse"] = MetricItem{
-		value:      strconv.FormatUint(memStats.StackInuse, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["StackSys"] = MetricItem{
-		value:      strconv.FormatUint(memStats.StackSys, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["Sys"] = MetricItem{
-		value:      strconv.FormatUint(memStats.Sys, 10),
-		metricType: common.GaugeMetricType,
-	}
-	mc.currentMetricState["TotalAlloc"] = MetricItem{
-		value:      strconv.FormatUint(memStats.TotalAlloc, 10),
-		metricType: common.GaugeMetricType,
+		mc.mu.Unlock()
 	}
 
 	if err := mc.increasePollCounter(); err != nil {
@@ -359,18 +239,6 @@ func (mc *MetricsCollector) assignNewRandomValue() {
 	}
 }
 
-func (mc *MetricsCollector) SendMetricsByOne() error {
-	for name, item := range mc.currentMetricState {
-		if err := mc.sendMetricItem(name, item); err != nil {
-			return err
-		}
-	}
-
-	mc.resetPollCounter()
-
-	return nil
-}
-
 type sendMetricResult struct {
 	err      error
 	workerID int
@@ -381,7 +249,7 @@ type sendMetricJob struct {
 	metric MetricItem
 }
 
-func (mc *MetricsCollector) SendMetricsViaWorkers() error {
+func (mc *MetricsCollector) sendMetricsViaWorkers() error {
 	metricsCount := len(mc.currentMetricState)
 
 	sendJobs := make(chan sendMetricJob, metricsCount)
@@ -392,9 +260,11 @@ func (mc *MetricsCollector) SendMetricsViaWorkers() error {
 		go mc.sendMetricWorker(w, sendJobs, results)
 	}
 
+	mc.mu.Lock()
 	for name, item := range mc.currentMetricState {
 		sendJobs <- sendMetricJob{name: name, metric: item}
 	}
+	mc.mu.Unlock()
 	close(sendJobs)
 
 	numOfDoneJobs := 0
@@ -402,7 +272,7 @@ func (mc *MetricsCollector) SendMetricsViaWorkers() error {
 		numOfDoneJobs++
 		if result.err != nil {
 			close(results)
-			return fmt.Errorf("SendMetricsViaWorkers error: %w", result.err)
+			return fmt.Errorf("sendMetricsViaWorkers error: %w", result.err)
 		}
 		if numOfDoneJobs == metricsCount {
 			close(results)
@@ -472,6 +342,7 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 	return nil
 }
 
+// SendMetrics sends all metrics to config.Endpoint.
 func (mc *MetricsCollector) SendMetrics() error {
 	metricsBatch := make([]*dto.MetricDTO, 0, len(mc.currentMetricState))
 	for name, item := range mc.currentMetricState {
@@ -543,19 +414,12 @@ type collectIntervalJobResults struct {
 	jobError error
 }
 
-type intervalJobsArg struct {
-	nextCollectTime  time.Time
-	nextReportTime   time.Time
-	pollInterval     time.Duration
-	reportInterval   time.Duration
-	reportInProgress bool
-}
-
 type jobsArg struct {
 	nextJobTime time.Time
 	interval    time.Duration
 }
 
+// Handler performs all agent work - collecting and sending data.
 func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
 	mc.logger.Info("Starting collect metrics")
 	pollTicker := time.NewTicker(1 * time.Second)
@@ -598,74 +462,6 @@ func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
 	}
 }
 
-// Run deprecated.
-func (mc *MetricsCollector) Run(sig chan os.Signal) error {
-	mc.logger.Info("Starting collect metrics")
-	now := time.Now()
-
-	pollDuration := time.Duration(mc.cfg.PollInterval) * time.Second
-	reportDuration := time.Duration(mc.cfg.ReportInterval) * time.Second
-
-	args := intervalJobsArg{
-		nextCollectTime:  now.Add(pollDuration),
-		nextReportTime:   now.Add(reportDuration),
-		pollInterval:     pollDuration,
-		reportInterval:   reportDuration,
-		reportInProgress: false,
-	}
-
-	ticker := time.NewTicker(1 * time.Second)
-	for {
-		select {
-		case <-ticker.C:
-			if err := mc.doIntervalJobs(&args); err != nil {
-				ticker.Stop()
-				return err
-			}
-		case <-sig:
-			ticker.Stop()
-			return nil
-		}
-	}
-}
-
-// doIntervalJobs deprecated.
-func (mc *MetricsCollector) doIntervalJobs(args *intervalJobsArg) error {
-	now := time.Now()
-	if now.After(args.nextCollectTime) {
-		err := mc.CollectAllMetrics()
-
-		if err != nil {
-			return fmt.Errorf("collect metrics: %w", err)
-		}
-
-		mc.logger.Info("collected metrics")
-
-		args.nextCollectTime = now.Add(args.pollInterval)
-	}
-
-	if args.reportInProgress {
-		return nil
-	}
-
-	if now.After(args.nextReportTime) {
-		args.reportInProgress = true
-
-		err := mc.SendMetrics()
-
-		if err != nil {
-			mc.logger.Error(err)
-		} else {
-			mc.logger.Info("sent metrics")
-		}
-
-		args.nextReportTime = now.Add(args.reportInterval)
-		args.reportInProgress = false
-	}
-
-	return nil
-}
-
 func (mc *MetricsCollector) collectIntervalJob(jobArgsCh <-chan struct{}, outputChan chan collectIntervalJobResults) {
 	for range jobArgsCh {
 		results := collectIntervalJobResults{}
@@ -685,7 +481,7 @@ func (mc *MetricsCollector) sendMetricsIntervalJob(
 	for range jobArgsCh {
 		results := collectIntervalJobResults{}
 		mc.logger.Info("sending metrics")
-		err := mc.SendMetricsViaWorkers()
+		err := mc.sendMetricsViaWorkers()
 		if err != nil {
 			results.jobError = fmt.Errorf("send metrics interval: %w", err)
 		}
@@ -703,8 +499,10 @@ type MetricsCollector struct {
 	currentMetricState map[string]MetricItem
 	client             HTTPClient
 	logger             log.Logger
+	mu                 *sync.Mutex
 }
 
+// NewMetricsCollector creates instance of collector.
 func NewMetricsCollector(cfg *config.Config, logger log.Logger, client HTTPClient) *MetricsCollector {
 	baseState := map[string]MetricItem{
 		pollCountMetricName: {
@@ -716,5 +514,5 @@ func NewMetricsCollector(cfg *config.Config, logger log.Logger, client HTTPClien
 			metricType: common.CounterMetricType,
 		},
 	}
-	return &MetricsCollector{currentMetricState: baseState, client: client, cfg: cfg, logger: logger}
+	return &MetricsCollector{currentMetricState: baseState, client: client, cfg: cfg, logger: logger, mu: &sync.Mutex{}}
 }

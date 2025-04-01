@@ -23,11 +23,13 @@ type MetricsForUpdate interface {
 	SetMetrics(ctx context.Context, metrics []*dto.MetricDTO) error
 }
 
+// UpdateMetricsController instance of controller.
 type UpdateMetricsController struct {
-	logger         log.Logger
-	metricsService MetricsForUpdate
+	logger         log.Logger       // logger
+	metricsService MetricsForUpdate // metrics service
 }
 
+// NewUpdateMetricsController creates instance of controller.
 func NewUpdateMetricsController(logger log.Logger, metricsService MetricsForUpdate) UpdateMetricsController {
 	return UpdateMetricsController{
 		logger:         logger,
@@ -35,6 +37,20 @@ func NewUpdateMetricsController(logger log.Logger, metricsService MetricsForUpda
 	}
 }
 
+// UpdateOrSet sets metric value
+//
+//	@Summary		sets metric value
+//	@Description	sets metric value if it exists or creates new one
+//	@Tags			metrics
+//	@Produce		plain
+//	@Param			metricType	path		string	true	"Metric type"
+//	@Param			metricName	path		string	true	"Metric name"
+//	@Param			metricValue	path		string	true	"Metric value"
+//	@Success		200		{string}			"OK"
+//	@Failure		400		"Bad request"
+//	@Failure		404		"Not found"
+//	@Failure		500		"Internal Server Error"
+//	@Router			/update/{metricType}/{metricName}/{metricValue} [post]
 func (ctrl *UpdateMetricsController) UpdateOrSet() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
@@ -81,6 +97,18 @@ func (ctrl *UpdateMetricsController) UpdateOrSet() func(http.ResponseWriter, *ht
 	}
 }
 
+// UpdateOrSetViaDTO sets metric value
+//
+//	@Summary		sets metric value
+//	@Description	sets metric value if it exists or creates new one
+//	@Tags			metrics
+//	@Accept			json
+//	@Produce		json
+//	@Param			data			body	dto.MetricDTO	true	"Body params"
+//	@Success		200				{object}	dto.MetricDTO
+//	@Failure		400		"Bad request"
+//	@Failure		500		"Internal Server Error"
+//	@Router			/update [post]
 func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
@@ -105,17 +133,16 @@ func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() func(http.ResponseWrite
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
 		if err != nil {
 			ctrl.logger.Error(err)
-			http.Error(w, common.Err500Message, http.StatusBadRequest)
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set(common.ContentType, "application/json")
 		w.WriteHeader(http.StatusOK)
 		if err = json.NewEncoder(w).Encode(metricDto); err != nil {
-			http.Error(w, common.Err500Message, http.StatusBadRequest)
+			http.Error(w, common.Err500Message, http.StatusInternalServerError)
 			return
 		}
 	}
@@ -140,6 +167,18 @@ func (ctrl *UpdateMetricsController) parseUpdateBody(req *http.Request) ([]*dto.
 	return metricsBatch, nil
 }
 
+// UpdateMetrics sets metrics value
+//
+//	@Summary		sets metrics value
+//	@Description	sets metrics value via bulk
+//	@Tags			metrics
+//	@Accept			json
+//	@Produce		json
+//	@Param			data			body	[]dto.MetricDTO	true	"Body params"
+//	@Success		200				{array}	dto.MetricDTO
+//	@Failure		400		"Bad request"
+//	@Failure		500		"Internal Server Error"
+//	@Router			/update [post]
 func (ctrl *UpdateMetricsController) UpdateMetrics() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()

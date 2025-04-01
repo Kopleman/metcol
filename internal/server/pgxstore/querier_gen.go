@@ -14,7 +14,8 @@ type Querier interface {
 	ExistsMetric(ctx context.Context, arg ExistsMetricParams) (bool, error)
 	GetAllMetrics(ctx context.Context) ([]*Metric, error)
 	GetMetric(ctx context.Context, arg GetMetricParams) (*Metric, error)
-	UpdateMetric(ctx context.Context, arg UpdateMetricParams) (*Metric, error)
+	UpdateMetric(ctx context.Context, arg UpdateMetricParams) error
+	UpdateMetricAndGet(ctx context.Context, arg UpdateMetricAndGetParams) (*Metric, error)
 }
 
 var _ Querier = (*Queries)(nil)

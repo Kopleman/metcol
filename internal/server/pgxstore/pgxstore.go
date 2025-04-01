@@ -156,7 +156,7 @@ func (p *PGXStore) Update(ctx context.Context, metricDTO *dto.MetricDTO) error {
 		return fmt.Errorf("could not get metric type for '%s': %w", metricDTO.MType, err)
 	}
 
-	_, err = p.UpdateMetric(ctx, UpdateMetricParams{
+	err = p.UpdateMetric(ctx, UpdateMetricParams{
 		Name:  metricDTO.ID,
 		Type:  mType,
 		Delta: metricDTO.Delta,

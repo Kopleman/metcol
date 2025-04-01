@@ -1,3 +1,4 @@
+// Package dto which contains DTO.
 package dto
 
 import (
@@ -7,9 +8,10 @@ import (
 	"github.com/Kopleman/metcol/internal/common"
 )
 
+// GetValueRequest dto for fetching metric data.
 type GetValueRequest struct {
-	ID    string            `json:"id"`   // имя метрики.
-	MType common.MetricType `json:"type"` // параметр, принимающий значение gauge или counter.
+	ID    string            `json:"id"`   // metric name.
+	MType common.MetricType `json:"type"` // metric type - gauge or counter.
 }
 
 func parseType(metricTypeAsString string) (common.MetricType, error) {
@@ -25,6 +27,7 @@ func parseType(metricTypeAsString string) (common.MetricType, error) {
 	return mType, nil
 }
 
+// UnmarshalJSON interface implementation.
 func (gr *GetValueRequest) UnmarshalJSON(data []byte) (err error) {
 	type ReqAlias GetValueRequest
 
@@ -48,13 +51,15 @@ func (gr *GetValueRequest) UnmarshalJSON(data []byte) (err error) {
 	return nil
 }
 
+// MetricDTO metric data contract.
 type MetricDTO struct {
-	Delta *int64            `json:"delta,omitempty"`
-	Value *float64          `json:"value,omitempty"`
-	ID    string            `json:"id"`
-	MType common.MetricType `json:"type"`
+	Delta *int64            `json:"delta,omitempty"` // value for counter type
+	Value *float64          `json:"value,omitempty"` // value for gauge type
+	ID    string            `json:"id"`              // metric name
+	MType common.MetricType `json:"type"`            // metric type
 }
 
+// MarshalJSON interface implementation.
 func (m MetricDTO) MarshalJSON() ([]byte, error) {
 	type DtoAlias MetricDTO
 
@@ -73,6 +78,7 @@ func (m MetricDTO) MarshalJSON() ([]byte, error) {
 	return bytes, nil
 }
 
+// UnmarshalJSON interface implementation.
 func (m *MetricDTO) UnmarshalJSON(data []byte) (err error) {
 	type DtoAlias MetricDTO
 
