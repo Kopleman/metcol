@@ -1,4 +1,4 @@
-// Package memstore implementation of Store interface for im-memo storage
+// Package memstore implementation of Store interface for im-memo storage.
 package memstore
 
 import (

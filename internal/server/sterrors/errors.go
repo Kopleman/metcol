@@ -1,4 +1,4 @@
-// Package sterrors collection on custom store errors
+// Package sterrors collection on custom store errors.
 package sterrors
 
 import "errors"

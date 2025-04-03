@@ -1,4 +1,4 @@
-// Package postgres allow to create postgres connection pool
+// Package postgres allow to create postgres connection pool.
 package postgres
 
 import (

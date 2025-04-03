@@ -7,16 +7,15 @@ import (
 	"testing"
 )
 
-// Функция для перехвата вывода стандартного вывода
 func captureOutput(f func()) string {
 	old := os.Stdout
 	r, w, _ := os.Pipe()
-	os.Stdout = w
+	os.Stdout = w //nolint:reassign // test purpose
 
 	f()
 
-	w.Close() //nolint:all // test-cases
-	os.Stdout = old
+	w.Close()       //nolint:all // test-cases
+	os.Stdout = old //nolint:reassign // test purpose
 
 	var buf bytes.Buffer
 	io.Copy(&buf, r) //nolint:all // test-cases

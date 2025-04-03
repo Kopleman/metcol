@@ -1,6 +1,6 @@
-// cmd/staticlint/main.go
-/**
-Package staticlint implements an extended static analysis tool for Go.
+//nolint:godot // dunno why it not like first comment block
+/*
+* Package  implements an extended static analysis tool for Go.
 
 It combines:
 
@@ -67,9 +67,10 @@ Mechanism:
 4. Reports any os.Exit calls with exact position
 
 Example violation:
-func main() {
-    os.Exit(1) // diagnostic: os.Exit call forbidden in main.main
-}
+
+	func main() {
+	    os.Exit(1) // diagnostic: os.Exit call forbidden in main.main
+	}
 
 Recommendations:
 - Return error codes from main instead
@@ -79,6 +80,7 @@ Recommendations:
 package main
 
 import (
+	"errors"
 	"go/ast"
 	"go/types"
 	"strings"
@@ -126,11 +128,7 @@ func main() {
 	analyzers = append(analyzers,
 		st1000.SCAnalyzer.Analyzer, // Naming conventions
 		qf1001.SCAnalyzer.Analyzer, // Quick fixes
-	)
-
-	// Third-party analyzers
-	analyzers = append(analyzers,
-		NoOsExitAnalyzer, // Custom analyzer
+		NoOsExitAnalyzer,           // Custom analyzer
 	)
 
 	multichecker.Main(analyzers...)
@@ -140,7 +138,7 @@ func main() {
 // The analyzer checks:
 // - Package is named "main"
 // - Context is within main function
-// - os.Exit usage through import verification
+// - os.Exit usage through import verification.
 var NoOsExitAnalyzer = &analysis.Analyzer{
 	Name:     "noosexit",
 	Doc:      "forbid direct calls to os.Exit in main.main",
@@ -150,10 +148,13 @@ var NoOsExitAnalyzer = &analysis.Analyzer{
 
 func runNoOsExit(pass *analysis.Pass) (interface{}, error) {
 	if pass.Pkg.Name() != "main" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // specific case
 	}
 
-	insp := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
+	insp, ok := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
+	if !ok {
+		return errors.New("invalid type conversion"), nil
+	}
 	nodeFilter := []ast.Node{
 		(*ast.FuncDecl)(nil),
 		(*ast.CallExpr)(nil),
@@ -188,5 +189,5 @@ func runNoOsExit(pass *analysis.Pass) (interface{}, error) {
 		}
 	})
 
-	return nil, nil
+	return nil, nil //nolint:nilnil // specific case
 }

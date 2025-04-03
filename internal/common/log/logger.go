@@ -1,4 +1,4 @@
-// Package log a basic wrapper around zap logger
+// Package log a basic wrapper around zap logger.
 package log
 
 import (

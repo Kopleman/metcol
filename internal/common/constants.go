@@ -1,4 +1,4 @@
-// Package common contains common shared features/**
+// Package common contains common shared features.
 package common
 
 const Err500Message = "something went wrong"
