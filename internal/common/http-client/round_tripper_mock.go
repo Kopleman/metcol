@@ -1,3 +1,4 @@
+//nolint:all // mock
 package httpclient
 
 import (

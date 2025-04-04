@@ -22,19 +22,19 @@ type MockMetricService struct {
 
 func (m *MockMetricService) ExportMetrics(ctx context.Context) ([]*dto.MetricDTO, error) {
 	args := m.Called(ctx)
-	return args.Get(0).([]*dto.MetricDTO), args.Error(1)
+	return args.Get(0).([]*dto.MetricDTO), args.Error(1) //nolint:all // tests
 }
 
 func (m *MockMetricService) ImportMetrics(ctx context.Context, metrics []*dto.MetricDTO) error {
 	args := m.Called(ctx, metrics)
-	return args.Error(0)
+	return args.Error(0) //nolint:all // tests
 }
 
 func TestFileStorage_ExportMetrics(t *testing.T) {
 	t.Run("successful export", func(t *testing.T) {
 		tmpFile, err := os.CreateTemp("", "test-export-*.json")
 		require.NoError(t, err)
-		defer os.Remove(tmpFile.Name())
+		defer os.Remove(tmpFile.Name()) //nolint:all // tests
 
 		metrics := []*dto.MetricDTO{
 			{ID: "test1", MType: "gauge", Value: testutils.Pointer(123.45)},
@@ -80,7 +80,7 @@ func TestFileStorage_ImportMetrics(t *testing.T) {
 	t.Run("successful import", func(t *testing.T) {
 		tmpFile, err := os.CreateTemp("", "test-import-*.json")
 		require.NoError(t, err)
-		defer os.Remove(tmpFile.Name())
+		defer os.Remove(tmpFile.Name()) //nolint:all // tests
 
 		metrics := []*dto.MetricDTO{
 			{ID: "test1", MType: "gauge", Value: testutils.Pointer(123.45)},
@@ -88,7 +88,7 @@ func TestFileStorage_ImportMetrics(t *testing.T) {
 
 		err = json.NewEncoder(tmpFile).Encode(metrics)
 		require.NoError(t, err)
-		tmpFile.Close()
+		tmpFile.Close() //nolint:all // tests
 
 		mockService := new(MockMetricService)
 		mockService.On("ImportMetrics", mock.Anything, metrics).Return(nil)
@@ -108,7 +108,7 @@ func TestFileStorage_ImportMetrics(t *testing.T) {
 	t.Run("empty file", func(t *testing.T) {
 		tmpFile, err := os.CreateTemp("", "test-empty-*.json")
 		require.NoError(t, err)
-		defer os.Remove(tmpFile.Name())
+		defer os.Remove(tmpFile.Name()) //nolint:all // tests
 
 		cfg := &config.Config{
 			FileStoragePath: tmpFile.Name(),
@@ -124,7 +124,7 @@ func TestFileStorage_ImportMetrics(t *testing.T) {
 func TestFileStorage_Init(t *testing.T) {
 	t.Run("create new file", func(t *testing.T) {
 		tmpFile := "/tmp/non-existent-file.json"
-		defer os.Remove(tmpFile)
+		defer os.Remove(tmpFile) //nolint:all // tests
 
 		cfg := &config.Config{FileStoragePath: tmpFile}
 		fs := NewFileStorage(cfg, nil, new(MockMetricService))
@@ -152,7 +152,7 @@ func TestFileStorage_Close(t *testing.T) {
 	t.Run("close with export", func(t *testing.T) {
 		tmpFile, err := os.CreateTemp("", "test-close-*.json")
 		require.NoError(t, err)
-		defer os.Remove(tmpFile.Name())
+		defer os.Remove(tmpFile.Name()) //nolint:all // tests
 
 		mockService := new(MockMetricService)
 		mockService.On("ExportMetrics", mock.Anything).Return([]*dto.MetricDTO{}, nil)

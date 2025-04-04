@@ -96,13 +96,13 @@ func TestHTTPClient_Post(t *testing.T) {
 			require.NoError(t, err)
 
 			if tt.checkHeaders {
-				req := mockRT.Calls[0].Arguments[0].(*http.Request)
+				req := mockRT.Calls[0].Arguments[0].(*http.Request) //nolint:all // tests
 				assert.Equal(t, "application/json", req.Header.Get(common.ContentType))
 				assert.Equal(t, "gzip", req.Header.Get(common.AcceptEncoding))
 			}
 
 			if tt.expectedHash {
-				req := mockRT.Calls[0].Arguments[0].(*http.Request)
+				req := mockRT.Calls[0].Arguments[0].(*http.Request) //nolint:all // tests
 				expectedHash := calculateHash(testBody, []byte(tt.key))
 				assert.Equal(t, expectedHash, req.Header.Get(common.HashSHA256))
 			}
@@ -159,8 +159,8 @@ func TestNewHTTPClient(t *testing.T) {
 func gzipBody(data string) io.ReadCloser {
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
-	gz.Write([]byte(data))
-	gz.Close()
+	gz.Write([]byte(data)) //nolint:all // tests
+	gz.Close()             //nolint:all // tests
 	return io.NopCloser(&buf)
 }
 

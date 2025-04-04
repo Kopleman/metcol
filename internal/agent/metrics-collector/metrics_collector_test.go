@@ -2,7 +2,6 @@ package metricscollector
 
 import (
 	"errors"
-	"math/rand"
 	"os"
 	"strconv"
 	"sync"
@@ -133,7 +132,7 @@ type MockHTTPClient struct {
 
 func (m *MockHTTPClient) Post(url, contentType string, body []byte) ([]byte, error) {
 	args := m.Called(url, contentType, body)
-	return args.Get(0).([]byte), args.Error(1)
+	return args.Get(0).([]byte), args.Error(1) //nolint:all // tests
 }
 
 func TestHandler(t *testing.T) {
@@ -174,7 +173,6 @@ func TestIncreasePollCounter(t *testing.T) {
 }
 
 func TestAssignNewRandomValue(t *testing.T) {
-	rand.Seed(0)
 	mc := NewMetricsCollector(nil, nil, nil)
 
 	initial := mc.currentMetricState[randomValueMetricName].value
@@ -201,11 +199,11 @@ func TestSendMetricsViaWorkers(t *testing.T) {
 func TestConcurrentAccess(t *testing.T) {
 	mc := NewMetricsCollector(&config.Config{}, nil, nil)
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for j := 0; j < 100; j++ {
+			for range 100 {
 				require.NoError(t, mc.CollectAllMetrics())
 			}
 		}()

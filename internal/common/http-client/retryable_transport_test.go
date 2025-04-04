@@ -65,14 +65,14 @@ func TestRetryableTransport_RoundTrip(t *testing.T) {
 				retryCount: tt.retryCount,
 			}
 
-			req, _ := http.NewRequest("GET", "http://test.com", bytes.NewBufferString("test body"))
+			req, _ := http.NewRequest(http.MethodGet, "http://test.com", bytes.NewBufferString("test body"))
 
 			// Setup mock calls
-			for i := 0; i < len(tt.mockResponses); i++ {
+			for i := range len(tt.mockResponses) {
 				mockRT.On("RoundTrip", req).Return(tt.mockResponses[i], tt.mockErrors[i]).Once()
 			}
 
-			resp, err := transport.RoundTrip(req)
+			resp, err := transport.RoundTrip(req) //nolint:all // tests
 
 			if tt.expectedError != "" {
 				require.Error(t, err)
@@ -180,14 +180,17 @@ func TestBodyReuse(t *testing.T) {
 	}
 
 	originalBody := []byte("original body")
-	req, _ := http.NewRequest("POST", "http://test.com", bytes.NewBuffer(originalBody))
+	req, _ := http.NewRequest(http.MethodPost, "http://test.com", bytes.NewBuffer(originalBody))
 
 	// First attempt fails
-	mockRT.On("RoundTrip", req).Return(&http.Response{StatusCode: http.StatusInternalServerError}, errors.New("connection error")).Once()
+	mockRT.On("RoundTrip", req).Return(
+		&http.Response{StatusCode: http.StatusInternalServerError},
+		errors.New("connection error"),
+	).Once()
 	// Second attempt succeeds
 	mockRT.On("RoundTrip", req).Return(&http.Response{StatusCode: http.StatusOK}, nil).Once()
 
-	_, err := transport.RoundTrip(req)
+	_, err := transport.RoundTrip(req) //nolint:all //tests
 	require.NoError(t, err)
 
 	// Verify body can be read again
@@ -202,7 +205,7 @@ func TestNewRetryableTransport(t *testing.T) {
 	logger := new(log.MockLogger)
 	retryCount := 3
 
-	transport := NewRetryableTransport(logger, retryCount).(*retryableTransport)
+	transport := NewRetryableTransport(logger, retryCount).(*retryableTransport) //nolint:all //tests
 
 	assert.NotNil(t, transport.transport)
 	assert.Equal(t, retryCount, transport.retryCount)
