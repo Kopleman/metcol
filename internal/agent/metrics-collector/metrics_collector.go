@@ -1,3 +1,4 @@
+// Package metricscollector allow to collect basic metrics and send them to desired endpoint.
 package metricscollector
 
 import (
@@ -202,13 +203,14 @@ func (mc *MetricsCollector) CollectAllMetrics() error {
 	if err := mc.increasePollCounter(); err != nil {
 		return err
 	}
-
 	mc.assignNewRandomValue()
 
 	return nil
 }
 
 func (mc *MetricsCollector) increasePollCounter() error {
+	mc.mu.Lock()
+	defer mc.mu.Unlock()
 	currentPCValue, err := strconv.ParseInt(mc.currentMetricState[pollCountMetricName].value, 10, 64)
 	if err != nil {
 		return fmt.Errorf(
@@ -233,10 +235,12 @@ func (mc *MetricsCollector) resetPollCounter() {
 }
 
 func (mc *MetricsCollector) assignNewRandomValue() {
+	mc.mu.Lock()
 	mc.currentMetricState[randomValueMetricName] = MetricItem{
 		value:      strconv.FormatFloat(rand.Float64(), 'f', -1, 64),
 		metricType: common.GaugeMetricType,
 	}
+	mc.mu.Unlock()
 }
 
 type sendMetricResult struct {
@@ -255,6 +259,8 @@ func (mc *MetricsCollector) sendMetricsViaWorkers() error {
 	sendJobs := make(chan sendMetricJob, metricsCount)
 	results := make(chan sendMetricResult, metricsCount)
 	maxWorkerCount := int(mc.cfg.RateLimit)
+	wg := &sync.WaitGroup{}
+	wg.Add(maxWorkerCount)
 
 	for w := 1; w <= maxWorkerCount; w++ {
 		go mc.sendMetricWorker(w, sendJobs, results)
@@ -268,18 +274,18 @@ func (mc *MetricsCollector) sendMetricsViaWorkers() error {
 	close(sendJobs)
 
 	numOfDoneJobs := 0
+	var err error
 	for result := range results {
 		numOfDoneJobs++
 		if result.err != nil {
-			close(results)
-			return fmt.Errorf("sendMetricsViaWorkers error: %w", result.err)
+			err = fmt.Errorf("sendMetricsViaWorkers error: %w", result.err)
 		}
 		if numOfDoneJobs == metricsCount {
 			close(results)
 		}
 	}
 
-	return nil
+	return err
 }
 
 func (mc *MetricsCollector) sendMetricWorker(workerID int, jobs <-chan sendMetricJob, results chan<- sendMetricResult) {
@@ -499,7 +505,7 @@ type MetricsCollector struct {
 	currentMetricState map[string]MetricItem
 	client             HTTPClient
 	logger             log.Logger
-	mu                 *sync.Mutex
+	mu                 *sync.RWMutex
 }
 
 // NewMetricsCollector creates instance of collector.
@@ -514,5 +520,5 @@ func NewMetricsCollector(cfg *config.Config, logger log.Logger, client HTTPClien
 			metricType: common.CounterMetricType,
 		},
 	}
-	return &MetricsCollector{currentMetricState: baseState, client: client, cfg: cfg, logger: logger, mu: &sync.Mutex{}}
+	return &MetricsCollector{currentMetricState: baseState, client: client, cfg: cfg, logger: logger, mu: &sync.RWMutex{}}
 }

@@ -1,3 +1,4 @@
+// Package store interface of required storage.
 package store
 
 import (
