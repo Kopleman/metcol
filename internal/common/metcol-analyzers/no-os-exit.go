@@ -1,4 +1,4 @@
-// Package metcolanalyzers contains various custom static analysers
+// Package metcolanalyzers contains various custom static analysers.
 package metcolanalyzers
 
 import (

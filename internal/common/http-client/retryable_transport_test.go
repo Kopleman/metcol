@@ -72,7 +72,7 @@ func TestRetryableTransport_RoundTrip(t *testing.T) {
 				mockRT.On("RoundTrip", req).Return(tt.mockResponses[i], tt.mockErrors[i]).Once()
 			}
 
-			resp, err := transport.RoundTrip(req) //nolint:all // tests
+			resp, err := transport.RoundTrip(req)
 			if resp != nil && resp.Body != nil {
 				defer resp.Body.Close() //nolint:all // tests
 			}
@@ -193,7 +193,7 @@ func TestBodyReuse(t *testing.T) {
 	// Second attempt succeeds
 	mockRT.On("RoundTrip", req).Return(&http.Response{StatusCode: http.StatusOK}, nil).Once()
 
-	resp, err := transport.RoundTrip(req) //nolint:all //tests
+	resp, err := transport.RoundTrip(req)
 	if resp != nil && resp.Body != nil {
 		defer resp.Body.Close() //nolint:all // tests
 	}

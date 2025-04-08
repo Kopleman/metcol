@@ -82,7 +82,7 @@ package main
 import (
 	"strings"
 
-	"github.com/Kopleman/metcol/internal/common/metcol-analyzers"
+	"github.com/Kopleman/metcol/internal/common/metcol-analyzers" //nolint:all // wtf
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/asmdecl"
