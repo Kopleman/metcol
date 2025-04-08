@@ -15,13 +15,13 @@ import (
 )
 
 var (
-	BuildVersion string
-	BuildDate    string
-	BuildCommit  string
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
 )
 
 func main() {
-	utils.PrintVersion(BuildVersion, BuildDate, BuildCommit)
+	utils.PrintVersion(buildVersion, buildDate, buildCommit)
 
 	logger := log.New(
 		log.WithAppVersion("local"),
