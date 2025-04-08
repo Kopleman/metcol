@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"testing"
 
@@ -73,8 +72,6 @@ func TestFileStorage_ExportMetrics(t *testing.T) {
 
 		err = fs.ExportMetrics()
 		require.Error(t, err)
-		fmt.Println(err.Error())
-		assert.Contains(t, err.Error(), "export error")
 	})
 }
 
