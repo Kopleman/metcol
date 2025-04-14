@@ -19,6 +19,7 @@ type Config struct {
 	Key            string            // hash key for sign sent data
 	ReportInterval int64             // how often data will be sent
 	PollInterval   int64             // how often metrics will be collected
+	PublicKeyPath  string            // path to public key
 	RateLimit      int64             // limits number of workers for sending
 }
 
@@ -49,6 +50,8 @@ func ParseAgentConfig() (*Config, error) {
 	flag.StringVar(&config.Key, "k", "", "cypher key")
 
 	flag.Int64Var(&config.RateLimit, "l", defaultRateInterval, "output rate interval")
+
+	flag.StringVar(&config.PublicKeyPath, "crypto-key", "", "cypher key")
 
 	flag.Parse()
 
