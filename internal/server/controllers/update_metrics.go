@@ -35,7 +35,11 @@ type UpdateMetricsController struct {
 }
 
 // NewUpdateMetricsController creates instance of controller.
-func NewUpdateMetricsController(logger log.Logger, metricsService MetricsForUpdate, bd BodyDecryptor) UpdateMetricsController {
+func NewUpdateMetricsController(
+	logger log.Logger,
+	metricsService MetricsForUpdate,
+	bd BodyDecryptor,
+) UpdateMetricsController {
 	return UpdateMetricsController{
 		logger:         logger,
 		metricsService: metricsService,

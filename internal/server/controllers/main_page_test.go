@@ -22,8 +22,8 @@ func (m *MockMainPageMetricsService) GetAllValuesAsString(ctx context.Context) (
 
 type MockResponseWriter struct {
 	header        http.Header
-	statusCode    int
 	body          []byte
+	statusCode    int
 	simulateError bool
 }
 
@@ -45,10 +45,10 @@ func (m *MockResponseWriter) WriteHeader(statusCode int) {
 
 func TestMainPageController_MainPage(t *testing.T) {
 	tests := []struct {
-		name           string
 		mockSetup      func(*MockMainPageMetricsService)
-		expectedStatus int
+		name           string
 		expectedBody   string
+		expectedStatus int
 		checkErrorLog  bool
 	}{
 		{

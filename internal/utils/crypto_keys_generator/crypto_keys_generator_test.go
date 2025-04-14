@@ -99,6 +99,7 @@ func TestGenerateKeys_Success(t *testing.T) {
 }
 
 func checkPEMFile(t *testing.T, path, expectedType string) {
+	t.Helper()
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed to read %s: %v", path, err)
@@ -115,7 +116,7 @@ func checkPEMFile(t *testing.T, path, expectedType string) {
 }
 
 func checkValidRSAPair(t *testing.T, privatePath, publicPath string) {
-	// Чтение приватного ключа
+	t.Helper()
 	privData, err := os.ReadFile(privatePath)
 	if err != nil {
 		t.Fatal(err)

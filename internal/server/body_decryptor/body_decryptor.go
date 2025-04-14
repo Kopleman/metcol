@@ -20,7 +20,7 @@ func (bd *BodyDecryptor) DecryptBodyBytes(body []byte) ([]byte, error) {
 	}
 	decrypted, err := rsa.DecryptOAEP(sha256.New(), nil, bd.privateKey, body, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to decrypt body: %w", err)
 	}
 	return decrypted, nil
 }

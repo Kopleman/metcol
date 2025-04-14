@@ -33,7 +33,13 @@ type BodyDecryptor interface {
 }
 
 // BuildServerRoutes returns chi.Mux with all routes.
-func BuildServerRoutes(cfg *config.Config, logger log.Logger, metricsService Metrics, db PgxPool, bd BodyDecryptor) *chi.Mux {
+func BuildServerRoutes(
+	cfg *config.Config,
+	logger log.Logger,
+	metricsService Metrics,
+	db PgxPool,
+	bd BodyDecryptor,
+) *chi.Mux {
 	mainPageCtrl := controllers.NewMainPageController(logger, metricsService)
 	updateCtrl := controllers.NewUpdateMetricsController(logger, metricsService, bd)
 	getValCtrl := controllers.NewGetValueController(logger, metricsService)

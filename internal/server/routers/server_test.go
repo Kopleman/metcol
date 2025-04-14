@@ -53,11 +53,11 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 func TestRouters_Server(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPgx := mock.NewMockPgxPool(ctrl)
-	mockDb := &mockBodyDecryptor{}
+	mockBD := &mockBodyDecryptor{}
 
 	storeService := memstore.NewStore(make(map[string]*dto.MetricDTO))
 	metricsService := metrics.NewMetrics(storeService, log.MockLogger{})
-	routes := BuildServerRoutes(&config.Config{}, &log.MockLogger{}, metricsService, mockPgx, mockDb)
+	routes := BuildServerRoutes(&config.Config{}, &log.MockLogger{}, metricsService, mockPgx, mockBD)
 
 	ts := httptest.NewServer(routes)
 	defer ts.Close()

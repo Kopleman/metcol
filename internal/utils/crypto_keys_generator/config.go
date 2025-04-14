@@ -1,8 +1,8 @@
 package cryptokeysgenerator
 
 import (
+	"errors"
 	"flag"
-	"fmt"
 )
 
 // Config contains all settled via flags params.
@@ -20,7 +20,7 @@ func ParseConfig() (*Config, error) {
 	flag.Parse()
 
 	if config.PublicKeyPath == "" || config.PrivateKeyPath == "" {
-		return nil, fmt.Errorf("public key and private key are required")
+		return nil, errors.New("public key and private key are required")
 	}
 
 	return config, nil

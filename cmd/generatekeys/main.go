@@ -1,4 +1,4 @@
-// Package generatekeys to generate keys
+// Package generatekeys to generate keys.
 package main
 
 import (

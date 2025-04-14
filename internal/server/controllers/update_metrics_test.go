@@ -51,9 +51,9 @@ type MockBodyDecryptor struct {
 func (m *MockBodyDecryptor) DecryptBody(body io.Reader) (io.Reader, error) {
 	args := m.Called(body)
 	if args.Error(1) != nil {
-		return nil, args.Error(1)
+		return nil, args.Error(1) //nolint:all // tests
 	}
-	return args.Get(0).(io.Reader), args.Error(1)
+	return args.Get(0).(io.Reader), args.Error(1) //nolint:all // tests
 }
 
 func TestUpdateOrSet(t *testing.T) {
@@ -63,10 +63,10 @@ func TestUpdateOrSet(t *testing.T) {
 	ctrl := NewUpdateMetricsController(mockLogger, mockService, mockDecrypter)
 
 	tests := []struct {
+		mockError      error
 		name           string
 		url            string
 		expectedStatus int
-		mockError      error
 	}{
 		{
 			name:           "success gauge",
@@ -132,10 +132,10 @@ func TestUpdateOrSet(t *testing.T) {
 
 func TestUpdateOrSetViaDTO(t *testing.T) {
 	tests := []struct {
-		name           string
-		body           string
 		mockDecryptErr error
 		mockServiceErr error
+		name           string
+		body           string
 		expectedStatus int
 	}{
 		{
@@ -175,7 +175,7 @@ func TestUpdateOrSetViaDTO(t *testing.T) {
 				decryptor,
 			)
 
-			req := httptest.NewRequest("POST", "/update", strings.NewReader(tt.body))
+			req := httptest.NewRequest(http.MethodPost, "/update", strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
 			ctrl.UpdateOrSetViaDTO()(w, req)
 
@@ -194,7 +194,7 @@ func TestUpdateOrSetViaDTO(t *testing.T) {
 			decryptor,
 		)
 
-		req := httptest.NewRequest("POST", "/update", strings.NewReader(`{}`))
+		req := httptest.NewRequest(http.MethodPost, "/update", strings.NewReader(`{}`))
 		w := httptest.NewRecorder()
 		ctrl.UpdateOrSetViaDTO()(w, req)
 
@@ -204,10 +204,10 @@ func TestUpdateOrSetViaDTO(t *testing.T) {
 
 func TestUpdateMetrics(t *testing.T) {
 	tests := []struct {
-		name           string
-		body           string
 		mockDecryptErr error
 		mockServiceErr error
+		name           string
+		body           string
 		expectedStatus int
 	}{
 		{
@@ -255,7 +255,7 @@ func TestUpdateMetrics(t *testing.T) {
 				decryptor,
 			)
 
-			req := httptest.NewRequest("POST", "/updates", strings.NewReader(tt.body))
+			req := httptest.NewRequest(http.MethodPost, "/updates", strings.NewReader(tt.body))
 			w := httptest.NewRecorder()
 			ctrl.UpdateMetrics()(w, req)
 
@@ -276,9 +276,9 @@ func TestUpdateMetrics(t *testing.T) {
 
 func TestParseUpdateBody(t *testing.T) {
 	tests := []struct {
+		mockDecryptErr error
 		name           string
 		inputBody      string
-		mockDecryptErr error
 		expectError    bool
 	}{
 		{
@@ -314,7 +314,7 @@ func TestParseUpdateBody(t *testing.T) {
 				decryptor,
 			)
 
-			req := httptest.NewRequest("POST", "/", strings.NewReader(tt.inputBody))
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.inputBody))
 			_, err := ctrl.parseUpdateBody(req)
 
 			if tt.expectError {

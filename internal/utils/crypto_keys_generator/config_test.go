@@ -10,15 +10,15 @@ func TestParseConfig(t *testing.T) {
 	oldArgs := os.Args
 	oldCommandLine := flag.CommandLine
 	defer func() {
-		os.Args = oldArgs
-		flag.CommandLine = oldCommandLine
+		os.Args = oldArgs                 //nolint:all // tests
+		flag.CommandLine = oldCommandLine //nolint:all // tests
 	}()
 
 	tests := []struct {
-		name        string
-		args        []string
 		want        *Config
+		name        string
 		wantErr     string
+		args        []string
 		expectError bool
 	}{
 		{
@@ -56,8 +56,8 @@ func TestParseConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Сбрасываем состояние флагов перед каждым тестом
-			flag.CommandLine = flag.NewFlagSet(tt.args[0], flag.ExitOnError)
-			os.Args = tt.args
+			flag.CommandLine = flag.NewFlagSet(tt.args[0], flag.ExitOnError) //nolint:all // tests
+			os.Args = tt.args                                                //nolint:all // tests
 
 			got, err := ParseConfig()
 			if (err != nil) != tt.expectError {
@@ -83,13 +83,13 @@ func TestParseConfig_FlagError(t *testing.T) {
 	oldArgs := os.Args
 	oldCommandLine := flag.CommandLine
 	defer func() {
-		os.Args = oldArgs
-		flag.CommandLine = oldCommandLine
+		os.Args = oldArgs                 //nolint:all // tests
+		flag.CommandLine = oldCommandLine //nolint:all // tests
 	}()
 
 	// Тест на некорректный флаг
-	os.Args = []string{"cmd", "-invalid"}
-	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	os.Args = []string{"cmd", "-invalid"}                                //nolint:all // tests
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError) //nolint:all // tests
 
 	// Перенаправляем вывод ошибок, чтобы не засорять тесты
 	defer func() { flag.CommandLine.SetOutput(nil) }()

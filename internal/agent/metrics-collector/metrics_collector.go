@@ -521,7 +521,6 @@ func (mc *MetricsCollector) cryptData(data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("encrypt data error: %w", err)
 	}
 	return cipherData, nil
-
 }
 
 func (mc *MetricsCollector) loadPublicKey() error {

@@ -17,9 +17,9 @@ const defaultRateInterval int64 = 10
 type Config struct {
 	EndPoint       *flags.NetAddress // where agent will send metrics
 	Key            string            // hash key for sign sent data
+	PublicKeyPath  string            // path to public key
 	ReportInterval int64             // how often data will be sent
 	PollInterval   int64             // how often metrics will be collected
-	PublicKeyPath  string            // path to public key
 	RateLimit      int64             // limits number of workers for sending
 }
 

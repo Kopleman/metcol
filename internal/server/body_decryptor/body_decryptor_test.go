@@ -34,11 +34,11 @@ func TestLoadPrivateKey_FileNotExists(t *testing.T) {
 func TestLoadPrivateKey_InvalidPEM(t *testing.T) {
 	tmpfile, err := os.CreateTemp("", "testkey")
 	require.NoError(t, err)
-	defer os.Remove(tmpfile.Name())
+	defer os.Remove(tmpfile.Name()) //nolint:all // tests
 
-	_, err = tmpfile.Write([]byte("invalid pem data"))
+	_, err = tmpfile.WriteString("invalid pem data")
 	require.NoError(t, err)
-	tmpfile.Close()
+	tmpfile.Close() //nolint:all // tests
 
 	bd := NewBodyDecryptor(log.MockLogger{})
 	err = bd.LoadPrivateKey(tmpfile.Name())
@@ -57,11 +57,11 @@ func TestLoadPrivateKey_ValidKey(t *testing.T) {
 
 	tmpfile, err := os.CreateTemp("", "testkey")
 	require.NoError(t, err)
-	defer os.Remove(tmpfile.Name())
+	defer os.Remove(tmpfile.Name()) //nolint:all // tests
 
 	_, err = tmpfile.Write(pemData)
 	require.NoError(t, err)
-	tmpfile.Close()
+	tmpfile.Close() //nolint:all // tests
 
 	bd := NewBodyDecryptor(log.MockLogger{})
 	err = bd.LoadPrivateKey(tmpfile.Name())

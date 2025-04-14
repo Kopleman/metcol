@@ -1,4 +1,4 @@
-// Package cryptokeysgenerator used to create keys pair
+// Package cryptokeysgenerator used to create keys pair.
 package cryptokeysgenerator
 
 import (
@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"os"
 )
@@ -20,24 +21,24 @@ func NewGenerator() *Generator {
 
 func (g *Generator) GenerateKeys(privateKeyPath, publicKeyPath string) error {
 	if publicKeyPath == "" || privateKeyPath == "" {
-		return fmt.Errorf("publicKeyPath or privateKeyPath is empty")
+		return errors.New("publicKeyPath or privateKeyPath is empty")
 	}
 
 	if publicKeyPath == privateKeyPath {
-		return fmt.Errorf("publicKeyPath is equal to privateKeyPath")
+		return errors.New("publicKeyPath is equal to privateKeyPath")
 	}
 
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return fmt.Errorf("failed to generate private key pair: %s", err)
+		return fmt.Errorf("failed to generate private key pair: %w", err)
 	}
 
 	if pubExportErr := g.exportPublicKeyToFile(&privateKey.PublicKey, publicKeyPath); pubExportErr != nil {
-		return fmt.Errorf("failed to export public key to file: %s", pubExportErr)
+		return fmt.Errorf("failed to export public key to file: %w", pubExportErr)
 	}
 
 	if privateExportErr := g.exportPrivateKeyToFile(privateKey, privateKeyPath); privateExportErr != nil {
-		return fmt.Errorf("failed to export private key to file: %s", privateExportErr)
+		return fmt.Errorf("failed to export private key to file: %w", privateExportErr)
 	}
 
 	return nil
@@ -46,7 +47,7 @@ func (g *Generator) GenerateKeys(privateKeyPath, publicKeyPath string) error {
 func (g *Generator) exportPublicKeyToFile(publicKey *rsa.PublicKey, pathToFile string) error {
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
 	if err != nil {
-		return fmt.Errorf("failed to serialize public key: %s", err)
+		return fmt.Errorf("failed to serialize public key: %w", err)
 	}
 	pubKeyPEM := pem.EncodeToMemory(
 		&pem.Block{
@@ -57,11 +58,11 @@ func (g *Generator) exportPublicKeyToFile(publicKey *rsa.PublicKey, pathToFile s
 
 	file, fileErr := g.getFileDescriptor(pathToFile)
 	if fileErr != nil {
-		return fmt.Errorf("failed to get file descriptor for pub-key: %s", fileErr)
+		return fmt.Errorf("failed to get file descriptor for pub-key: %w", fileErr)
 	}
 
-	if _, writeErr := file.WriteString(string(pubKeyPEM)); writeErr != nil {
-		return fmt.Errorf("failed to write public key to file: %s", writeErr)
+	if _, writeErr := file.Write(pubKeyPEM); writeErr != nil {
+		return fmt.Errorf("failed to write public key to file: %w", writeErr)
 	}
 
 	return nil
@@ -78,11 +79,11 @@ func (g *Generator) exportPrivateKeyToFile(privateKey *rsa.PrivateKey, pathToFil
 
 	file, fileErr := g.getFileDescriptor(pathToFile)
 	if fileErr != nil {
-		return fmt.Errorf("failed to get file descriptor for private-key: %s", fileErr)
+		return fmt.Errorf("failed to get file descriptor for private-key: %w", fileErr)
 	}
 
-	if _, writeErr := file.WriteString(string(privKeyPEM)); writeErr != nil {
-		return fmt.Errorf("failed to write private key to file: %s", writeErr)
+	if _, writeErr := file.Write(privKeyPEM); writeErr != nil {
+		return fmt.Errorf("failed to write private key to file: %w", writeErr)
 	}
 
 	return nil
