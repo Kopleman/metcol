@@ -1,3 +1,4 @@
+// Package middlewares collection of middlewares used on server.
 package middlewares
 
 import (

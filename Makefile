@@ -3,15 +3,18 @@ include scripts/*.mk
 
 MIGRATIONS_DIR   = ./sql/migrations/
 POSTGRES_DSN	 = $(DATABASE_DSN)
+BUILD_DATE = $(shell date +'%Y/%m/%d %H:%M:%S')
+BUILD_COMMIT = $(shell git rev-parse --short HEAD)
+BUILD_VERSION = $(shell git describe --always --long --dirty)
 
 
 .PHONY: build-server
 build-server:
-	go build -o ./cmd/server/server ./cmd/server
+	go build  -ldflags "-X main.buildVersion=$(BUILD_VERSION) -X 'main.buildDate=$(BUILD_DATE)' -X 'main.buildCommit=$(BUILD_COMMIT)'" -o ./cmd/server/server ./cmd/server
 
 .PHONY: build-agent
 build-agent:
-	go build -o ./cmd/agent/agent ./cmd/agent
+	go build -ldflags "-X main.buildVersion=$(BUILD_VERSION) -X 'main.buildDate=$(BUILD_DATE)' -X 'main.buildCommit=$(BUILD_COMMIT)'" -o ./cmd/agent/agent ./cmd/agent
 
 .PHONY: build
 build: build-server build-agent

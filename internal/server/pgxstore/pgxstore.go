@@ -1,3 +1,4 @@
+// Package pgxstore implementation of Store interface for postgres storage.
 package pgxstore
 
 import (

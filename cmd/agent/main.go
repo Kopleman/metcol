@@ -11,9 +11,18 @@ import (
 	metricscollector "github.com/Kopleman/metcol/internal/agent/metrics-collector"
 	httpclient "github.com/Kopleman/metcol/internal/common/http-client"
 	"github.com/Kopleman/metcol/internal/common/log"
+	"github.com/Kopleman/metcol/internal/common/utils"
+)
+
+var (
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
 )
 
 func main() {
+	utils.PrintVersion(buildVersion, buildDate, buildCommit)
+
 	logger := log.New(
 		log.WithAppVersion("local"),
 	)
