@@ -23,6 +23,7 @@ type Config struct {
 	Key                 string            // hash key for sign received data
 	ProfilerCPUFilePath string            // where to store CPU profile
 	ProfilerMemFilePath string            // where to store mem profile
+	PrivateKeyPath      string            // path to private key
 	StoreInterval       int64             // how often dump memo store to file
 	ProfilerCollectTime int64             // how long to collect data after start-up
 	Restore             bool              // restore memo-store from file
@@ -64,6 +65,8 @@ func ParseServerConfig() (*Config, error) {
 	flag.StringVar(&config.DataBaseDSN, "d", "", "database DSN")
 
 	flag.StringVar(&config.Key, "k", "", "cypher key")
+
+	flag.StringVar(&config.PrivateKeyPath, "crypto-key", "", "cypher key")
 
 	flag.Parse()
 

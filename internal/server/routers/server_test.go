@@ -21,6 +21,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type mockBodyDecryptor struct{}
+
+func (p *mockBodyDecryptor) DecryptBody(body io.Reader) (io.Reader, error) {
+	return body, nil
+}
+
 func testRequest(t *testing.T, ts *httptest.Server, method,
 	path string, body io.Reader) (int, string) {
 	t.Helper()
@@ -47,10 +53,11 @@ func testRequest(t *testing.T, ts *httptest.Server, method,
 func TestRouters_Server(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockPgx := mock.NewMockPgxPool(ctrl)
+	mockDb := &mockBodyDecryptor{}
 
 	storeService := memstore.NewStore(make(map[string]*dto.MetricDTO))
 	metricsService := metrics.NewMetrics(storeService, log.MockLogger{})
-	routes := BuildServerRoutes(&config.Config{}, &log.MockLogger{}, metricsService, mockPgx)
+	routes := BuildServerRoutes(&config.Config{}, &log.MockLogger{}, metricsService, mockPgx, mockDb)
 
 	ts := httptest.NewServer(routes)
 	defer ts.Close()

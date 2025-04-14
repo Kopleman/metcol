@@ -9,6 +9,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/common/profiler"
+	bodydecryptor "github.com/Kopleman/metcol/internal/server/body_decryptor"
 	"github.com/Kopleman/metcol/internal/server/config"
 	filestorage "github.com/Kopleman/metcol/internal/server/file_storage"
 	"github.com/Kopleman/metcol/internal/server/memstore"
@@ -27,6 +28,7 @@ type Server struct {
 	store         store.Store
 	fs            *filestorage.FileStorage
 	metricService *metrics.Metrics
+	bd            *bodydecryptor.BodyDecryptor
 }
 
 // NewServer creates instance of server.
@@ -73,6 +75,12 @@ func (s *Server) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to prepare store: %w", err)
 	}
 
+	bd := bodydecryptor.NewBodyDecryptor(s.logger)
+	if err := bd.LoadPrivateKey(s.config.PrivateKeyPath); err != nil {
+		return fmt.Errorf("failed to init bodyDecryptor: %w", err)
+	}
+	s.bd = bd
+
 	runTimeError := make(chan error, 1)
 	if s.fs != nil {
 		go func() {
@@ -84,7 +92,7 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 
 	go func() {
-		routes := routers.BuildServerRoutes(s.config, s.logger, s.metricService, s.db)
+		routes := routers.BuildServerRoutes(s.config, s.logger, s.metricService, s.db, s.bd)
 		if listenAndServeErr := http.ListenAndServe(s.config.NetAddr.String(), routes); listenAndServeErr != nil {
 			runTimeError <- fmt.Errorf("internal server error: %w", listenAndServeErr)
 		}

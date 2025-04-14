@@ -24,11 +24,18 @@ func (p *noopPgxPool) Ping(err context.Context) error {
 	return nil
 }
 
+type noopBodyDecryptor struct{}
+
+func (p *noopBodyDecryptor) DecryptBody(body io.Reader) (io.Reader, error) {
+	return body, nil
+}
+
 func setupRouter(baseMemStore map[string]*dto.MetricDTO) *chi.Mux {
 	storeService := memstore.NewStore(baseMemStore)
 	metricsService := metrics.NewMetrics(storeService, log.MockLogger{})
 	mockPgx := &noopPgxPool{}
-	routes := BuildServerRoutes(&config.Config{}, &log.MockLogger{}, metricsService, mockPgx)
+	mockBd := &noopBodyDecryptor{}
+	routes := BuildServerRoutes(&config.Config{}, &log.MockLogger{}, metricsService, mockPgx, mockBd)
 	return routes
 }
 

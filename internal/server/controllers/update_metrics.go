@@ -23,17 +23,23 @@ type MetricsForUpdate interface {
 	SetMetrics(ctx context.Context, metrics []*dto.MetricDTO) error
 }
 
+type BodyDecryptor interface {
+	DecryptBody(body io.Reader) (io.Reader, error)
+}
+
 // UpdateMetricsController instance of controller.
 type UpdateMetricsController struct {
 	logger         log.Logger       // logger
 	metricsService MetricsForUpdate // metrics service
+	bd             BodyDecryptor    // decrypts body via private key
 }
 
 // NewUpdateMetricsController creates instance of controller.
-func NewUpdateMetricsController(logger log.Logger, metricsService MetricsForUpdate) UpdateMetricsController {
+func NewUpdateMetricsController(logger log.Logger, metricsService MetricsForUpdate, bd BodyDecryptor) UpdateMetricsController {
 	return UpdateMetricsController{
 		logger:         logger,
 		metricsService: metricsService,
+		bd:             bd,
 	}
 }
 
@@ -112,8 +118,14 @@ func (ctrl *UpdateMetricsController) UpdateOrSet() func(http.ResponseWriter, *ht
 func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		ctx := req.Context()
+		decryptedBody, decryptErr := ctrl.bd.DecryptBody(req.Body)
+		if decryptErr != nil {
+			http.Error(w, "unable to parse dto", http.StatusBadRequest)
+			return
+		}
+
 		metricDto := new(dto.MetricDTO)
-		if err := json.NewDecoder(req.Body).Decode(&metricDto); err != nil {
+		if err := json.NewDecoder(decryptedBody).Decode(&metricDto); err != nil {
 			ctrl.logger.Error(err)
 			http.Error(w, "unable to parse dto", http.StatusBadRequest)
 			return
@@ -149,7 +161,11 @@ func (ctrl *UpdateMetricsController) UpdateOrSetViaDTO() func(http.ResponseWrite
 }
 
 func (ctrl *UpdateMetricsController) parseUpdateBody(req *http.Request) ([]*dto.MetricDTO, error) {
-	data, err := io.ReadAll(req.Body)
+	decryptedBody, decryptErr := ctrl.bd.DecryptBody(req.Body)
+	if decryptErr != nil {
+		return nil, fmt.Errorf("unable to decrypt body: %w", decryptErr)
+	}
+	data, err := io.ReadAll(decryptedBody)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read body: %w", err)
 	}
