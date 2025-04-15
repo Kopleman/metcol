@@ -17,6 +17,7 @@ const defaultRateInterval int64 = 10
 type Config struct {
 	EndPoint       *flags.NetAddress // where agent will send metrics
 	Key            string            // hash key for sign sent data
+	PublicKeyPath  string            // path to public key
 	ReportInterval int64             // how often data will be sent
 	PollInterval   int64             // how often metrics will be collected
 	RateLimit      int64             // limits number of workers for sending
@@ -49,6 +50,8 @@ func ParseAgentConfig() (*Config, error) {
 	flag.StringVar(&config.Key, "k", "", "cypher key")
 
 	flag.Int64Var(&config.RateLimit, "l", defaultRateInterval, "output rate interval")
+
+	flag.StringVar(&config.PublicKeyPath, "crypto-key", "", "cypher key")
 
 	flag.Parse()
 

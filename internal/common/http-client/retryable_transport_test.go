@@ -17,11 +17,11 @@ import (
 func TestRetryableTransport_RoundTrip(t *testing.T) {
 	tests := []struct {
 		name             string
-		retryCount       int
+		expectedError    string
 		mockResponses    []*http.Response
 		mockErrors       []error
+		retryCount       int
 		expectedAttempts int
-		expectedError    string
 	}{
 		{
 			name:             "success on first attempt",
@@ -111,9 +111,9 @@ func TestBackoff(t *testing.T) {
 
 func TestShouldRetry(t *testing.T) {
 	tests := []struct {
-		name     string
 		err      error
 		resp     *http.Response
+		name     string
 		expected bool
 	}{
 		{

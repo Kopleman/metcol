@@ -2,7 +2,13 @@
 package metricscollector
 
 import (
+	cryptorand "crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"maps"
 	"math/rand/v2"
@@ -335,7 +341,11 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 		return fmt.Errorf("unable to marshal metric dto: %w", marshalErr)
 	}
 	url := "/update"
-	respBytes, sendErr := mc.client.Post(url, "application/json", body)
+	cryptoBody, cryptErr := mc.cryptData(body)
+	if cryptErr != nil {
+		return fmt.Errorf("sendMetricItem crypt error: %w", cryptErr)
+	}
+	respBytes, sendErr := mc.client.Post(url, "application/json", cryptoBody)
 	if sendErr != nil {
 		return fmt.Errorf("unable to sent %s metric: %w", name, sendErr)
 	}
@@ -369,7 +379,11 @@ func (mc *MetricsCollector) SendMetrics() error {
 	}
 
 	url := "/updates"
-	respBytes, sendErr := mc.client.Post(url, "application/json", body)
+	cryptoBody, cryptErr := mc.cryptData(body)
+	if cryptErr != nil {
+		return fmt.Errorf("sendMetrics crypt error: %w", cryptErr)
+	}
+	respBytes, sendErr := mc.client.Post(url, "application/json", cryptoBody)
 	if sendErr != nil {
 		return fmt.Errorf("unable to sent metrics batch: %w", sendErr)
 	}
@@ -496,6 +510,56 @@ func (mc *MetricsCollector) sendMetricsIntervalJob(
 	}
 }
 
+func (mc *MetricsCollector) cryptData(data []byte) ([]byte, error) {
+	if mc.publicKey == nil {
+		return data, nil
+	}
+
+	rng := cryptorand.Reader
+	cipherData, err := rsa.EncryptOAEP(sha256.New(), rng, mc.publicKey, data, nil)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt data error: %w", err)
+	}
+	return cipherData, nil
+}
+
+func (mc *MetricsCollector) loadPublicKey() error {
+	if mc.cfg.PublicKeyPath == "" {
+		return nil
+	}
+
+	keyBytes, err := os.ReadFile(mc.cfg.PublicKeyPath)
+	if err != nil {
+		return fmt.Errorf("unable to read public key file: %w", err)
+	}
+
+	block, _ := pem.Decode(keyBytes)
+	if block == nil {
+		return errors.New("failed to parse public key PEM block")
+	}
+
+	pubKey, parseErr := x509.ParsePKIXPublicKey(block.Bytes)
+	if parseErr != nil {
+		return errors.New("failed to parse public key bytes")
+	}
+
+	switch pubKeyTyped := pubKey.(type) {
+	case *rsa.PublicKey:
+		mc.publicKey = pubKeyTyped
+		return nil
+	default:
+		return errors.New("not RSA public key")
+	}
+}
+
+func (mc *MetricsCollector) Init() error {
+	if err := mc.loadPublicKey(); err != nil {
+		return fmt.Errorf("unable to load public key: %w", err)
+	}
+
+	return nil
+}
+
 type HTTPClient interface {
 	Post(url, contentType string, bodyBytes []byte) ([]byte, error)
 }
@@ -506,6 +570,7 @@ type MetricsCollector struct {
 	client             HTTPClient
 	logger             log.Logger
 	mu                 *sync.RWMutex
+	publicKey          *rsa.PublicKey
 }
 
 // NewMetricsCollector creates instance of collector.
