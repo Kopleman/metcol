@@ -8,11 +8,20 @@ import (
 	"fmt"
 
 	"github.com/Kopleman/metcol/internal/common/log"
+	"github.com/Kopleman/metcol/internal/common/utils"
 	"github.com/Kopleman/metcol/internal/server/config"
 	"github.com/Kopleman/metcol/internal/server/server"
 )
 
+var (
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
+)
+
 func main() {
+	utils.PrintVersion(buildVersion, buildDate, buildCommit)
+
 	logger := log.New(
 		log.WithAppVersion("local"),
 		log.WithLogLevel(log.INFO),
