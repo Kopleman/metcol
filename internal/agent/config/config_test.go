@@ -12,10 +12,10 @@ import (
 
 func TestParseAgentConfig(t *testing.T) {
 	tests := []struct {
-		name        string
 		envs        map[string]string
-		args        []string
 		want        *Config
+		name        string
+		args        []string
 		expectError bool
 	}{
 		{
@@ -138,10 +138,10 @@ func TestParseAgentConfig(t *testing.T) {
 
 func TestConfigValidation(t *testing.T) {
 	tests := []struct {
-		name    string
 		envs    map[string]string
-		args    []string
+		name    string
 		wantErr string
+		args    []string
 	}{
 		{
 			name:    "negative report interval flag",

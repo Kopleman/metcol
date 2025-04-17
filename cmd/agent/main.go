@@ -43,6 +43,9 @@ func run(logger log.Logger) error {
 
 	httpClient := httpclient.NewHTTPClient(agentConfig, logger)
 	collector := metricscollector.NewMetricsCollector(agentConfig, logger, httpClient)
+	if initErr := collector.Init(); initErr != nil {
+		return fmt.Errorf("failed to initialize the collector: %w", initErr)
+	}
 
 	if err = collector.Handler(sig); err != nil {
 		return fmt.Errorf("metrics collector error: %w", err)

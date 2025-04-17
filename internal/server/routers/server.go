@@ -3,6 +3,7 @@ package routers
 
 import (
 	"context"
+	"io"
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
@@ -27,10 +28,20 @@ type PgxPool interface {
 	Ping(context.Context) error
 }
 
+type BodyDecryptor interface {
+	DecryptBody(body io.Reader) (io.Reader, error)
+}
+
 // BuildServerRoutes returns chi.Mux with all routes.
-func BuildServerRoutes(cfg *config.Config, logger log.Logger, metricsService Metrics, db PgxPool) *chi.Mux {
+func BuildServerRoutes(
+	cfg *config.Config,
+	logger log.Logger,
+	metricsService Metrics,
+	db PgxPool,
+	bd BodyDecryptor,
+) *chi.Mux {
 	mainPageCtrl := controllers.NewMainPageController(logger, metricsService)
-	updateCtrl := controllers.NewUpdateMetricsController(logger, metricsService)
+	updateCtrl := controllers.NewUpdateMetricsController(logger, metricsService, bd)
 	getValCtrl := controllers.NewGetValueController(logger, metricsService)
 	pingCtrl := controllers.NewPingController(db)
 
