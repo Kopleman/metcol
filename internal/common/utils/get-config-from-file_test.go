@@ -72,7 +72,7 @@ func TestGetConfigFromFile_DecodeError(t *testing.T) {
 	}
 }
 
-func TestGetConfigFromFile_CloseError(t *testing.T) {
+func TestGetConfigFromFile_PermissionError(t *testing.T) {
 	tmpFile, err := os.CreateTemp("", "test-*.json")
 	if err != nil {
 		t.Fatal(err)
@@ -83,6 +83,9 @@ func TestGetConfigFromFile_CloseError(t *testing.T) {
 
 	if err = os.WriteFile(path, []byte("{}"), 0o222); err != nil { //nolint:all // tests
 		t.Fatal(err)
+	}
+	if errs := os.Chmod(path, 0o222); errs != nil {
+		t.Fatal(errs)
 	}
 	defer os.Remove(path) //nolint:all // tests
 
