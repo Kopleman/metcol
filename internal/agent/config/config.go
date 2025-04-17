@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/Kopleman/metcol/internal/common/flags"
+	"github.com/Kopleman/metcol/internal/common/utils"
 	"github.com/caarlos0/env/v6"
 )
 
@@ -23,62 +24,102 @@ type Config struct {
 	RateLimit      int64             // limits number of workers for sending
 }
 
-type configFromEnv struct {
-	EndPoint       string `env:"ADDRESS"`
-	Key            string `env:"KEY"`
-	ReportInterval int64  `env:"REPORT_INTERVAL"`
-	PollInterval   int64  `env:"POLL_INTERVAL"`
-	RateLimit      int64  `env:"RATE_LIMIT"`
+type configFromFlags struct {
+	Config
 }
 
-// ParseAgentConfig produce config for agent via parsing env and flags(envs preferred).
-func ParseAgentConfig() (*Config, error) {
-	cfgFromEnv := new(configFromEnv)
-	config := new(Config)
-	netAddr := new(flags.NetAddress)
-	netAddr.Host = "localhost"
-	netAddr.Port = "8080"
-	config.EndPoint = netAddr
+type configFromSource struct {
+	EndPoint       string `json:"address" env:"ADDRESS"`
+	Key            string `json:"key" env:"KEY"`
+	PublicKeyPath  string `json:"crypto_key" env:"KEY_PATH"`
+	ReportInterval int64  `json:"report_interval" env:"REPORT_INTERVAL"`
+	PollInterval   int64  `json:"poll_interval" env:"POLL_INTERVAL"`
+	RateLimit      int64  `json:"rate_limit" env:"RATE_LIMIT"`
+}
 
-	netAddrValue := flag.Value(netAddr)
-	flag.Var(netAddrValue, "a", "address and port of collector-server")
-
-	flag.Int64Var(&config.ReportInterval, "r", defaultReportInterval, "report interval")
-
-	flag.Int64Var(&config.PollInterval, "p", defaultPollInterval, "poll interval")
-
-	flag.StringVar(&config.Key, "k", "", "cypher key")
-
-	flag.Int64Var(&config.RateLimit, "l", defaultRateInterval, "output rate interval")
-
-	flag.StringVar(&config.PublicKeyPath, "crypto-key", "", "cypher key")
-
-	flag.Parse()
-
-	if config.ReportInterval < 0 {
-		return nil, fmt.Errorf("invalid report interval value prodived via flag: %v", config.ReportInterval)
+func applyConfigFromFlags(cfgFromFlags *configFromFlags, config *Config) error {
+	if cfgFromFlags.ReportInterval < 0 {
+		return fmt.Errorf("invalid report interval value prodived via flag: %v", cfgFromFlags.ReportInterval)
 	}
 
-	if config.PollInterval < 0 {
-		return nil, fmt.Errorf("invalid poll interval value prodived via flag: %v", config.PollInterval)
+	if cfgFromFlags.PollInterval < 0 {
+		return fmt.Errorf("invalid poll interval value prodived via flag: %v", cfgFromFlags.PollInterval)
 	}
 
+	if cfgFromFlags.EndPoint != nil {
+		config.EndPoint = cfgFromFlags.EndPoint
+	}
+	if cfgFromFlags.Key != "" {
+		config.Key = cfgFromFlags.Key
+	}
+	if cfgFromFlags.PublicKeyPath != "" {
+		config.PublicKeyPath = cfgFromFlags.PublicKeyPath
+	}
+	if cfgFromFlags.ReportInterval != 0 {
+		config.ReportInterval = cfgFromFlags.ReportInterval
+	}
+	if cfgFromFlags.PollInterval != 0 {
+		config.PollInterval = cfgFromFlags.PollInterval
+	}
+	if cfgFromFlags.RateLimit != 0 {
+		config.RateLimit = cfgFromFlags.RateLimit
+	}
+
+	return nil
+}
+
+func applyConfigFromJSON(pathToConfigFile string, config *Config) error {
+	cfgFromJson := new(configFromSource)
+	if pathToConfigFile == "" {
+		return nil
+	}
+
+	if err := utils.GetConfigFromFile(pathToConfigFile, cfgFromJson); err != nil {
+		return fmt.Errorf("error reading config from file: %w", err)
+	}
+
+	if cfgFromJson.EndPoint != "" {
+		if err := config.EndPoint.Set(cfgFromJson.EndPoint); err != nil {
+			return fmt.Errorf("failed to set endpoint address for agent from json data: %w", err)
+		}
+	}
+	if cfgFromJson.Key != "" {
+		config.Key = cfgFromJson.Key
+	}
+	if cfgFromJson.PublicKeyPath != "" {
+		config.PublicKeyPath = cfgFromJson.PublicKeyPath
+	}
+	if cfgFromJson.ReportInterval != 0 {
+		config.ReportInterval = cfgFromJson.ReportInterval
+	}
+	if cfgFromJson.PollInterval != 0 {
+		config.PollInterval = cfgFromJson.PollInterval
+	}
+	if cfgFromJson.RateLimit != 0 {
+		config.RateLimit = cfgFromJson.RateLimit
+	}
+
+	return nil
+}
+
+func applyConfigFromEnv(config *Config) error {
+	cfgFromEnv := new(configFromSource)
 	if err := env.Parse(cfgFromEnv); err != nil {
-		return nil, fmt.Errorf("failed to parse agent envs: %w", err)
+		return fmt.Errorf("failed to parse agent envs: %w", err)
 	}
 
 	if cfgFromEnv.EndPoint != "" {
-		if err := netAddr.Set(cfgFromEnv.EndPoint); err != nil {
-			return nil, fmt.Errorf("failed to set endpoint address for agent: %w", err)
+		if err := config.EndPoint.Set(cfgFromEnv.EndPoint); err != nil {
+			return fmt.Errorf("failed to set endpoint address for agent: %w", err)
 		}
 	}
 
 	if cfgFromEnv.PollInterval < 0 {
-		return nil, fmt.Errorf("invalid poll interval value prodived via envs: %v", cfgFromEnv.PollInterval)
+		return fmt.Errorf("invalid poll interval value prodived via envs: %v", cfgFromEnv.PollInterval)
 	}
 
 	if cfgFromEnv.ReportInterval < 0 {
-		return nil, fmt.Errorf("invalid report interval value prodived via envs: %v", cfgFromEnv.ReportInterval)
+		return fmt.Errorf("invalid report interval value prodived via envs: %v", cfgFromEnv.ReportInterval)
 	}
 
 	if cfgFromEnv.PollInterval > 0 {
@@ -95,6 +136,47 @@ func ParseAgentConfig() (*Config, error) {
 
 	if cfgFromEnv.RateLimit > 0 {
 		config.RateLimit = cfgFromEnv.RateLimit
+	}
+
+	return nil
+}
+
+// ParseAgentConfig produce config for agent via parsing env and flags(envs preferred).
+func ParseAgentConfig() (*Config, error) {
+	cfgFromFlags := new(configFromFlags)
+	config := new(Config)
+	netAddr := new(flags.NetAddress)
+	netAddr.Host = "localhost"
+	netAddr.Port = "8080"
+	cfgFromFlags.EndPoint = netAddr
+
+	netAddrValue := flag.Value(netAddr)
+	flag.Var(netAddrValue, "a", "address and port of collector-server")
+
+	flag.Int64Var(&cfgFromFlags.ReportInterval, "r", defaultReportInterval, "report interval")
+
+	flag.Int64Var(&cfgFromFlags.PollInterval, "p", defaultPollInterval, "poll interval")
+
+	flag.StringVar(&cfgFromFlags.Key, "k", "", "cypher key")
+
+	flag.Int64Var(&cfgFromFlags.RateLimit, "l", defaultRateInterval, "output rate interval")
+
+	flag.StringVar(&cfgFromFlags.PublicKeyPath, "crypto-key", "", "cypher key")
+
+	pathToConfig := flag.String("c", "", "Path to config file")
+
+	flag.Parse()
+
+	if err := applyConfigFromJSON(*pathToConfig, config); err != nil {
+		return nil, fmt.Errorf("error applaing config from json-file: %w", err)
+	}
+
+	if err := applyConfigFromFlags(cfgFromFlags, config); err != nil {
+		return nil, fmt.Errorf("error applying config from flags: %w", err)
+	}
+
+	if err := applyConfigFromEnv(config); err != nil {
+		return nil, fmt.Errorf("error applying config from env: %w", err)
 	}
 
 	return config, nil
