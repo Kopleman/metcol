@@ -95,14 +95,14 @@ func applyConfigFromFlags(cfgFromFlags *configFromSource, config *Config) error 
 }
 
 func applyConfigFromJSON(pathToConfigFile string, config *Config) error {
-	cfgFromJson := new(configFromSource)
+	cfgFromJSON := new(configFromSource)
 	if pathToConfigFile == "" {
 		return nil
 	}
-	if err := utils.GetConfigFromFile(pathToConfigFile, cfgFromJson); err != nil {
+	if err := utils.GetConfigFromFile(pathToConfigFile, cfgFromJSON); err != nil {
 		return fmt.Errorf("error reading config from file: %w", err)
 	}
-	if err := applyConfigFromSource(cfgFromJson, config); err != nil {
+	if err := applyConfigFromSource(cfgFromJSON, config); err != nil {
 		return fmt.Errorf("error applying config from json data: %w", err)
 	}
 

@@ -25,7 +25,7 @@ func TestGetConfigFromFile_Success(t *testing.T) {
 	if _, err := tmpFile.Write(content); err != nil {
 		t.Fatal(err)
 	}
-	tmpFile.Close()
+	tmpFile.Close() //nolint:all // tests
 
 	// Тестируем
 	var config TestConfig
@@ -64,7 +64,7 @@ func TestGetConfigFromFile_DecodeError(t *testing.T) {
 	if _, err := tmpFile.Write(content); err != nil {
 		t.Fatal(err)
 	}
-	tmpFile.Close()
+	tmpFile.Close() //nolint:all // tests
 
 	// Тестируем
 	var config TestConfig
@@ -90,7 +90,7 @@ func TestGetConfigFromFile_CloseError(t *testing.T) {
 	os.Remove(path) //nolint:all // tests
 
 	// Создаем новый файл с тем же именем, но без прав на чтение
-	if err := os.WriteFile(path, []byte("{}"), 0222); err != nil {
+	if err := os.WriteFile(path, []byte("{}"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	defer os.Remove(path) //nolint:all // tests
