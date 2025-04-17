@@ -34,6 +34,40 @@ type configFromSource struct {
 	RateLimit      int64  `json:"rate_limit" env:"RATE_LIMIT"`
 }
 
+func applyConfigFromSource(source configFromSource, config *Config) error {
+	if source.EndPoint != "" {
+		if err := config.EndPoint.Set(source.EndPoint); err != nil {
+			return fmt.Errorf("failed to set endpoint address for agent: %w", err)
+		}
+	}
+
+	if source.PollInterval < 0 {
+		return fmt.Errorf("invalid poll interval value prodived via envs: %v", source.PollInterval)
+	}
+
+	if source.ReportInterval < 0 {
+		return fmt.Errorf("invalid report interval value prodived via envs: %v", source.ReportInterval)
+	}
+
+	if source.PollInterval > 0 {
+		config.PollInterval = source.PollInterval
+	}
+
+	if source.ReportInterval > 0 {
+		config.ReportInterval = source.ReportInterval
+	}
+
+	if source.Key != "" {
+		config.Key = source.Key
+	}
+
+	if source.RateLimit > 0 {
+		config.RateLimit = source.RateLimit
+	}
+
+	return nil
+}
+
 func applyConfigFromFlags(cfgFromFlags *configFromSource, config *Config) error {
 	if cfgFromFlags.EndPoint != "" {
 		if err := config.EndPoint.Set(cfgFromFlags.EndPoint); err != nil {
@@ -77,26 +111,8 @@ func applyConfigFromJSON(pathToConfigFile string, config *Config) error {
 	if err := utils.GetConfigFromFile(pathToConfigFile, cfgFromJson); err != nil {
 		return fmt.Errorf("error reading config from file: %w", err)
 	}
-
-	if cfgFromJson.EndPoint != "" {
-		if err := config.EndPoint.Set(cfgFromJson.EndPoint); err != nil {
-			return fmt.Errorf("failed to set endpoint address for agent from json data: %w", err)
-		}
-	}
-	if cfgFromJson.Key != "" {
-		config.Key = cfgFromJson.Key
-	}
-	if cfgFromJson.PublicKeyPath != "" {
-		config.PublicKeyPath = cfgFromJson.PublicKeyPath
-	}
-	if cfgFromJson.ReportInterval != 0 {
-		config.ReportInterval = cfgFromJson.ReportInterval
-	}
-	if cfgFromJson.PollInterval != 0 {
-		config.PollInterval = cfgFromJson.PollInterval
-	}
-	if cfgFromJson.RateLimit != 0 {
-		config.RateLimit = cfgFromJson.RateLimit
+	if err := applyConfigFromSource(*cfgFromJson, config); err != nil {
+		return fmt.Errorf("error applying config from json-file: %w", err)
 	}
 
 	return nil
@@ -107,37 +123,9 @@ func applyConfigFromEnv(config *Config) error {
 	if err := env.Parse(cfgFromEnv); err != nil {
 		return fmt.Errorf("failed to parse agent envs: %w", err)
 	}
-
-	if cfgFromEnv.EndPoint != "" {
-		if err := config.EndPoint.Set(cfgFromEnv.EndPoint); err != nil {
-			return fmt.Errorf("failed to set endpoint address for agent: %w", err)
-		}
+	if err := applyConfigFromSource(*cfgFromEnv, config); err != nil {
+		return fmt.Errorf("failed to apply config from env: %w", err)
 	}
-
-	if cfgFromEnv.PollInterval < 0 {
-		return fmt.Errorf("invalid poll interval value prodived via envs: %v", cfgFromEnv.PollInterval)
-	}
-
-	if cfgFromEnv.ReportInterval < 0 {
-		return fmt.Errorf("invalid report interval value prodived via envs: %v", cfgFromEnv.ReportInterval)
-	}
-
-	if cfgFromEnv.PollInterval > 0 {
-		config.PollInterval = cfgFromEnv.PollInterval
-	}
-
-	if cfgFromEnv.ReportInterval > 0 {
-		config.ReportInterval = cfgFromEnv.ReportInterval
-	}
-
-	if cfgFromEnv.Key != "" {
-		config.Key = cfgFromEnv.Key
-	}
-
-	if cfgFromEnv.RateLimit > 0 {
-		config.RateLimit = cfgFromEnv.RateLimit
-	}
-
 	return nil
 }
 
