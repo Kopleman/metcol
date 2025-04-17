@@ -13,6 +13,7 @@ import (
 const defaultReportInterval int64 = 10
 const defaultPollInterval int64 = 2
 const defaultRateInterval int64 = 10
+const defaultAddress string = "localhost:8080"
 
 // Config contains all settled via envs or flags params.
 type Config struct {
@@ -24,10 +25,6 @@ type Config struct {
 	RateLimit      int64             // limits number of workers for sending
 }
 
-type configFromFlags struct {
-	Config
-}
-
 type configFromSource struct {
 	EndPoint       string `json:"address" env:"ADDRESS"`
 	Key            string `json:"key" env:"KEY"`
@@ -37,7 +34,13 @@ type configFromSource struct {
 	RateLimit      int64  `json:"rate_limit" env:"RATE_LIMIT"`
 }
 
-func applyConfigFromFlags(cfgFromFlags *configFromFlags, config *Config) error {
+func applyConfigFromFlags(cfgFromFlags *configFromSource, config *Config) error {
+	if cfgFromFlags.EndPoint != "" {
+		if err := config.EndPoint.Set(cfgFromFlags.EndPoint); err != nil {
+			return fmt.Errorf("failed to set endpoint address for agent: %w", err)
+		}
+	}
+
 	if cfgFromFlags.ReportInterval < 0 {
 		return fmt.Errorf("invalid report interval value prodived via flag: %v", cfgFromFlags.ReportInterval)
 	}
@@ -46,9 +49,6 @@ func applyConfigFromFlags(cfgFromFlags *configFromFlags, config *Config) error {
 		return fmt.Errorf("invalid poll interval value prodived via flag: %v", cfgFromFlags.PollInterval)
 	}
 
-	if cfgFromFlags.EndPoint != nil {
-		config.EndPoint = cfgFromFlags.EndPoint
-	}
 	if cfgFromFlags.Key != "" {
 		config.Key = cfgFromFlags.Key
 	}
@@ -143,15 +143,14 @@ func applyConfigFromEnv(config *Config) error {
 
 // ParseAgentConfig produce config for agent via parsing env and flags(envs preferred).
 func ParseAgentConfig() (*Config, error) {
-	cfgFromFlags := new(configFromFlags)
+	cfgFromFlags := new(configFromSource)
 	config := new(Config)
 	netAddr := new(flags.NetAddress)
 	netAddr.Host = "localhost"
 	netAddr.Port = "8080"
-	cfgFromFlags.EndPoint = netAddr
+	config.EndPoint = netAddr
 
-	netAddrValue := flag.Value(netAddr)
-	flag.Var(netAddrValue, "a", "address and port of collector-server")
+	flag.StringVar(&cfgFromFlags.EndPoint, "a", defaultAddress, "address and port of collector-server")
 
 	flag.Int64Var(&cfgFromFlags.ReportInterval, "r", defaultReportInterval, "report interval")
 
