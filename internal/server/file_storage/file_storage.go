@@ -99,7 +99,7 @@ type intervalJobsArg struct {
 }
 
 // RunBackupJob runs interval which store data to file.
-func (fs *FileStorage) RunBackupJob() error {
+func (fs *FileStorage) RunBackupJob(ctx context.Context) error {
 	now := time.Now()
 
 	storeDuration := time.Duration(fs.cfg.StoreInterval) * time.Second
@@ -112,6 +112,7 @@ func (fs *FileStorage) RunBackupJob() error {
 
 	ticker := time.NewTicker(1 * time.Second)
 	quit := make(chan bool)
+	defer close(quit)
 
 	for {
 		select {
@@ -120,6 +121,10 @@ func (fs *FileStorage) RunBackupJob() error {
 		case <-quit:
 			ticker.Stop()
 			return errors.New("backup failed")
+		case <-ctx.Done():
+			ticker.Stop()
+			fs.logger.Info("backup job stopped")
+			return nil
 		}
 	}
 }

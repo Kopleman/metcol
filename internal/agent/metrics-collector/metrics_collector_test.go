@@ -1,6 +1,7 @@
 package metricscollector
 
 import (
+	"context"
 	"errors"
 	"os"
 	"strconv"
@@ -190,7 +191,7 @@ func TestSendMetricsViaWorkers(t *testing.T) {
 		mc := NewMetricsCollector(&config.Config{RateLimit: 3}, nil, mockClient)
 		mc.currentMetricState["test"] = MetricItem{value: "123", metricType: common.GaugeMetricType}
 
-		err := mc.sendMetricsViaWorkers()
+		err := mc.sendMetricsViaWorkers(context.Background())
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "worker error")
 	})

@@ -260,14 +260,14 @@ type sendMetricJob struct {
 	metric MetricItem
 }
 
-func (mc *MetricsCollector) sendMetricsViaWorkers() error {
+func (mc *MetricsCollector) sendMetricsViaWorkers(ctx context.Context) error {
 	metricsCount := len(mc.currentMetricState)
 
 	sendJobs := make(chan sendMetricJob, metricsCount)
 	results := make(chan sendMetricResult, metricsCount)
+	defer close(results)
+	defer close(sendJobs)
 	maxWorkerCount := int(mc.cfg.RateLimit)
-	wg := &sync.WaitGroup{}
-	wg.Add(maxWorkerCount)
 
 	for w := 1; w <= maxWorkerCount; w++ {
 		go mc.sendMetricWorker(w, sendJobs, results)
@@ -278,21 +278,38 @@ func (mc *MetricsCollector) sendMetricsViaWorkers() error {
 		sendJobs <- sendMetricJob{name: name, metric: item}
 	}
 	mc.mu.Unlock()
-	close(sendJobs)
 
-	numOfDoneJobs := 0
+	//numOfDoneJobs := 0
+	//var err error
+	//for result := range results {
+	//	fmt.Println("here!!!")
+	//	numOfDoneJobs++
+	//	if result.err != nil {
+	//		err = fmt.Errorf("sendMetricsViaWorkers error: %w", result.err)
+	//	}
+	//	if numOfDoneJobs == metricsCount {
+	//		close(results)
+	//	}
+	//}
+
 	var err error
-	for result := range results {
-		numOfDoneJobs++
-		if result.err != nil {
-			err = fmt.Errorf("sendMetricsViaWorkers error: %w", result.err)
-		}
-		if numOfDoneJobs == metricsCount {
-			close(results)
+	numOfDoneJobs := 0
+	for {
+		select {
+		case result := <-results:
+			numOfDoneJobs++
+			fmt.Println("here!!!")
+			if result.err != nil {
+				err = fmt.Errorf("sendMetricsViaWorkers error: %w", result.err)
+			}
+			if numOfDoneJobs == metricsCount {
+				return err
+			}
+		case <-ctx.Done():
+			mc.logger.Infof("wtf")
+			return nil
 		}
 	}
-
-	return err
 }
 
 func (mc *MetricsCollector) sendMetricWorker(workerID int, jobs <-chan sendMetricJob, results chan<- sendMetricResult) {
@@ -432,6 +449,7 @@ func (mc *MetricsCollector) genSendMetricsJobChan(
 	tickerChan <-chan time.Time,
 	args *jobsArg) chan struct{} {
 	reportIntervalChan := make(chan struct{})
+
 	go func() {
 		defer wg.Done()
 		defer close(reportIntervalChan)
@@ -472,7 +490,7 @@ func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
 	defer reportTicker.Stop()
 
 	now := time.Now()
-	resultChan := make(chan collectIntervalJobResults)
+	resultChan := make(chan collectIntervalJobResults, 1)
 	defer close(resultChan)
 
 	pollDuration := time.Duration(mc.cfg.PollInterval) * time.Second
@@ -499,17 +517,17 @@ func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
 		select {
 		case res := <-resultChan:
 			if res.jobError != nil {
-				mc.logger.Infof("gracefully shutting down agent due to error: %s", res.jobError.Error())
+				mc.logger.Info("gracefully shutting down agent due to error: %s", res.jobError.Error())
 				cancelFunc()
 				wg.Wait()
-				mc.logger.Infof("agent stopped")
+				mc.logger.Info("agent stopped")
 				return fmt.Errorf("metrics job interval: %w", res.jobError)
 			}
 		case <-sig:
-			mc.logger.Infof("gracefully shutting down agent")
+			mc.logger.Info("gracefully shutting down agent")
 			cancelFunc()
 			wg.Wait()
-			mc.logger.Infof("agent stopped")
+			mc.logger.Info("agent stopped")
 			return nil
 		}
 	}
@@ -551,14 +569,14 @@ func (mc *MetricsCollector) sendMetricsIntervalJob(
 		case <-jobArgsCh:
 			results := collectIntervalJobResults{}
 			mc.logger.Info("sending metrics")
-			err := mc.sendMetricsViaWorkers()
+			err := mc.sendMetricsViaWorkers(ctx)
 			if err != nil {
 				results.jobError = fmt.Errorf("send metrics interval: %w", err)
 			}
-			mc.logger.Info("sending metrics")
+			mc.logger.Info("metrics sent")
 			outputChan <- results
 		case <-ctx.Done():
-			mc.logger.Infof("stopping collecting send-metrics job")
+			mc.logger.Infof("stopping send-metrics job")
 			return
 		}
 	}
