@@ -2,6 +2,7 @@
 package metricscollector
 
 import (
+	"context"
 	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -398,15 +399,26 @@ func (mc *MetricsCollector) SendMetrics() error {
 	return nil
 }
 
-func (mc *MetricsCollector) genCollectJobParamsChan(tickerChan <-chan time.Time, args *jobsArg) chan struct{} {
+func (mc *MetricsCollector) genCollectJobParamsChan(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	tickerChan <-chan time.Time,
+	args *jobsArg) chan struct{} {
 	collectIntervalChan := make(chan struct{})
 
 	go func() {
+		defer wg.Done()
 		defer close(collectIntervalChan)
-		for currentTickerTime := range tickerChan {
-			if currentTickerTime.After(args.nextJobTime) || currentTickerTime.Equal(args.nextJobTime) {
-				args.nextJobTime = currentTickerTime.Add(args.interval)
-				collectIntervalChan <- struct{}{}
+		for {
+			select {
+			case currentTickerTime := <-tickerChan:
+				if currentTickerTime.After(args.nextJobTime) || currentTickerTime.Equal(args.nextJobTime) {
+					args.nextJobTime = currentTickerTime.Add(args.interval)
+					collectIntervalChan <- struct{}{}
+				}
+			case <-ctx.Done():
+				mc.logger.Infof("stopping pushing collecting metrics jobs")
+				return
 			}
 		}
 	}()
@@ -414,15 +426,25 @@ func (mc *MetricsCollector) genCollectJobParamsChan(tickerChan <-chan time.Time,
 	return collectIntervalChan
 }
 
-func (mc *MetricsCollector) genSendMetricsJobChan(tickerChan <-chan time.Time, args *jobsArg) chan struct{} {
+func (mc *MetricsCollector) genSendMetricsJobChan(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	tickerChan <-chan time.Time,
+	args *jobsArg) chan struct{} {
 	reportIntervalChan := make(chan struct{})
-
 	go func() {
+		defer wg.Done()
 		defer close(reportIntervalChan)
-		for currentTickerTime := range tickerChan {
-			if currentTickerTime.After(args.nextJobTime) || currentTickerTime.Equal(args.nextJobTime) {
-				args.nextJobTime = currentTickerTime.Add(args.interval)
-				reportIntervalChan <- struct{}{}
+		for {
+			select {
+			case currentTickerTime := <-tickerChan:
+				if currentTickerTime.After(args.nextJobTime) || currentTickerTime.Equal(args.nextJobTime) {
+					args.nextJobTime = currentTickerTime.Add(args.interval)
+					reportIntervalChan <- struct{}{}
+				}
+			case <-ctx.Done():
+				mc.logger.Infof("stopping pushing sending metrics jobs")
+				return
 			}
 		}
 	}()
@@ -441,6 +463,7 @@ type jobsArg struct {
 
 // Handler performs all agent work - collecting and sending data.
 func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
+	innerCtx, cancelFunc := context.WithCancel(context.Background())
 	mc.logger.Info("Starting collect metrics")
 	pollTicker := time.NewTicker(1 * time.Second)
 	defer pollTicker.Stop()
@@ -463,50 +486,81 @@ func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
 		nextJobTime: now.Add(reportDuration),
 		interval:    reportDuration,
 	}
+	wg := &sync.WaitGroup{}
+	wg.Add(4) // 2 generators and 2 job-handlers
 
-	collectIntervalChan := mc.genCollectJobParamsChan(pollTicker.C, &collectJobArgs)
-	sendIntervalChan := mc.genSendMetricsJobChan(reportTicker.C, &reportJobArgs)
+	collectIntervalChan := mc.genCollectJobParamsChan(innerCtx, wg, pollTicker.C, &collectJobArgs)
+	sendIntervalChan := mc.genSendMetricsJobChan(innerCtx, wg, reportTicker.C, &reportJobArgs)
 
-	go mc.collectIntervalJob(collectIntervalChan, resultChan)
-	go mc.sendMetricsIntervalJob(sendIntervalChan, resultChan)
+	go mc.collectIntervalJob(innerCtx, wg, collectIntervalChan, resultChan)
+	go mc.sendMetricsIntervalJob(innerCtx, wg, sendIntervalChan, resultChan)
 
 	for {
 		select {
 		case res := <-resultChan:
 			if res.jobError != nil {
+				mc.logger.Infof("gracefully shutting down agent due to error: %s", res.jobError.Error())
+				cancelFunc()
+				wg.Wait()
+				mc.logger.Infof("agent stopped")
 				return fmt.Errorf("metrics job interval: %w", res.jobError)
 			}
 		case <-sig:
+			mc.logger.Infof("gracefully shutting down agent")
+			cancelFunc()
+			wg.Wait()
+			mc.logger.Infof("agent stopped")
 			return nil
 		}
 	}
 }
 
-func (mc *MetricsCollector) collectIntervalJob(jobArgsCh <-chan struct{}, outputChan chan collectIntervalJobResults) {
-	for range jobArgsCh {
-		results := collectIntervalJobResults{}
-		mc.logger.Info("collecting metrics")
-		err := mc.CollectAllMetrics()
-		if err != nil {
-			results.jobError = fmt.Errorf("collect metrics interval: %w", err)
+func (mc *MetricsCollector) collectIntervalJob(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	jobArgsCh <-chan struct{},
+	outputChan chan collectIntervalJobResults,
+) {
+	defer wg.Done()
+	for {
+		select {
+		case <-jobArgsCh:
+			results := collectIntervalJobResults{}
+			mc.logger.Info("collecting metrics")
+			err := mc.CollectAllMetrics()
+			if err != nil {
+				results.jobError = fmt.Errorf("collect metrics interval: %w", err)
+			}
+			outputChan <- results
+		case <-ctx.Done():
+			mc.logger.Infof("stopping collecting metrics job")
+			return
 		}
-		outputChan <- results
 	}
 }
 
 func (mc *MetricsCollector) sendMetricsIntervalJob(
+	ctx context.Context,
+	wg *sync.WaitGroup,
 	jobArgsCh <-chan struct{},
 	outputChan chan collectIntervalJobResults,
 ) {
-	for range jobArgsCh {
-		results := collectIntervalJobResults{}
-		mc.logger.Info("sending metrics")
-		err := mc.sendMetricsViaWorkers()
-		if err != nil {
-			results.jobError = fmt.Errorf("send metrics interval: %w", err)
+	defer wg.Done()
+	for {
+		select {
+		case <-jobArgsCh:
+			results := collectIntervalJobResults{}
+			mc.logger.Info("sending metrics")
+			err := mc.sendMetricsViaWorkers()
+			if err != nil {
+				results.jobError = fmt.Errorf("send metrics interval: %w", err)
+			}
+			mc.logger.Info("sending metrics")
+			outputChan <- results
+		case <-ctx.Done():
+			mc.logger.Infof("stopping collecting send-metrics job")
+			return
 		}
-		mc.logger.Info("sending metrics")
-		outputChan <- results
 	}
 }
 
