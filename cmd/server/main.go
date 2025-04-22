@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/Kopleman/metcol/internal/common/log"
+	"github.com/Kopleman/metcol/internal/common/utils"
 	"github.com/Kopleman/metcol/internal/server/config"
 	"github.com/Kopleman/metcol/internal/server/server"
 	"golang.org/x/sync/errgroup"
@@ -23,6 +24,7 @@ var (
 )
 
 func main() {
+	utils.PrintVersion(buildVersion, buildDate, buildCommit)
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	logger := log.New(

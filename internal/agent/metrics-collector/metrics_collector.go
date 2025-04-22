@@ -279,26 +279,12 @@ func (mc *MetricsCollector) sendMetricsViaWorkers(ctx context.Context) error {
 	}
 	mc.mu.Unlock()
 
-	//numOfDoneJobs := 0
-	//var err error
-	//for result := range results {
-	//	fmt.Println("here!!!")
-	//	numOfDoneJobs++
-	//	if result.err != nil {
-	//		err = fmt.Errorf("sendMetricsViaWorkers error: %w", result.err)
-	//	}
-	//	if numOfDoneJobs == metricsCount {
-	//		close(results)
-	//	}
-	//}
-
 	var err error
 	numOfDoneJobs := 0
 	for {
 		select {
 		case result := <-results:
 			numOfDoneJobs++
-			fmt.Println("here!!!")
 			if result.err != nil {
 				err = fmt.Errorf("sendMetricsViaWorkers error: %w", result.err)
 			}
@@ -306,7 +292,6 @@ func (mc *MetricsCollector) sendMetricsViaWorkers(ctx context.Context) error {
 				return err
 			}
 		case <-ctx.Done():
-			mc.logger.Infof("wtf")
 			return nil
 		}
 	}
@@ -416,58 +401,30 @@ func (mc *MetricsCollector) SendMetrics() error {
 	return nil
 }
 
-func (mc *MetricsCollector) genCollectJobParamsChan(
+func (mc *MetricsCollector) genIntervalJobParamsChan(
 	ctx context.Context,
 	wg *sync.WaitGroup,
 	tickerChan <-chan time.Time,
 	args *jobsArg) chan struct{} {
-	collectIntervalChan := make(chan struct{})
+	intervalChan := make(chan struct{})
 
 	go func() {
 		defer wg.Done()
-		defer close(collectIntervalChan)
+		defer close(intervalChan)
 		for {
 			select {
 			case currentTickerTime := <-tickerChan:
 				if currentTickerTime.After(args.nextJobTime) || currentTickerTime.Equal(args.nextJobTime) {
 					args.nextJobTime = currentTickerTime.Add(args.interval)
-					collectIntervalChan <- struct{}{}
+					intervalChan <- struct{}{}
 				}
 			case <-ctx.Done():
-				mc.logger.Infof("stopping pushing collecting metrics jobs")
 				return
 			}
 		}
 	}()
 
-	return collectIntervalChan
-}
-
-func (mc *MetricsCollector) genSendMetricsJobChan(
-	ctx context.Context,
-	wg *sync.WaitGroup,
-	tickerChan <-chan time.Time,
-	args *jobsArg) chan struct{} {
-	reportIntervalChan := make(chan struct{})
-
-	go func() {
-		defer wg.Done()
-		defer close(reportIntervalChan)
-		for {
-			select {
-			case currentTickerTime := <-tickerChan:
-				if currentTickerTime.After(args.nextJobTime) || currentTickerTime.Equal(args.nextJobTime) {
-					args.nextJobTime = currentTickerTime.Add(args.interval)
-					reportIntervalChan <- struct{}{}
-				}
-			case <-ctx.Done():
-				mc.logger.Infof("stopping pushing sending metrics jobs")
-				return
-			}
-		}
-	}()
-
-	return reportIntervalChan
+	return intervalChan
 }
 
 type collectIntervalJobResults struct {
@@ -507,8 +464,8 @@ func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
 	wg := &sync.WaitGroup{}
 	wg.Add(4) // 2 generators and 2 job-handlers
 
-	collectIntervalChan := mc.genCollectJobParamsChan(innerCtx, wg, pollTicker.C, &collectJobArgs)
-	sendIntervalChan := mc.genSendMetricsJobChan(innerCtx, wg, reportTicker.C, &reportJobArgs)
+	collectIntervalChan := mc.genIntervalJobParamsChan(innerCtx, wg, pollTicker.C, &collectJobArgs)
+	sendIntervalChan := mc.genIntervalJobParamsChan(innerCtx, wg, reportTicker.C, &reportJobArgs)
 
 	go mc.collectIntervalJob(innerCtx, wg, collectIntervalChan, resultChan)
 	go mc.sendMetricsIntervalJob(innerCtx, wg, sendIntervalChan, resultChan)

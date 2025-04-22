@@ -84,7 +84,7 @@ func TestGetConfigFromFile_PermissionError(t *testing.T) {
 	if err = os.WriteFile(path, []byte("{}"), 0o222); err != nil { //nolint:all // tests
 		t.Fatal(err)
 	}
-	if errs := os.Chmod(path, 0o222); errs != nil {
+	if errs := os.Chmod(path, 0o222); errs != nil { //nolint:all // tests
 		t.Fatal(errs)
 	}
 	defer os.Remove(path) //nolint:all // tests

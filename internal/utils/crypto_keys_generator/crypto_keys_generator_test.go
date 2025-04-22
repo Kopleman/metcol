@@ -190,11 +190,11 @@ func TestGetFileDescriptor_Error(t *testing.T) {
 	readOnlyPath := filepath.Join(tempDir, "readonly.pem")
 
 	// Создаем файл только для чтения
-	if err := os.WriteFile(readOnlyPath, []byte("test"), 0o222); err != nil {
+	if err := os.WriteFile(readOnlyPath, []byte("test"), 0o222); err != nil { //nolint:all // tests
 		t.Fatal(err)
 	}
-	defer os.Remove(readOnlyPath) //nolint:all // tests
-	if errs := os.Chmod(readOnlyPath, 0o222); errs != nil {
+	defer os.Remove(readOnlyPath)                           //nolint:all // tests
+	if errs := os.Chmod(readOnlyPath, 0o222); errs != nil { //nolint:all // tests
 		t.Fatal(errs)
 	}
 
