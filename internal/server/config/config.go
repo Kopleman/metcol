@@ -26,10 +26,10 @@ type Config struct {
 	ProfilerCPUFilePath string            // where to store CPU profile
 	ProfilerMemFilePath string            // where to store mem profile
 	PrivateKeyPath      string            // path to private key
+	TrustedSubnet       string            // CIDR for filtering requests
 	StoreInterval       int64             // how often dump memo store to file
 	ProfilerCollectTime int64             // how long to collect data after start-up
 	Restore             bool              // restore memo-store from file
-	TrustedSubnet       string            // CIDR for filtering requests
 }
 
 type configFromSource struct {
@@ -41,9 +41,9 @@ type configFromSource struct {
 	ProfilerCPUFilePath string `json:"profiler_cpu_file_path" env:"PROFILER_CPU_FILE_PATH"`
 	ProfilerMemFilePath string `json:"profiler_mem_file_path" env:"PROFILER_MEM_FILE_PATH"`
 	PrivateKeyPath      string `json:"crypto_key" env:"PRIVATE_KEY_PATH"`
+	TrustedSubnet       string `json:"trusted_subnet" env:"TRUSTED_SUBNET"`
 	StoreInterval       int64  `json:"store_interval" env:"STORE_INTERVAL"`
 	ProfilerCollectTime int64  `json:"profiler_collect_time" env:"PROFILER_COLLECT_TIME"`
-	TrustedSubnet       string `json:"trusted_subnet" env:"TRUSTED_SUBNET"`
 }
 
 func applyConfigFromSource(source *configFromSource, config *Config) error {
