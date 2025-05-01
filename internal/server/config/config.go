@@ -29,6 +29,7 @@ type Config struct {
 	StoreInterval       int64             // how often dump memo store to file
 	ProfilerCollectTime int64             // how long to collect data after start-up
 	Restore             bool              // restore memo-store from file
+	TrustedSubnet       string            // CIDR for filtering requests
 }
 
 type configFromSource struct {
@@ -42,6 +43,7 @@ type configFromSource struct {
 	PrivateKeyPath      string `json:"crypto_key" env:"PRIVATE_KEY_PATH"`
 	StoreInterval       int64  `json:"store_interval" env:"STORE_INTERVAL"`
 	ProfilerCollectTime int64  `json:"profiler_collect_time" env:"PROFILER_COLLECT_TIME"`
+	TrustedSubnet       string `json:"trusted_subnet" env:"TRUSTED_SUBNET"`
 }
 
 func applyConfigFromSource(source *configFromSource, config *Config) error {
@@ -145,7 +147,9 @@ func ParseServerConfig() (*Config, error) {
 
 	flag.StringVar(&config.PrivateKeyPath, "crypto-key", "", "cypher key")
 
-	pathToConfig := flag.String("c", "", "Path to config file")
+	flag.StringVar(&config.ProfilerCPUFilePath, "t", "", "profiler cpu filename")
+
+	pathToConfig := flag.String("c", "", "CIDR for filtering requests")
 
 	flag.Parse()
 

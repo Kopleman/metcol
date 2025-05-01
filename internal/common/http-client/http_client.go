@@ -7,14 +7,35 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 
 	"github.com/Kopleman/metcol/internal/agent/config"
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/log"
 )
+
+// getOutboundIP fetches current IP address.
+func (c *HTTPClient) getOutboundIP() (net.IP, error) {
+	if c.outboundIP != nil {
+		return c.outboundIP, nil
+	}
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to outbound IP: %w", err)
+	}
+	defer conn.Close() //nolint:errcheck //safe to ignore
+
+	localAddr, ok := conn.LocalAddr().(*net.UDPAddr)
+	if !ok {
+		return nil, errors.New("failed to get local IP address")
+	}
+	c.outboundIP = localAddr.IP
+	return c.outboundIP, nil
+}
 
 // Post perform post request to dest url.
 func (c *HTTPClient) Post(url, contentType string, bodyBytes []byte) ([]byte, error) {
@@ -28,6 +49,11 @@ func (c *HTTPClient) Post(url, contentType string, bodyBytes []byte) ([]byte, er
 	}
 	req.Header.Set(common.ContentType, contentType)
 	req.Header.Set(common.AcceptEncoding, "gzip")
+
+	ip, oErr := c.getOutboundIP()
+	if oErr == nil {
+		req.Header.Set("X-Real-IP", ip.String())
+	}
 
 	bodyHash := c.calcHashForBody(bodyBytes)
 	if bodyHash != "" {
@@ -84,10 +110,11 @@ func (c *HTTPClient) calcHashForBody(bodyBytes []byte) string {
 }
 
 type HTTPClient struct {
-	logger  log.Logger
-	client  *http.Client
-	BaseURL string
-	key     []byte
+	logger     log.Logger
+	client     *http.Client
+	outboundIP net.IP
+	BaseURL    string
+	key        []byte
 }
 
 const defaultRetryCount = 3

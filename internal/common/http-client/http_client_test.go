@@ -3,11 +3,13 @@ package httpclient
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"testing"
@@ -172,4 +174,53 @@ func calculateHash(body []byte, key []byte) string {
 	mac := hmac.New(sha256.New, key)
 	mac.Write(body)
 	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
+}
+
+func TestGetOutboundIP(t *testing.T) {
+	cfg := &config.Config{
+		EndPoint: &flags.NetAddress{
+			Host: "localhost",
+			Port: "8080",
+		},
+		Key: "test-key",
+	}
+	logger := log.New()
+
+	client := NewHTTPClient(cfg, logger)
+
+	ip1, err := client.getOutboundIP()
+	require.NoError(t, err)
+	require.NotNil(t, ip1)
+
+	ip2, err := client.getOutboundIP()
+	require.NoError(t, err)
+	require.NotNil(t, ip2)
+
+	assert.Equal(t, ip1, ip2)
+
+	assert.Equal(t, ip1, client.outboundIP)
+}
+
+func TestGetOutboundIP_Error(t *testing.T) {
+	cfg := &config.Config{
+		EndPoint: &flags.NetAddress{
+			Host: "localhost",
+			Port: "8080",
+		},
+		Key: "test-key",
+	}
+	logger := log.New()
+
+	client := NewHTTPClient(cfg, logger)
+
+	client.client.Transport = &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return nil, assert.AnError
+		},
+	}
+
+	ip, err := client.getOutboundIP()
+	assert.Error(t, err)
+	assert.Nil(t, ip)
+	assert.Nil(t, client.outboundIP)
 }
