@@ -9,6 +9,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/common/profiler"
+	bodydecryptor "github.com/Kopleman/metcol/internal/server/body_decryptor"
 	"github.com/Kopleman/metcol/internal/server/config"
 	filestorage "github.com/Kopleman/metcol/internal/server/file_storage"
 	"github.com/Kopleman/metcol/internal/server/memstore"
@@ -27,6 +28,7 @@ type Server struct {
 	store         store.Store
 	fs            *filestorage.FileStorage
 	metricService *metrics.Metrics
+	bd            *bodydecryptor.BodyDecryptor
 }
 
 // NewServer creates instance of server.
@@ -67,24 +69,28 @@ func (s *Server) prepareStore(ctx context.Context) error {
 }
 
 // Start starts new server.
-func (s *Server) Start(ctx context.Context) error {
-	defer s.Shutdown()
+func (s *Server) Start(ctx context.Context, runTimeError chan<- error) error {
 	if err := s.prepareStore(ctx); err != nil {
 		return fmt.Errorf("failed to prepare store: %w", err)
 	}
 
-	runTimeError := make(chan error, 1)
+	bd := bodydecryptor.NewBodyDecryptor(s.logger)
+	if err := bd.LoadPrivateKey(s.config.PrivateKeyPath); err != nil {
+		return fmt.Errorf("failed to init bodyDecryptor: %w", err)
+	}
+	s.bd = bd
+
 	if s.fs != nil {
-		go func() {
-			err := s.fs.RunBackupJob()
+		go func(ctx context.Context) {
+			err := s.fs.RunBackupJob(ctx)
 			if err != nil {
 				runTimeError <- fmt.Errorf("backup job error: %w", err)
 			}
-		}()
+		}(ctx)
 	}
 
 	go func() {
-		routes := routers.BuildServerRoutes(s.config, s.logger, s.metricService, s.db)
+		routes := routers.BuildServerRoutes(s.config, s.logger, s.metricService, s.db, s.bd)
 		if listenAndServeErr := http.ListenAndServe(s.config.NetAddr.String(), routes); listenAndServeErr != nil {
 			runTimeError <- fmt.Errorf("internal server error: %w", listenAndServeErr)
 		}
@@ -103,13 +109,6 @@ func (s *Server) Start(ctx context.Context) error {
 		s.logger.Info("Finished collect profiles")
 	}()
 
-	serverError := <-runTimeError
-	if serverError != nil {
-		return fmt.Errorf("server error: %w", serverError)
-	}
-
-	<-ctx.Done()
-
 	return nil
 }
 
@@ -117,10 +116,12 @@ func (s *Server) Start(ctx context.Context) error {
 func (s *Server) Shutdown() {
 	if s.fs != nil {
 		s.fs.Close()
+		s.logger.Info("file storage closed")
 	}
 
 	if s.db != nil {
 		s.db.Close()
+		s.logger.Info("database closed")
 	}
 
 	s.logger.Infof("Server shut down")

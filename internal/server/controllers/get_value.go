@@ -102,7 +102,7 @@ func (ctrl *GetValueController) GetValueAsDTO() func(http.ResponseWriter, *http.
 		ctx := req.Context()
 		reqDto := new(dto.GetValueRequest)
 		if err := json.NewDecoder(req.Body).Decode(&reqDto); err != nil {
-			http.Error(w, "unable to parse dto", http.StatusBadRequest)
+			http.Error(w, common.ErrDtoParse, http.StatusBadRequest)
 			return
 		}
 

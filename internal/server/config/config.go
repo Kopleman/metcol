@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/Kopleman/metcol/internal/common/flags"
+	"github.com/Kopleman/metcol/internal/common/utils"
 	"github.com/caarlos0/env/v6"
 )
 
@@ -14,6 +15,7 @@ const defaultFileStoragePath string = "./store.json"
 const defaultRestoreVal bool = true
 const defaultCPUProfilePath string = "./profiles/cpuprofile.pprof"
 const defaultMemProfilePath string = "./profiles/memprofile.pprof"
+const defaultAddress string = "localhost:8080"
 
 // Config contains all settled via envs or flags params.
 type Config struct {
@@ -23,27 +25,104 @@ type Config struct {
 	Key                 string            // hash key for sign received data
 	ProfilerCPUFilePath string            // where to store CPU profile
 	ProfilerMemFilePath string            // where to store mem profile
+	PrivateKeyPath      string            // path to private key
 	StoreInterval       int64             // how often dump memo store to file
 	ProfilerCollectTime int64             // how long to collect data after start-up
 	Restore             bool              // restore memo-store from file
 }
 
-type configFromEnv struct {
-	Restore             *bool  `env:"RESTORE"`
-	EndPoint            string `env:"ADDRESS"`
-	FileStoragePath     string `env:"FILE_STORAGE_PATH"`
-	DataBaseDSN         string `env:"DATABASE_DSN"`
-	Key                 string `env:"KEY"`
-	ProfilerCPUFilePath string `env:"PROFILER_CPU_FILE_PATH"`
-	ProfilerMemFilePath string `env:"PROFILER_MEM_FILE_PATH"`
-	StoreInterval       int64  `env:"STORE_INTERVAL"`
-	ProfilerCollectTime int64  `env:"PROFILER_COLLECT_TIME"`
+type configFromSource struct {
+	Restore             *bool  `json:"restore" env:"RESTORE"`
+	EndPoint            string `json:"address" env:"ADDRESS"`
+	FileStoragePath     string `json:"file_storage_path" env:"FILE_STORAGE_PATH"`
+	DataBaseDSN         string `json:"database_dsn" env:"DATABASE_DSN"`
+	Key                 string `json:"key" env:"KEY"`
+	ProfilerCPUFilePath string `json:"profiler_cpu_file_path" env:"PROFILER_CPU_FILE_PATH"`
+	ProfilerMemFilePath string `json:"profiler_mem_file_path" env:"PROFILER_MEM_FILE_PATH"`
+	PrivateKeyPath      string `json:"crypto_key" env:"PRIVATE_KEY_PATH"`
+	StoreInterval       int64  `json:"store_interval" env:"STORE_INTERVAL"`
+	ProfilerCollectTime int64  `json:"profiler_collect_time" env:"PROFILER_COLLECT_TIME"`
 }
 
-// ParseAgentConfig produce config for server via parsing env and flags(envs preferred).
+func applyConfigFromSource(source *configFromSource, config *Config) error {
+	if source.EndPoint != "" {
+		if err := config.NetAddr.Set(source.EndPoint); err != nil {
+			return fmt.Errorf("failed to set endpoint address for agent from json data: %w", err)
+		}
+	}
 
+	if source.StoreInterval > 0 {
+		config.StoreInterval = source.StoreInterval
+	}
+
+	if source.FileStoragePath != "" {
+		config.FileStoragePath = source.FileStoragePath
+	}
+
+	if source.Restore != nil {
+		config.Restore = *source.Restore
+	}
+
+	if source.DataBaseDSN != "" {
+		config.DataBaseDSN = source.DataBaseDSN
+	}
+
+	if source.Key != "" {
+		config.Key = source.Key
+	}
+
+	if source.ProfilerCollectTime > 0 {
+		config.ProfilerCollectTime = source.ProfilerCollectTime
+	}
+
+	if source.ProfilerCPUFilePath != "" {
+		config.ProfilerCPUFilePath = source.ProfilerCPUFilePath
+	}
+
+	if source.ProfilerMemFilePath != "" {
+		config.ProfilerMemFilePath = source.ProfilerMemFilePath
+	}
+
+	return nil
+}
+
+func applyConfigFromFlags(cfgFromFlags *configFromSource, config *Config) error {
+	if err := applyConfigFromSource(cfgFromFlags, config); err != nil {
+		return fmt.Errorf("failed to apply config from flags: %w", err)
+	}
+
+	return nil
+}
+
+func applyConfigFromJSON(pathToConfigFile string, config *Config) error {
+	cfgFromJSON := new(configFromSource)
+	if pathToConfigFile == "" {
+		return nil
+	}
+	if err := utils.GetConfigFromFile(pathToConfigFile, cfgFromJSON); err != nil {
+		return fmt.Errorf("error reading config from file: %w", err)
+	}
+	if err := applyConfigFromSource(cfgFromJSON, config); err != nil {
+		return fmt.Errorf("error applying config from json data: %w", err)
+	}
+
+	return nil
+}
+
+func applyConfigFromEnv(config *Config) error {
+	cfgFromEnv := new(configFromSource)
+	if err := env.Parse(cfgFromEnv); err != nil {
+		return fmt.Errorf("failed to parse agent envs: %w", err)
+	}
+	if err := applyConfigFromSource(cfgFromEnv, config); err != nil {
+		return fmt.Errorf("failed to apply config from env: %w", err)
+	}
+	return nil
+}
+
+// ParseServerConfig produce config for server via parsing env and flags(envs preferred).
 func ParseServerConfig() (*Config, error) {
-	cfgFromEnv := new(configFromEnv)
+	cfgFromFlags := new(configFromSource)
 	config := new(Config)
 	netAddr := new(flags.NetAddress)
 	netAddr.Host = "localhost"
@@ -52,8 +131,7 @@ func ParseServerConfig() (*Config, error) {
 	config.ProfilerCPUFilePath = defaultCPUProfilePath
 	config.ProfilerMemFilePath = defaultMemProfilePath
 
-	netAddrValue := flag.Value(netAddr)
-	flag.Var(netAddrValue, "a", "address and port to run server")
+	flag.StringVar(&cfgFromFlags.EndPoint, "a", defaultAddress, "address and port of collector-server")
 
 	flag.Int64Var(&config.StoreInterval, "i", defaultStoreInterval, "store interval")
 
@@ -65,56 +143,22 @@ func ParseServerConfig() (*Config, error) {
 
 	flag.StringVar(&config.Key, "k", "", "cypher key")
 
+	flag.StringVar(&config.PrivateKeyPath, "crypto-key", "", "cypher key")
+
+	pathToConfig := flag.String("c", "", "Path to config file")
+
 	flag.Parse()
 
-	if config.StoreInterval < 0 {
-		return nil, fmt.Errorf("invalid store interval value prodived via flag: %v", config.StoreInterval)
+	if err := applyConfigFromJSON(*pathToConfig, config); err != nil {
+		return nil, fmt.Errorf("error applaing config from json-file: %w", err)
 	}
 
-	if err := env.Parse(cfgFromEnv); err != nil {
-		return nil, fmt.Errorf("failed to parse server envs: %w", err)
+	if err := applyConfigFromFlags(cfgFromFlags, config); err != nil {
+		return nil, fmt.Errorf("error applying config from flags: %w", err)
 	}
 
-	if cfgFromEnv.EndPoint != "" {
-		if err := netAddr.Set(cfgFromEnv.EndPoint); err != nil {
-			return nil, fmt.Errorf("failed to set endpoint address for server: %w", err)
-		}
-	}
-
-	if cfgFromEnv.StoreInterval < 0 {
-		return nil, fmt.Errorf("invalid store interval value prodived via envs: %v", cfgFromEnv.StoreInterval)
-	}
-
-	if cfgFromEnv.StoreInterval > 0 {
-		config.StoreInterval = cfgFromEnv.StoreInterval
-	}
-
-	if cfgFromEnv.FileStoragePath != "" {
-		config.FileStoragePath = cfgFromEnv.FileStoragePath
-	}
-
-	if cfgFromEnv.Restore != nil {
-		config.Restore = *cfgFromEnv.Restore
-	}
-
-	if cfgFromEnv.DataBaseDSN != "" {
-		config.DataBaseDSN = cfgFromEnv.DataBaseDSN
-	}
-
-	if cfgFromEnv.Key != "" {
-		config.Key = cfgFromEnv.Key
-	}
-
-	if cfgFromEnv.ProfilerCollectTime > 0 {
-		config.ProfilerCollectTime = cfgFromEnv.ProfilerCollectTime
-	}
-
-	if cfgFromEnv.ProfilerCPUFilePath != "" {
-		config.ProfilerCPUFilePath = cfgFromEnv.ProfilerCPUFilePath
-	}
-
-	if cfgFromEnv.ProfilerMemFilePath != "" {
-		config.ProfilerMemFilePath = cfgFromEnv.ProfilerMemFilePath
+	if err := applyConfigFromEnv(config); err != nil {
+		return nil, fmt.Errorf("error applying config from env: %w", err)
 	}
 
 	return config, nil

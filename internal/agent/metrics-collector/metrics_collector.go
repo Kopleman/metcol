@@ -2,7 +2,14 @@
 package metricscollector
 
 import (
+	"context"
+	cryptorand "crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"maps"
 	"math/rand/v2"
@@ -253,14 +260,14 @@ type sendMetricJob struct {
 	metric MetricItem
 }
 
-func (mc *MetricsCollector) sendMetricsViaWorkers() error {
+func (mc *MetricsCollector) sendMetricsViaWorkers(ctx context.Context) error {
 	metricsCount := len(mc.currentMetricState)
 
 	sendJobs := make(chan sendMetricJob, metricsCount)
 	results := make(chan sendMetricResult, metricsCount)
+	defer close(results)
+	defer close(sendJobs)
 	maxWorkerCount := int(mc.cfg.RateLimit)
-	wg := &sync.WaitGroup{}
-	wg.Add(maxWorkerCount)
 
 	for w := 1; w <= maxWorkerCount; w++ {
 		go mc.sendMetricWorker(w, sendJobs, results)
@@ -271,21 +278,23 @@ func (mc *MetricsCollector) sendMetricsViaWorkers() error {
 		sendJobs <- sendMetricJob{name: name, metric: item}
 	}
 	mc.mu.Unlock()
-	close(sendJobs)
 
-	numOfDoneJobs := 0
 	var err error
-	for result := range results {
-		numOfDoneJobs++
-		if result.err != nil {
-			err = fmt.Errorf("sendMetricsViaWorkers error: %w", result.err)
-		}
-		if numOfDoneJobs == metricsCount {
-			close(results)
+	numOfDoneJobs := 0
+	for {
+		select {
+		case result := <-results:
+			numOfDoneJobs++
+			if result.err != nil {
+				err = fmt.Errorf("sendMetricsViaWorkers error: %w", result.err)
+			}
+			if numOfDoneJobs == metricsCount {
+				return err
+			}
+		case <-ctx.Done():
+			return nil
 		}
 	}
-
-	return err
 }
 
 func (mc *MetricsCollector) sendMetricWorker(workerID int, jobs <-chan sendMetricJob, results chan<- sendMetricResult) {
@@ -335,7 +344,11 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 		return fmt.Errorf("unable to marshal metric dto: %w", marshalErr)
 	}
 	url := "/update"
-	respBytes, sendErr := mc.client.Post(url, "application/json", body)
+	cryptoBody, cryptErr := mc.cryptData(body)
+	if cryptErr != nil {
+		return fmt.Errorf("sendMetricItem crypt error: %w", cryptErr)
+	}
+	respBytes, sendErr := mc.client.Post(url, "application/json", cryptoBody)
 	if sendErr != nil {
 		return fmt.Errorf("unable to sent %s metric: %w", name, sendErr)
 	}
@@ -369,7 +382,11 @@ func (mc *MetricsCollector) SendMetrics() error {
 	}
 
 	url := "/updates"
-	respBytes, sendErr := mc.client.Post(url, "application/json", body)
+	cryptoBody, cryptErr := mc.cryptData(body)
+	if cryptErr != nil {
+		return fmt.Errorf("sendMetrics crypt error: %w", cryptErr)
+	}
+	respBytes, sendErr := mc.client.Post(url, "application/json", cryptoBody)
 	if sendErr != nil {
 		return fmt.Errorf("unable to sent metrics batch: %w", sendErr)
 	}
@@ -384,36 +401,30 @@ func (mc *MetricsCollector) SendMetrics() error {
 	return nil
 }
 
-func (mc *MetricsCollector) genCollectJobParamsChan(tickerChan <-chan time.Time, args *jobsArg) chan struct{} {
-	collectIntervalChan := make(chan struct{})
+func (mc *MetricsCollector) genIntervalJobParamsChan(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	tickerChan <-chan time.Time,
+	args *jobsArg) chan struct{} {
+	intervalChan := make(chan struct{})
 
 	go func() {
-		defer close(collectIntervalChan)
-		for currentTickerTime := range tickerChan {
-			if currentTickerTime.After(args.nextJobTime) || currentTickerTime.Equal(args.nextJobTime) {
-				args.nextJobTime = currentTickerTime.Add(args.interval)
-				collectIntervalChan <- struct{}{}
+		defer wg.Done()
+		defer close(intervalChan)
+		for {
+			select {
+			case currentTickerTime := <-tickerChan:
+				if currentTickerTime.After(args.nextJobTime) || currentTickerTime.Equal(args.nextJobTime) {
+					args.nextJobTime = currentTickerTime.Add(args.interval)
+					intervalChan <- struct{}{}
+				}
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
 
-	return collectIntervalChan
-}
-
-func (mc *MetricsCollector) genSendMetricsJobChan(tickerChan <-chan time.Time, args *jobsArg) chan struct{} {
-	reportIntervalChan := make(chan struct{})
-
-	go func() {
-		defer close(reportIntervalChan)
-		for currentTickerTime := range tickerChan {
-			if currentTickerTime.After(args.nextJobTime) || currentTickerTime.Equal(args.nextJobTime) {
-				args.nextJobTime = currentTickerTime.Add(args.interval)
-				reportIntervalChan <- struct{}{}
-			}
-		}
-	}()
-
-	return reportIntervalChan
+	return intervalChan
 }
 
 type collectIntervalJobResults struct {
@@ -427,6 +438,7 @@ type jobsArg struct {
 
 // Handler performs all agent work - collecting and sending data.
 func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
+	innerCtx, cancelFunc := context.WithCancel(context.Background())
 	mc.logger.Info("Starting collect metrics")
 	pollTicker := time.NewTicker(1 * time.Second)
 	defer pollTicker.Stop()
@@ -435,7 +447,7 @@ func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
 	defer reportTicker.Stop()
 
 	now := time.Now()
-	resultChan := make(chan collectIntervalJobResults)
+	resultChan := make(chan collectIntervalJobResults, 1)
 	defer close(resultChan)
 
 	pollDuration := time.Duration(mc.cfg.PollInterval) * time.Second
@@ -449,51 +461,132 @@ func (mc *MetricsCollector) Handler(sig chan os.Signal) error {
 		nextJobTime: now.Add(reportDuration),
 		interval:    reportDuration,
 	}
+	wg := &sync.WaitGroup{}
+	wg.Add(4) // 2 generators and 2 job-handlers
 
-	collectIntervalChan := mc.genCollectJobParamsChan(pollTicker.C, &collectJobArgs)
-	sendIntervalChan := mc.genSendMetricsJobChan(reportTicker.C, &reportJobArgs)
+	collectIntervalChan := mc.genIntervalJobParamsChan(innerCtx, wg, pollTicker.C, &collectJobArgs)
+	sendIntervalChan := mc.genIntervalJobParamsChan(innerCtx, wg, reportTicker.C, &reportJobArgs)
 
-	go mc.collectIntervalJob(collectIntervalChan, resultChan)
-	go mc.sendMetricsIntervalJob(sendIntervalChan, resultChan)
+	go mc.collectIntervalJob(innerCtx, wg, collectIntervalChan, resultChan)
+	go mc.sendMetricsIntervalJob(innerCtx, wg, sendIntervalChan, resultChan)
 
 	for {
 		select {
 		case res := <-resultChan:
 			if res.jobError != nil {
+				mc.logger.Info("gracefully shutting down agent due to error: %s", res.jobError.Error())
+				cancelFunc()
+				wg.Wait()
+				mc.logger.Info("agent stopped")
 				return fmt.Errorf("metrics job interval: %w", res.jobError)
 			}
 		case <-sig:
+			mc.logger.Info("gracefully shutting down agent")
+			cancelFunc()
+			wg.Wait()
+			mc.logger.Info("agent stopped")
 			return nil
 		}
 	}
 }
 
-func (mc *MetricsCollector) collectIntervalJob(jobArgsCh <-chan struct{}, outputChan chan collectIntervalJobResults) {
-	for range jobArgsCh {
-		results := collectIntervalJobResults{}
-		mc.logger.Info("collecting metrics")
-		err := mc.CollectAllMetrics()
-		if err != nil {
-			results.jobError = fmt.Errorf("collect metrics interval: %w", err)
+func (mc *MetricsCollector) collectIntervalJob(
+	ctx context.Context,
+	wg *sync.WaitGroup,
+	jobArgsCh <-chan struct{},
+	outputChan chan collectIntervalJobResults,
+) {
+	defer wg.Done()
+	for {
+		select {
+		case <-jobArgsCh:
+			results := collectIntervalJobResults{}
+			mc.logger.Info("collecting metrics")
+			err := mc.CollectAllMetrics()
+			if err != nil {
+				results.jobError = fmt.Errorf("collect metrics interval: %w", err)
+			}
+			outputChan <- results
+		case <-ctx.Done():
+			mc.logger.Infof("stopping collecting metrics job")
+			return
 		}
-		outputChan <- results
 	}
 }
 
 func (mc *MetricsCollector) sendMetricsIntervalJob(
+	ctx context.Context,
+	wg *sync.WaitGroup,
 	jobArgsCh <-chan struct{},
 	outputChan chan collectIntervalJobResults,
 ) {
-	for range jobArgsCh {
-		results := collectIntervalJobResults{}
-		mc.logger.Info("sending metrics")
-		err := mc.sendMetricsViaWorkers()
-		if err != nil {
-			results.jobError = fmt.Errorf("send metrics interval: %w", err)
+	defer wg.Done()
+	for {
+		select {
+		case <-jobArgsCh:
+			results := collectIntervalJobResults{}
+			mc.logger.Info("sending metrics")
+			err := mc.sendMetricsViaWorkers(ctx)
+			if err != nil {
+				results.jobError = fmt.Errorf("send metrics interval: %w", err)
+			}
+			mc.logger.Info("metrics sent")
+			outputChan <- results
+		case <-ctx.Done():
+			mc.logger.Infof("stopping send-metrics job")
+			return
 		}
-		mc.logger.Info("sending metrics")
-		outputChan <- results
 	}
+}
+
+func (mc *MetricsCollector) cryptData(data []byte) ([]byte, error) {
+	if mc.publicKey == nil {
+		return data, nil
+	}
+
+	rng := cryptorand.Reader
+	cipherData, err := rsa.EncryptOAEP(sha256.New(), rng, mc.publicKey, data, nil)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt data error: %w", err)
+	}
+	return cipherData, nil
+}
+
+func (mc *MetricsCollector) loadPublicKey() error {
+	if mc.cfg.PublicKeyPath == "" {
+		return nil
+	}
+
+	keyBytes, err := os.ReadFile(mc.cfg.PublicKeyPath)
+	if err != nil {
+		return fmt.Errorf("unable to read public key file: %w", err)
+	}
+
+	block, _ := pem.Decode(keyBytes)
+	if block == nil {
+		return errors.New("failed to parse public key PEM block")
+	}
+
+	pubKey, parseErr := x509.ParsePKIXPublicKey(block.Bytes)
+	if parseErr != nil {
+		return errors.New("failed to parse public key bytes")
+	}
+
+	switch pubKeyTyped := pubKey.(type) {
+	case *rsa.PublicKey:
+		mc.publicKey = pubKeyTyped
+		return nil
+	default:
+		return errors.New("not RSA public key")
+	}
+}
+
+func (mc *MetricsCollector) Init() error {
+	if err := mc.loadPublicKey(); err != nil {
+		return fmt.Errorf("unable to load public key: %w", err)
+	}
+
+	return nil
 }
 
 type HTTPClient interface {
@@ -506,6 +599,7 @@ type MetricsCollector struct {
 	client             HTTPClient
 	logger             log.Logger
 	mu                 *sync.RWMutex
+	publicKey          *rsa.PublicKey
 }
 
 // NewMetricsCollector creates instance of collector.

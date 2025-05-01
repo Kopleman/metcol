@@ -42,11 +42,11 @@ func (m *MockMetricsService) GetMetricAsDTO(
 
 func TestGetValueController_GetValue(t *testing.T) {
 	tests := []struct {
+		mockSetup      func(*MockMetricsService)
 		name           string
 		url            string
-		mockSetup      func(*MockMetricsService)
-		expectedStatus int
 		expectedBody   string
+		expectedStatus int
 	}{
 		{
 			name: "invalid metric type",
@@ -129,11 +129,11 @@ func TestGetValueController_GetValue(t *testing.T) {
 
 func TestGetValueController_GetValueAsDTO(t *testing.T) {
 	tests := []struct {
+		mockSetup      func(*MockMetricsService)
 		name           string
 		requestBody    string
-		mockSetup      func(*MockMetricsService)
-		expectedStatus int
 		expectedBody   string
+		expectedStatus int
 	}{
 		{
 			name:           "invalid json",
