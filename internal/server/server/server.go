@@ -98,14 +98,16 @@ func (s *Server) Start(ctx context.Context, runTimeError chan<- error) error {
 		}
 	}()
 
-	grpcMetricsService := grpc.NewMetricsService(s.logger, s.metricService)
-	s.grpcServer = grpc.NewServer(s.logger, grpcMetricsService)
+	if s.config.GRPCAddr.String() != "" {
+		grpcMetricsService := grpc.NewMetricsService(s.logger, s.metricService)
+		s.grpcServer = grpc.NewServer(s.logger, grpcMetricsService)
 
-	go func() {
-		if err := s.grpcServer.Start(s.config.GRPCAddr.String()); err != nil {
-			runTimeError <- fmt.Errorf("internal server error: %w", err)
-		}
-	}()
+		go func() {
+			if err := s.grpcServer.Start(s.config.GRPCAddr.String()); err != nil {
+				runTimeError <- fmt.Errorf("internal server error: %w", err)
+			}
+		}()
+	}
 
 	s.logger.Infof("Server started on: %s", s.config.NetAddr.Port)
 
