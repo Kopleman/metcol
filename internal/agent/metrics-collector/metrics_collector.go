@@ -340,7 +340,7 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 	if err != nil {
 		return err
 	}
-	sendFunc := mc.sendMetricItemViaHttp
+	sendFunc := mc.sendMetricItemViaHTTP
 	if mc.grpcClient == nil {
 		sendFunc = mc.sendMetricItemViaGRPC
 	}
@@ -351,7 +351,7 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 	return nil
 }
 
-func (mc *MetricsCollector) sendMetricItemViaHttp(name string, metricDto *dto.MetricDTO) error {
+func (mc *MetricsCollector) sendMetricItemViaHTTP(name string, metricDto *dto.MetricDTO) error {
 	body, marshalErr := json.Marshal(metricDto)
 	if marshalErr != nil {
 		return fmt.Errorf("unable to marshal metric dto: %w", marshalErr)
@@ -399,7 +399,7 @@ func (mc *MetricsCollector) SendMetrics() error {
 		return nil
 	}
 
-	sendFunc := mc.sendMetricsViaHttp
+	sendFunc := mc.sendMetricsViaHTTP
 	if mc.grpcClient == nil {
 		sendFunc = mc.sendMetricsViaGRPC
 	}
@@ -413,7 +413,7 @@ func (mc *MetricsCollector) SendMetrics() error {
 	return nil
 }
 
-func (mc *MetricsCollector) sendMetricsViaHttp(metricsBatch []*dto.MetricDTO) error {
+func (mc *MetricsCollector) sendMetricsViaHTTP(metricsBatch []*dto.MetricDTO) error {
 	body, marshalErr := json.Marshal(metricsBatch)
 	if marshalErr != nil {
 		return fmt.Errorf("unable to marshal metrics batch: %w", marshalErr)
@@ -659,7 +659,12 @@ type MetricsCollector struct {
 }
 
 // NewMetricsCollector creates instance of collector.
-func NewMetricsCollector(cfg *config.Config, logger log.Logger, client HTTPClient, grpcClient GRPCClient) *MetricsCollector {
+func NewMetricsCollector(
+	cfg *config.Config,
+	logger log.Logger,
+	client HTTPClient,
+	grpcClient GRPCClient,
+) *MetricsCollector {
 	baseState := map[string]MetricItem{
 		pollCountMetricName: {
 			value:      "0",

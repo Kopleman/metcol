@@ -20,6 +20,7 @@ const defaultAddress string = "localhost:8080"
 // Config contains all settled via envs or flags params.
 type Config struct {
 	NetAddr             *flags.NetAddress // server address
+	GRPCAddr            *flags.NetAddress // server address
 	FileStoragePath     string            // path to file for mem-store dump
 	DataBaseDSN         string            // DSN of postgres DSN
 	Key                 string            // hash key for sign received data
@@ -35,6 +36,7 @@ type Config struct {
 type configFromSource struct {
 	Restore             *bool  `json:"restore" env:"RESTORE"`
 	EndPoint            string `json:"address" env:"ADDRESS"`
+	GRPCEndPoint        string `json:"grpc_address" env:"GRPC_ADDRESS"`
 	FileStoragePath     string `json:"file_storage_path" env:"FILE_STORAGE_PATH"`
 	DataBaseDSN         string `json:"database_dsn" env:"DATABASE_DSN"`
 	Key                 string `json:"key" env:"KEY"`
@@ -49,7 +51,13 @@ type configFromSource struct {
 func applyConfigFromSource(source *configFromSource, config *Config) error {
 	if source.EndPoint != "" {
 		if err := config.NetAddr.Set(source.EndPoint); err != nil {
-			return fmt.Errorf("failed to set endpoint address for agent from json data: %w", err)
+			return fmt.Errorf("failed to set endpoint address: %w", err)
+		}
+	}
+
+	if source.GRPCEndPoint != "" {
+		if err := config.GRPCAddr.Set(source.GRPCEndPoint); err != nil {
+			return fmt.Errorf("failed to set grpc endpoint address: %w", err)
 		}
 	}
 

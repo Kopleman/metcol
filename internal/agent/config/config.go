@@ -36,7 +36,7 @@ type configFromSource struct {
 	RateLimit      int64  `json:"rate_limit" env:"RATE_LIMIT"`
 }
 
-func applyConfigFromSource(source configFromSource, config *Config) error {
+func applyConfigFromSource(source *configFromSource, config *Config) error {
 	if source.EndPoint != "" {
 		if err := config.EndPoint.Set(source.EndPoint); err != nil {
 			return fmt.Errorf("failed to set endpoint address for agent: %w", err)
@@ -119,7 +119,7 @@ func applyConfigFromJSON(pathToConfigFile string, config *Config) error {
 	if err := utils.GetConfigFromFile(pathToConfigFile, cfgFromJSON); err != nil {
 		return fmt.Errorf("error reading config from file: %w", err)
 	}
-	if err := applyConfigFromSource(*cfgFromJSON, config); err != nil {
+	if err := applyConfigFromSource(cfgFromJSON, config); err != nil {
 		return fmt.Errorf("error applying config from json-file: %w", err)
 	}
 
@@ -131,7 +131,7 @@ func applyConfigFromEnv(config *Config) error {
 	if err := env.Parse(cfgFromEnv); err != nil {
 		return fmt.Errorf("failed to parse agent envs: %w", err)
 	}
-	if err := applyConfigFromSource(*cfgFromEnv, config); err != nil {
+	if err := applyConfigFromSource(cfgFromEnv, config); err != nil {
 		return fmt.Errorf("failed to apply config from env: %w", err)
 	}
 	return nil

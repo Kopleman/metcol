@@ -2,14 +2,13 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Kopleman/metcol/internal/common"
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/common/utils"
 	pb "github.com/Kopleman/metcol/proto/metrics"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type MetricsService struct {
@@ -35,12 +34,15 @@ func NewMetricsService(logger log.Logger, metricsService Metrics) *MetricsServic
 	}
 }
 
-func (s *MetricsService) GetMetric(ctx context.Context, req *pb.GetMetricRequest) (*pb.GetMetricResponse, error) {
-	metricType := utils.ConvertProtoMetricType(req.Type)
-	metric, err := s.metricsService.GetMetricAsDTO(ctx, metricType, req.Id)
+func (s *MetricsService) GetMetric(
+	ctx context.Context,
+	req *pb.GetMetricRequest,
+) (*pb.GetMetricResponse, error) {
+	metricType := utils.ConvertProtoMetricType(req.GetType())
+	metric, err := s.metricsService.GetMetricAsDTO(ctx, metricType, req.GetId())
 	if err != nil {
 		s.logger.Error(err)
-		return nil, status.Error(codes.Internal, "failed to get metric")
+		return nil, fmt.Errorf("unable to get metric: %w", err)
 	}
 
 	return &pb.GetMetricResponse{
@@ -48,41 +50,50 @@ func (s *MetricsService) GetMetric(ctx context.Context, req *pb.GetMetricRequest
 	}, nil
 }
 
-func (s *MetricsService) UpdateMetric(ctx context.Context, req *pb.UpdateMetricRequest) (*pb.UpdateMetricResponse, error) {
-	metricDto := utils.ConvertProtoMetricToDTO(req.Metric)
+func (s *MetricsService) UpdateMetric(
+	ctx context.Context,
+	req *pb.UpdateMetricRequest,
+) (*pb.UpdateMetricResponse, error) {
+	metricDto := utils.ConvertProtoMetricToDTO(req.GetMetric())
 	err := s.metricsService.SetMetricByDto(ctx, metricDto)
 	if err != nil {
 		s.logger.Error(err)
-		return nil, status.Error(codes.Internal, "failed to update metric")
+		return nil, fmt.Errorf("unable to update metric: %w", err)
 	}
 
 	return &pb.UpdateMetricResponse{
-		Metric: req.Metric,
+		Metric: req.GetMetric(),
 	}, nil
 }
 
-func (s *MetricsService) UpdateMetrics(ctx context.Context, req *pb.UpdateMetricsRequest) (*pb.UpdateMetricsResponse, error) {
-	metrics := make([]*dto.MetricDTO, 0, len(req.Metrics))
-	for _, m := range req.Metrics {
+func (s *MetricsService) UpdateMetrics(
+	ctx context.Context,
+	req *pb.UpdateMetricsRequest,
+) (*pb.UpdateMetricsResponse, error) {
+	metrics := make([]*dto.MetricDTO, 0, len(req.GetMetrics()))
+	for _, m := range req.GetMetrics() {
 		metrics = append(metrics, utils.ConvertProtoMetricToDTO(m))
 	}
 
 	err := s.metricsService.SetMetrics(ctx, metrics)
 	if err != nil {
 		s.logger.Error(err)
-		return nil, status.Error(codes.Internal, "failed to update metrics")
+		return nil, fmt.Errorf("unable to update metrics: %w", err)
 	}
 
 	return &pb.UpdateMetricsResponse{
-		Metrics: req.Metrics,
+		Metrics: req.GetMetrics(),
 	}, nil
 }
 
-func (s *MetricsService) GetAllMetrics(ctx context.Context, req *pb.GetAllMetricsRequest) (*pb.GetAllMetricsResponse, error) {
+func (s *MetricsService) GetAllMetrics(
+	ctx context.Context,
+	req *pb.GetAllMetricsRequest,
+) (*pb.GetAllMetricsResponse, error) {
 	allMetrics, err := s.metricsService.ExportMetrics(ctx)
 	if err != nil {
 		s.logger.Error(err)
-		return nil, status.Error(codes.Internal, "failed to get all metrics")
+		return nil, fmt.Errorf("unable to get metrics: %w", err)
 	}
 
 	metrics := make([]*pb.Metric, 0, len(allMetrics))

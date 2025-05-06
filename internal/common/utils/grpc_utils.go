@@ -19,13 +19,13 @@ func ConvertProtoMetricType(t pb.MetricType) common.MetricType {
 
 func ConvertProtoMetricToDTO(m *pb.Metric) *dto.MetricDTO {
 	metric := &dto.MetricDTO{
-		ID:    m.Id,
-		MType: ConvertProtoMetricType(m.Type),
+		ID:    m.GetId(),
+		MType: ConvertProtoMetricType(m.GetType()),
 	}
 
-	if m.Type == pb.MetricType_GAUGE {
+	if m.GetType() == pb.MetricType_GAUGE {
 		metric.Value = &m.Value
-	} else if m.Type == pb.MetricType_COUNTER {
+	} else if m.GetType() == pb.MetricType_COUNTER {
 		metric.Delta = &m.Delta
 	}
 

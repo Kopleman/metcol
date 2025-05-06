@@ -16,7 +16,6 @@ type MetricsClient struct {
 	conn   *grpc.ClientConn
 }
 
-// NewMetricsClient создает нового клиента для работы с метриками
 func NewMetricsClient(address string) (*MetricsClient, error) {
 	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -36,7 +35,7 @@ func NewMetricsClient(address string) (*MetricsClient, error) {
 		dialOpts...,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create metrics client: %w", err)
 	}
 
 	client := pb.NewMetricsServiceClient(conn)
@@ -46,7 +45,6 @@ func NewMetricsClient(address string) (*MetricsClient, error) {
 	}, nil
 }
 
-// Close закрывает соединение с сервером
 func (c *MetricsClient) Close() error {
 	err := c.conn.Close()
 	if err != nil {
@@ -55,7 +53,6 @@ func (c *MetricsClient) Close() error {
 	return nil
 }
 
-// GetMetric получает значение метрики
 func (c *MetricsClient) GetMetric(ctx context.Context, id string, metricType pb.MetricType) (*pb.Metric, error) {
 	req := &pb.GetMetricRequest{
 		Id:   id,
@@ -64,13 +61,12 @@ func (c *MetricsClient) GetMetric(ctx context.Context, id string, metricType pb.
 
 	resp, err := c.client.GetMetric(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get metric %s: %w", id, err)
 	}
 
-	return resp.Metric, nil
+	return resp.GetMetric(), nil
 }
 
-// UpdateMetric обновляет значение метрики
 func (c *MetricsClient) UpdateMetric(ctx context.Context, metric *pb.Metric) (*pb.Metric, error) {
 	req := &pb.UpdateMetricRequest{
 		Metric: metric,
@@ -78,13 +74,12 @@ func (c *MetricsClient) UpdateMetric(ctx context.Context, metric *pb.Metric) (*p
 
 	resp, err := c.client.UpdateMetric(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to update metric %s: %w", metric, err)
 	}
 
-	return resp.Metric, nil
+	return resp.GetMetric(), nil
 }
 
-// UpdateMetrics обновляет несколько метрик
 func (c *MetricsClient) UpdateMetrics(ctx context.Context, metrics []*pb.Metric) ([]*pb.Metric, error) {
 	req := &pb.UpdateMetricsRequest{
 		Metrics: metrics,
@@ -92,20 +87,19 @@ func (c *MetricsClient) UpdateMetrics(ctx context.Context, metrics []*pb.Metric)
 
 	resp, err := c.client.UpdateMetrics(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to update metrics: %w", err)
 	}
 
-	return resp.Metrics, nil
+	return resp.GetMetrics(), nil
 }
 
-// GetAllMetrics получает все метрики
 func (c *MetricsClient) GetAllMetrics(ctx context.Context) ([]*pb.Metric, error) {
 	req := &pb.GetAllMetricsRequest{}
 
 	resp, err := c.client.GetAllMetrics(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get all metrics: %w", err)
 	}
 
-	return resp.Metrics, nil
+	return resp.GetMetrics(), nil
 }

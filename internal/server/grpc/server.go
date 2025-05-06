@@ -24,13 +24,13 @@ func NewServer(logger log.Logger, metricsService *MetricsService) *Server {
 	}
 }
 
-func (s *Server) Start(port int) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+func (s *Server) Start(grpcAddress string) error {
+	lis, err := net.Listen("tcp", grpcAddress)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
 
-	s.logger.Infof("gRPC server listening on port %d", port)
+	s.logger.Infof("gRPC server listening on %s", grpcAddress)
 	if err := s.server.Serve(lis); err != nil {
 		return fmt.Errorf("failed to serve: %w", err)
 	}
