@@ -9,6 +9,7 @@ import (
 
 	"github.com/Kopleman/metcol/internal/agent/config"
 	metricscollector "github.com/Kopleman/metcol/internal/agent/metrics-collector"
+	"github.com/Kopleman/metcol/internal/common/grpc"
 	httpclient "github.com/Kopleman/metcol/internal/common/http-client"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/common/utils"
@@ -42,7 +43,15 @@ func run(logger log.Logger) error {
 	}
 
 	httpClient := httpclient.NewHTTPClient(agentConfig, logger)
-	collector := metricscollector.NewMetricsCollector(agentConfig, logger, httpClient)
+	var grpcClient *grpc.MetricsClient
+	if agentConfig.GRPCEndPoint.String() != "" {
+		grpcClient, err = grpc.NewMetricsClient(agentConfig.GRPCEndPoint.String())
+		if err == nil {
+			return fmt.Errorf("failed to connect to grpc endpoint: %s", agentConfig.GRPCEndPoint.String())
+		}
+	}
+	defer grpcClient.Close() //nolint:all //safe
+	collector := metricscollector.NewMetricsCollector(agentConfig, logger, httpClient, grpcClient)
 	if initErr := collector.Init(); initErr != nil {
 		return fmt.Errorf("failed to initialize the collector: %w", initErr)
 	}
