@@ -48,11 +48,13 @@ func TestConvertProtoMetricToDTO(t *testing.T) {
 	}{
 		{
 			name: "Convert GAUGE metric",
-			input: &pb.Metric{
-				Id:    "test_gauge",
-				Type:  pb.MetricType_GAUGE,
-				Value: 42.5,
-			},
+			input: func() *pb.Metric {
+				m := &pb.Metric{}
+				m.SetId("test_gauge")
+				m.SetType(pb.MetricType_GAUGE)
+				m.SetValue(42.5)
+				return m
+			}(),
 			expected: &dto.MetricDTO{
 				ID:    "test_gauge",
 				MType: common.GaugeMetricType,
@@ -61,11 +63,13 @@ func TestConvertProtoMetricToDTO(t *testing.T) {
 		},
 		{
 			name: "Convert COUNTER metric",
-			input: &pb.Metric{
-				Id:    "test_counter",
-				Type:  pb.MetricType_COUNTER,
-				Delta: 100,
-			},
+			input: func() *pb.Metric {
+				m := &pb.Metric{}
+				m.SetId("test_counter")
+				m.SetType(pb.MetricType_COUNTER)
+				m.SetDelta(100)
+				return m
+			}(),
 			expected: &dto.MetricDTO{
 				ID:    "test_counter",
 				MType: common.CounterMetricType,
@@ -95,11 +99,13 @@ func TestConvertDTOToProtoMetric(t *testing.T) {
 				MType: common.GaugeMetricType,
 				Value: func() *float64 { v := 42.5; return &v }(),
 			},
-			expected: &pb.Metric{
-				Id:    "test_gauge",
-				Type:  pb.MetricType_GAUGE,
-				Value: 42.5,
-			},
+			expected: func() *pb.Metric {
+				m := &pb.Metric{}
+				m.SetId("test_gauge")
+				m.SetType(pb.MetricType_GAUGE)
+				m.SetValue(42.5)
+				return m
+			}(),
 		},
 		{
 			name: "Convert COUNTER metric",
@@ -108,11 +114,13 @@ func TestConvertDTOToProtoMetric(t *testing.T) {
 				MType: common.CounterMetricType,
 				Delta: func() *int64 { v := int64(100); return &v }(),
 			},
-			expected: &pb.Metric{
-				Id:    "test_counter",
-				Type:  pb.MetricType_COUNTER,
-				Delta: 100,
-			},
+			expected: func() *pb.Metric {
+				m := &pb.Metric{}
+				m.SetId("test_counter")
+				m.SetType(pb.MetricType_COUNTER)
+				m.SetDelta(100)
+				return m
+			}(),
 		},
 	}
 

@@ -3,6 +3,7 @@ package grpc
 import (
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/Kopleman/metcol/internal/common/log"
 	grpcmiddleware "github.com/Kopleman/metcol/internal/server/grpc/middleware"
@@ -10,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 	_ "google.golang.org/grpc/encoding/proto"
+	"google.golang.org/grpc/keepalive"
 )
 
 type Server struct {
@@ -25,6 +27,17 @@ func NewServer(logger log.Logger, metricsService *MetricsService, trustedCIDR st
 			grpcmiddleware.IPFilter(trustedCIDR),
 			grpcmiddleware.Hash([]byte(key)),
 		),
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionIdle:     5 * time.Minute,
+			MaxConnectionAge:      10 * time.Minute,
+			MaxConnectionAgeGrace: 5 * time.Second,
+			Time:                  2 * time.Minute,
+			Timeout:               20 * time.Second,
+		}),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             10 * time.Second,
+			PermitWithoutStream: true,
+		}),
 	}
 	server := grpc.NewServer(serverOpts...)
 	pb.RegisterMetricsServiceServer(server, metricsService)

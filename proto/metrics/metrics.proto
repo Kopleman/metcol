@@ -1,8 +1,12 @@
-syntax = "proto3";
+edition = "2023";
 
 package metrics;
 
 option go_package = "github.com/Kopleman/metcol/proto/metrics";
+
+import "google/protobuf/go_features.proto";
+
+option features.(pb.go).api_level = API_OPAQUE;
 
 // Типы метрик
 enum MetricType {
@@ -27,17 +31,17 @@ message GetMetricRequest {
 
 // Ответ с значением метрики
 message GetMetricResponse {
-  Metric metric = 1;
+  Metric metric = 1 [lazy = true];
 }
 
 // Запрос на обновление метрики
 message UpdateMetricRequest {
-  Metric metric = 1;
+  Metric metric = 1 [lazy = true];
 }
 
 // Ответ на обновление метрики
 message UpdateMetricResponse {
-  Metric metric = 1;
+  Metric metric = 1 [lazy = true];
 }
 
 // Запрос на пакетное обновление метрик

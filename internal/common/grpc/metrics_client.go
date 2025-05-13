@@ -26,7 +26,21 @@ type MetricsClient struct {
 func NewMetricsClient(address string, key string) (*MetricsClient, error) {
 	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"round_robin","methodConfig":[{"name":[{"service":"metrics.MetricsService"}],"waitForReady":true,"compression":"gzip"}]}`), //nolint:lll // predefined long string :(
+		grpc.WithDefaultServiceConfig(`{
+			"loadBalancingPolicy": "round_robin",
+			"methodConfig": [{
+				"name": [{"service": "metrics.MetricsService"}],
+				"waitForReady": true,
+				"compression": "gzip",
+				"retryPolicy": {
+					"maxAttempts": 3,
+					"initialBackoff": "0.1s",
+					"maxBackoff": "3s",
+					"backoffMultiplier": 1.6,
+					"retryableStatusCodes": ["UNAVAILABLE", "RESOURCE_EXHAUSTED"]
+				}
+			}]
+		}`),
 		grpc.WithConnectParams(grpc.ConnectParams{
 			Backoff: backoff.Config{
 				BaseDelay:  100 * time.Millisecond,
@@ -87,10 +101,9 @@ func (c *MetricsClient) addHashToContext(ctx context.Context, req interface{}) (
 }
 
 func (c *MetricsClient) GetMetric(ctx context.Context, id string, metricType pb.MetricType) (*pb.Metric, error) {
-	req := &pb.GetMetricRequest{
-		Id:   id,
-		Type: metricType,
-	}
+	req := &pb.GetMetricRequest{}
+	req.SetId(id)
+	req.SetType(metricType)
 
 	ctx, err := c.addHashToContext(ctx, req)
 	if err != nil {
@@ -106,9 +119,8 @@ func (c *MetricsClient) GetMetric(ctx context.Context, id string, metricType pb.
 }
 
 func (c *MetricsClient) UpdateMetric(ctx context.Context, metric *pb.Metric) (*pb.Metric, error) {
-	req := &pb.UpdateMetricRequest{
-		Metric: metric,
-	}
+	req := &pb.UpdateMetricRequest{}
+	req.SetMetric(metric)
 
 	ctx, err := c.addHashToContext(ctx, req)
 	if err != nil {
@@ -124,9 +136,8 @@ func (c *MetricsClient) UpdateMetric(ctx context.Context, metric *pb.Metric) (*p
 }
 
 func (c *MetricsClient) UpdateMetrics(ctx context.Context, metrics []*pb.Metric) ([]*pb.Metric, error) {
-	req := &pb.UpdateMetricsRequest{
-		Metrics: metrics,
-	}
+	req := &pb.UpdateMetricsRequest{}
+	req.SetMetrics(metrics)
 
 	ctx, err := c.addHashToContext(ctx, req)
 	if err != nil {

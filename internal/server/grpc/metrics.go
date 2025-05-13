@@ -45,9 +45,9 @@ func (s *MetricsService) GetMetric(
 		return nil, fmt.Errorf("unable to get metric: %w", err)
 	}
 
-	return &pb.GetMetricResponse{
-		Metric: utils.ConvertDTOToProtoMetric(metric),
-	}, nil
+	resp := &pb.GetMetricResponse{}
+	resp.SetMetric(utils.ConvertDTOToProtoMetric(metric))
+	return resp, nil
 }
 
 func (s *MetricsService) UpdateMetric(
@@ -61,9 +61,9 @@ func (s *MetricsService) UpdateMetric(
 		return nil, fmt.Errorf("unable to update metric: %w", err)
 	}
 
-	return &pb.UpdateMetricResponse{
-		Metric: req.GetMetric(),
-	}, nil
+	resp := &pb.UpdateMetricResponse{}
+	resp.SetMetric(req.GetMetric())
+	return resp, nil
 }
 
 func (s *MetricsService) UpdateMetrics(
@@ -81,9 +81,9 @@ func (s *MetricsService) UpdateMetrics(
 		return nil, fmt.Errorf("unable to update metrics: %w", err)
 	}
 
-	return &pb.UpdateMetricsResponse{
-		Metrics: req.GetMetrics(),
-	}, nil
+	resp := &pb.UpdateMetricsResponse{}
+	resp.SetMetrics(req.GetMetrics())
+	return resp, nil
 }
 
 func (s *MetricsService) GetAllMetrics(
@@ -101,7 +101,7 @@ func (s *MetricsService) GetAllMetrics(
 		metrics = append(metrics, utils.ConvertDTOToProtoMetric(m))
 	}
 
-	return &pb.GetAllMetricsResponse{
-		Metrics: metrics,
-	}, nil
+	resp := &pb.GetAllMetricsResponse{}
+	resp.SetMetrics(metrics)
+	return resp, nil
 }

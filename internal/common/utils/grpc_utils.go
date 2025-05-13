@@ -24,25 +24,26 @@ func ConvertProtoMetricToDTO(m *pb.Metric) *dto.MetricDTO {
 	}
 
 	if m.GetType() == pb.MetricType_GAUGE {
-		metric.Value = &m.Value
+		value := m.GetValue()
+		metric.Value = &value
 	} else if m.GetType() == pb.MetricType_COUNTER {
-		metric.Delta = &m.Delta
+		delta := m.GetDelta()
+		metric.Delta = &delta
 	}
 
 	return metric
 }
 
 func ConvertDTOToProtoMetric(m *dto.MetricDTO) *pb.Metric {
-	metric := &pb.Metric{
-		Id:   m.ID,
-		Type: ConvertDTOMetricType(m.MType.String()),
-	}
+	metric := &pb.Metric{}
+	metric.SetId(m.ID)
+	metric.SetType(ConvertDTOMetricType(m.MType.String()))
 
 	if m.Value != nil {
-		metric.Value = *m.Value
+		metric.SetValue(*m.Value)
 	}
 	if m.Delta != nil {
-		metric.Delta = *m.Delta
+		metric.SetDelta(*m.Delta)
 	}
 
 	return metric
