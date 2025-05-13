@@ -5,8 +5,11 @@ import (
 	"net"
 
 	"github.com/Kopleman/metcol/internal/common/log"
+	grpcmiddleware "github.com/Kopleman/metcol/internal/server/grpc/middleware"
 	pb "github.com/Kopleman/metcol/proto/metrics"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/encoding"
+	_ "google.golang.org/grpc/encoding/proto"
 )
 
 type Server struct {
@@ -14,8 +17,16 @@ type Server struct {
 	logger log.Logger
 }
 
-func NewServer(logger log.Logger, metricsService *MetricsService) *Server {
-	server := grpc.NewServer()
+func NewServer(logger log.Logger, metricsService *MetricsService, trustedCIDR string, key string) *Server {
+	encoding.RegisterCompressor(encoding.GetCompressor("gzip"))
+
+	serverOpts := []grpc.ServerOption{
+		grpc.ChainUnaryInterceptor(
+			grpcmiddleware.IPFilter(trustedCIDR),
+			grpcmiddleware.Hash([]byte(key)),
+		),
+	}
+	server := grpc.NewServer(serverOpts...)
 	pb.RegisterMetricsServiceServer(server, metricsService)
 
 	return &Server{

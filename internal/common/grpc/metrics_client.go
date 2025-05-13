@@ -2,23 +2,31 @@ package grpc
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"time"
 
 	pb "github.com/Kopleman/metcol/proto/metrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type MetricsClient struct {
 	client pb.MetricsServiceClient
 	conn   *grpc.ClientConn
+	key    []byte
 }
 
-func NewMetricsClient(address string) (*MetricsClient, error) {
+func NewMetricsClient(address string, key string) (*MetricsClient, error) {
 	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"round_robin","methodConfig":[{"name":[{"service":"metrics.MetricsService"}],"waitForReady":true,"compression":"gzip"}]}`), //nolint:lll // predefined long string :(
 		grpc.WithConnectParams(grpc.ConnectParams{
 			Backoff: backoff.Config{
 				BaseDelay:  100 * time.Millisecond,
@@ -42,6 +50,7 @@ func NewMetricsClient(address string) (*MetricsClient, error) {
 	return &MetricsClient{
 		client: client,
 		conn:   conn,
+		key:    []byte(key),
 	}, nil
 }
 
@@ -53,10 +62,39 @@ func (c *MetricsClient) Close() error {
 	return nil
 }
 
+func (c *MetricsClient) addHashToContext(ctx context.Context, req interface{}) (context.Context, error) {
+	if len(c.key) == 0 {
+		return ctx, nil
+	}
+
+	reqI, ok := req.(interface{ Marshal() ([]byte, error) })
+	if !ok {
+		return nil, fmt.Errorf(
+			"request body not marshalling: %w",
+			status.Error(codes.InvalidArgument, "request body not marshalling"),
+		)
+	}
+	reqBytes, err := reqI.Marshal()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	h := hmac.New(sha256.New, c.key)
+	h.Write(reqBytes)
+	hash := hex.EncodeToString(h.Sum(nil))
+
+	return metadata.AppendToOutgoingContext(ctx, "HashSHA256", hash), nil
+}
+
 func (c *MetricsClient) GetMetric(ctx context.Context, id string, metricType pb.MetricType) (*pb.Metric, error) {
 	req := &pb.GetMetricRequest{
 		Id:   id,
 		Type: metricType,
+	}
+
+	ctx, err := c.addHashToContext(ctx, req)
+	if err != nil {
+		return nil, err
 	}
 
 	resp, err := c.client.GetMetric(ctx, req)
@@ -72,6 +110,11 @@ func (c *MetricsClient) UpdateMetric(ctx context.Context, metric *pb.Metric) (*p
 		Metric: metric,
 	}
 
+	ctx, err := c.addHashToContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
 	resp, err := c.client.UpdateMetric(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update metric %s: %w", metric, err)
@@ -85,6 +128,11 @@ func (c *MetricsClient) UpdateMetrics(ctx context.Context, metrics []*pb.Metric)
 		Metrics: metrics,
 	}
 
+	ctx, err := c.addHashToContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
 	resp, err := c.client.UpdateMetrics(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update metrics: %w", err)
@@ -95,6 +143,11 @@ func (c *MetricsClient) UpdateMetrics(ctx context.Context, metrics []*pb.Metric)
 
 func (c *MetricsClient) GetAllMetrics(ctx context.Context) ([]*pb.Metric, error) {
 	req := &pb.GetAllMetricsRequest{}
+
+	ctx, err := c.addHashToContext(ctx, req)
+	if err != nil {
+		return nil, err
+	}
 
 	resp, err := c.client.GetAllMetrics(ctx, req)
 	if err != nil {

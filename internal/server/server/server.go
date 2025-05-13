@@ -100,7 +100,7 @@ func (s *Server) Start(ctx context.Context, runTimeError chan<- error) error {
 
 	if s.config.GRPCAddr.String() != "" {
 		grpcMetricsService := grpc.NewMetricsService(s.logger, s.metricService)
-		s.grpcServer = grpc.NewServer(s.logger, grpcMetricsService)
+		s.grpcServer = grpc.NewServer(s.logger, grpcMetricsService, s.config.TrustedSubnet, s.config.Key)
 
 		go func() {
 			if err := s.grpcServer.Start(s.config.GRPCAddr.String()); err != nil {

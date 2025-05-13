@@ -45,7 +45,7 @@ func run(logger log.Logger) error {
 	httpClient := httpclient.NewHTTPClient(agentConfig, logger)
 	var grpcClient *grpc.MetricsClient
 	if agentConfig.GRPCEndPoint.String() != "" {
-		grpcClient, err = grpc.NewMetricsClient(agentConfig.GRPCEndPoint.String())
+		grpcClient, err = grpc.NewMetricsClient(agentConfig.GRPCEndPoint.String(), agentConfig.Key)
 		if err == nil {
 			return fmt.Errorf("failed to connect to grpc endpoint: %s", agentConfig.GRPCEndPoint.String())
 		}

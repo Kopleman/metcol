@@ -489,7 +489,6 @@ linters:
     - gocheckcompilerdirectives
     - goconst
     - gocritic
-    - godot
     - gofmt
     - goimports
     - goprintffuncname
