@@ -24,6 +24,7 @@ import (
 	"github.com/Kopleman/metcol/internal/common/dto"
 	"github.com/Kopleman/metcol/internal/common/log"
 	"github.com/Kopleman/metcol/internal/common/utils"
+	pb "github.com/Kopleman/metcol/proto/metrics"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
 )
@@ -339,6 +340,18 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 	if err != nil {
 		return err
 	}
+	sendFunc := mc.sendMetricItemViaHTTP
+	if mc.grpcClient == nil {
+		sendFunc = mc.sendMetricItemViaGRPC
+	}
+
+	if err = sendFunc(name, metricDto); err != nil {
+		return fmt.Errorf("sendMetricItem error: %w", err)
+	}
+	return nil
+}
+
+func (mc *MetricsCollector) sendMetricItemViaHTTP(name string, metricDto *dto.MetricDTO) error {
 	body, marshalErr := json.Marshal(metricDto)
 	if marshalErr != nil {
 		return fmt.Errorf("unable to marshal metric dto: %w", marshalErr)
@@ -354,8 +367,18 @@ func (mc *MetricsCollector) sendMetricItem(name string, item MetricItem) error {
 	}
 
 	var t interface{}
-	if err = json.Unmarshal(respBytes, &t); err != nil {
+	if err := json.Unmarshal(respBytes, &t); err != nil {
 		return fmt.Errorf("unable to unmarshal metric response: %w", err)
+	}
+
+	return nil
+}
+
+func (mc *MetricsCollector) sendMetricItemViaGRPC(name string, metricDto *dto.MetricDTO) error {
+	protoMetric := utils.ConvertDTOToProtoMetric(metricDto)
+	_, err := mc.grpcClient.UpdateMetric(context.Background(), protoMetric)
+	if err != nil {
+		return fmt.Errorf("unable to sent %s metric via grpc: %w", name, err)
 	}
 
 	return nil
@@ -376,6 +399,21 @@ func (mc *MetricsCollector) SendMetrics() error {
 		return nil
 	}
 
+	sendFunc := mc.sendMetricsViaHTTP
+	if mc.grpcClient == nil {
+		sendFunc = mc.sendMetricsViaGRPC
+	}
+
+	if err := sendFunc(metricsBatch); err != nil {
+		return fmt.Errorf("SendMetrics error: %w", err)
+	}
+
+	mc.resetPollCounter()
+
+	return nil
+}
+
+func (mc *MetricsCollector) sendMetricsViaHTTP(metricsBatch []*dto.MetricDTO) error {
 	body, marshalErr := json.Marshal(metricsBatch)
 	if marshalErr != nil {
 		return fmt.Errorf("unable to marshal metrics batch: %w", marshalErr)
@@ -396,7 +434,19 @@ func (mc *MetricsCollector) SendMetrics() error {
 		return fmt.Errorf("unable to unmarshal metric response: %w", err)
 	}
 
-	mc.resetPollCounter()
+	return nil
+}
+
+func (mc *MetricsCollector) sendMetricsViaGRPC(metricsBatch []*dto.MetricDTO) error {
+	protoMetricsBatch := make([]*pb.Metric, 0, len(metricsBatch))
+	for _, metricDto := range metricsBatch {
+		protoMetric := utils.ConvertDTOToProtoMetric(metricDto)
+		protoMetricsBatch = append(protoMetricsBatch, protoMetric)
+	}
+	_, err := mc.grpcClient.UpdateMetrics(context.Background(), protoMetricsBatch)
+	if err != nil {
+		return fmt.Errorf("unable to send metrics batch via grpc: %w", err)
+	}
 
 	return nil
 }
@@ -593,17 +643,28 @@ type HTTPClient interface {
 	Post(url, contentType string, bodyBytes []byte) ([]byte, error)
 }
 
+type GRPCClient interface {
+	UpdateMetric(ctx context.Context, metric *pb.Metric) (*pb.Metric, error)
+	UpdateMetrics(ctx context.Context, metrics []*pb.Metric) ([]*pb.Metric, error)
+}
+
 type MetricsCollector struct {
 	cfg                *config.Config
 	currentMetricState map[string]MetricItem
 	client             HTTPClient
+	grpcClient         GRPCClient
 	logger             log.Logger
 	mu                 *sync.RWMutex
 	publicKey          *rsa.PublicKey
 }
 
 // NewMetricsCollector creates instance of collector.
-func NewMetricsCollector(cfg *config.Config, logger log.Logger, client HTTPClient) *MetricsCollector {
+func NewMetricsCollector(
+	cfg *config.Config,
+	logger log.Logger,
+	client HTTPClient,
+	grpcClient GRPCClient,
+) *MetricsCollector {
 	baseState := map[string]MetricItem{
 		pollCountMetricName: {
 			value:      "0",
@@ -614,5 +675,12 @@ func NewMetricsCollector(cfg *config.Config, logger log.Logger, client HTTPClien
 			metricType: common.CounterMetricType,
 		},
 	}
-	return &MetricsCollector{currentMetricState: baseState, client: client, cfg: cfg, logger: logger, mu: &sync.RWMutex{}}
+	return &MetricsCollector{
+		currentMetricState: baseState,
+		client:             client,
+		grpcClient:         grpcClient,
+		cfg:                cfg,
+		logger:             logger,
+		mu:                 &sync.RWMutex{},
+	}
 }

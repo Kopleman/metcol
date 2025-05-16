@@ -60,7 +60,7 @@ func TestMetricsCollector_CollectMetrics(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mc := NewMetricsCollector(tt.fields.cfg, tt.fields.logger, tt.fields.client)
+			mc := NewMetricsCollector(tt.fields.cfg, tt.fields.logger, tt.fields.client, nil)
 
 			state := mc.GetState()
 			assert.Equal(t, len(state), 2)
@@ -109,7 +109,7 @@ func TestMetricsCollector_SendMetrics(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mc := NewMetricsCollector(tt.fields.cfg, tt.fields.logger, tt.fields.client)
+			mc := NewMetricsCollector(tt.fields.cfg, tt.fields.logger, tt.fields.client, nil)
 			err := mc.CollectAllMetrics()
 			if err != nil {
 				t.Errorf("unwanted CollectMetrics() error = %v", err)
@@ -145,6 +145,7 @@ func TestHandler(t *testing.T) {
 			},
 			log.MockLogger{},
 			new(MockHTTPClient),
+			nil,
 		)
 
 		sig := make(chan os.Signal, 1)
@@ -163,7 +164,7 @@ func TestHandler(t *testing.T) {
 }
 
 func TestIncreasePollCounter(t *testing.T) {
-	mc := NewMetricsCollector(nil, nil, nil)
+	mc := NewMetricsCollector(nil, nil, nil, nil)
 
 	require.Equal(t, "0", mc.currentMetricState[pollCountMetricName].value)
 
@@ -174,7 +175,7 @@ func TestIncreasePollCounter(t *testing.T) {
 }
 
 func TestAssignNewRandomValue(t *testing.T) {
-	mc := NewMetricsCollector(nil, nil, nil)
+	mc := NewMetricsCollector(nil, nil, nil, nil)
 
 	initial := mc.currentMetricState[randomValueMetricName].value
 	mc.assignNewRandomValue()
@@ -188,7 +189,7 @@ func TestSendMetricsViaWorkers(t *testing.T) {
 		mockClient.On("Post", mock.Anything, mock.Anything, mock.Anything).
 			Return([]byte{}, errors.New("worker error"))
 
-		mc := NewMetricsCollector(&config.Config{RateLimit: 3}, nil, mockClient)
+		mc := NewMetricsCollector(&config.Config{RateLimit: 3}, nil, mockClient, nil)
 		mc.currentMetricState["test"] = MetricItem{value: "123", metricType: common.GaugeMetricType}
 
 		err := mc.sendMetricsViaWorkers(context.Background())
@@ -198,7 +199,7 @@ func TestSendMetricsViaWorkers(t *testing.T) {
 }
 
 func TestConcurrentAccess(t *testing.T) {
-	mc := NewMetricsCollector(&config.Config{}, nil, nil)
+	mc := NewMetricsCollector(&config.Config{}, nil, nil, nil)
 	var wg sync.WaitGroup
 	for range 10 {
 		wg.Add(1)
@@ -256,7 +257,7 @@ func TestConvertMetricItemToDto(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mc := NewMetricsCollector(nil, nil, nil)
+			mc := NewMetricsCollector(nil, nil, nil, nil)
 			_, err := mc.convertMetricItemToDto("test", tt.item)
 
 			if tt.expectedErr != "" {

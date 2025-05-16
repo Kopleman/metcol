@@ -12,6 +12,7 @@ import (
 	bodydecryptor "github.com/Kopleman/metcol/internal/server/body_decryptor"
 	"github.com/Kopleman/metcol/internal/server/config"
 	filestorage "github.com/Kopleman/metcol/internal/server/file_storage"
+	"github.com/Kopleman/metcol/internal/server/grpc"
 	"github.com/Kopleman/metcol/internal/server/memstore"
 	"github.com/Kopleman/metcol/internal/server/metrics"
 	"github.com/Kopleman/metcol/internal/server/pgxstore"
@@ -29,6 +30,7 @@ type Server struct {
 	fs            *filestorage.FileStorage
 	metricService *metrics.Metrics
 	bd            *bodydecryptor.BodyDecryptor
+	grpcServer    *grpc.Server
 }
 
 // NewServer creates instance of server.
@@ -95,6 +97,18 @@ func (s *Server) Start(ctx context.Context, runTimeError chan<- error) error {
 			runTimeError <- fmt.Errorf("internal server error: %w", listenAndServeErr)
 		}
 	}()
+
+	if s.config.GRPCAddr.String() != "" {
+		grpcMetricsService := grpc.NewMetricsService(s.logger, s.metricService)
+		s.grpcServer = grpc.NewServer(s.logger, grpcMetricsService, s.config.TrustedSubnet, s.config.Key)
+
+		go func() {
+			if err := s.grpcServer.Start(s.config.GRPCAddr.String()); err != nil {
+				runTimeError <- fmt.Errorf("internal server error: %w", err)
+			}
+		}()
+	}
+
 	s.logger.Infof("Server started on: %s", s.config.NetAddr.Port)
 
 	go func() {
@@ -122,6 +136,11 @@ func (s *Server) Shutdown() {
 	if s.db != nil {
 		s.db.Close()
 		s.logger.Info("database closed")
+	}
+
+	if s.grpcServer != nil {
+		s.grpcServer.Stop()
+		s.logger.Info("grpc server stopped")
 	}
 
 	s.logger.Infof("Server shut down")

@@ -1,0 +1,78 @@
+edition = "2023";
+
+package metrics;
+
+option go_package = "github.com/Kopleman/metcol/proto/metrics";
+
+import "google/protobuf/go_features.proto";
+
+option features.(pb.go).api_level = API_OPAQUE;
+
+// Типы метрик
+enum MetricType {
+  UNKNOWN = 0;
+  GAUGE = 1;
+  COUNTER = 2;
+}
+
+// Сообщение для одиночной метрики
+message Metric {
+  string id = 1;           // Имя метрики
+  MetricType type = 2;     // Тип метрики
+  double value = 3;        // Значение для gauge
+  int64 delta = 4;         // Значение для counter
+}
+
+// Запрос на получение значения метрики
+message GetMetricRequest {
+  string id = 1;           // Имя метрики
+  MetricType type = 2;     // Тип метрики
+}
+
+// Ответ с значением метрики
+message GetMetricResponse {
+  Metric metric = 1 [lazy = true];
+}
+
+// Запрос на обновление метрики
+message UpdateMetricRequest {
+  Metric metric = 1 [lazy = true];
+}
+
+// Ответ на обновление метрики
+message UpdateMetricResponse {
+  Metric metric = 1 [lazy = true];
+}
+
+// Запрос на пакетное обновление метрик
+message UpdateMetricsRequest {
+  repeated Metric metrics = 1;
+}
+
+// Ответ на пакетное обновление метрик
+message UpdateMetricsResponse {
+  repeated Metric metrics = 1;
+}
+
+// Запрос на получение всех метрик
+message GetAllMetricsRequest {}
+
+// Ответ со всеми метриками
+message GetAllMetricsResponse {
+  repeated Metric metrics = 1;
+}
+
+// Сервис для работы с метриками
+service MetricsService {
+  // Получить значение метрики
+  rpc GetMetric(GetMetricRequest) returns (GetMetricResponse);
+  
+  // Обновить значение метрики
+  rpc UpdateMetric(UpdateMetricRequest) returns (UpdateMetricResponse);
+  
+  // Пакетное обновление метрик
+  rpc UpdateMetrics(UpdateMetricsRequest) returns (UpdateMetricsResponse);
+  
+  // Получить все метрики
+  rpc GetAllMetrics(GetAllMetricsRequest) returns (GetAllMetricsResponse);
+} 

@@ -20,12 +20,14 @@ const defaultAddress string = "localhost:8080"
 // Config contains all settled via envs or flags params.
 type Config struct {
 	NetAddr             *flags.NetAddress // server address
+	GRPCAddr            *flags.NetAddress // server address
 	FileStoragePath     string            // path to file for mem-store dump
 	DataBaseDSN         string            // DSN of postgres DSN
 	Key                 string            // hash key for sign received data
 	ProfilerCPUFilePath string            // where to store CPU profile
 	ProfilerMemFilePath string            // where to store mem profile
 	PrivateKeyPath      string            // path to private key
+	TrustedSubnet       string            // CIDR for filtering requests
 	StoreInterval       int64             // how often dump memo store to file
 	ProfilerCollectTime int64             // how long to collect data after start-up
 	Restore             bool              // restore memo-store from file
@@ -34,12 +36,14 @@ type Config struct {
 type configFromSource struct {
 	Restore             *bool  `json:"restore" env:"RESTORE"`
 	EndPoint            string `json:"address" env:"ADDRESS"`
+	GRPCEndPoint        string `json:"grpc_address" env:"GRPC_ADDRESS"`
 	FileStoragePath     string `json:"file_storage_path" env:"FILE_STORAGE_PATH"`
 	DataBaseDSN         string `json:"database_dsn" env:"DATABASE_DSN"`
 	Key                 string `json:"key" env:"KEY"`
 	ProfilerCPUFilePath string `json:"profiler_cpu_file_path" env:"PROFILER_CPU_FILE_PATH"`
 	ProfilerMemFilePath string `json:"profiler_mem_file_path" env:"PROFILER_MEM_FILE_PATH"`
 	PrivateKeyPath      string `json:"crypto_key" env:"PRIVATE_KEY_PATH"`
+	TrustedSubnet       string `json:"trusted_subnet" env:"TRUSTED_SUBNET"`
 	StoreInterval       int64  `json:"store_interval" env:"STORE_INTERVAL"`
 	ProfilerCollectTime int64  `json:"profiler_collect_time" env:"PROFILER_COLLECT_TIME"`
 }
@@ -47,7 +51,13 @@ type configFromSource struct {
 func applyConfigFromSource(source *configFromSource, config *Config) error {
 	if source.EndPoint != "" {
 		if err := config.NetAddr.Set(source.EndPoint); err != nil {
-			return fmt.Errorf("failed to set endpoint address for agent from json data: %w", err)
+			return fmt.Errorf("failed to set endpoint address: %w", err)
+		}
+	}
+
+	if source.GRPCEndPoint != "" {
+		if err := config.GRPCAddr.Set(source.GRPCEndPoint); err != nil {
+			return fmt.Errorf("failed to set grpc endpoint address: %w", err)
 		}
 	}
 
@@ -145,7 +155,9 @@ func ParseServerConfig() (*Config, error) {
 
 	flag.StringVar(&config.PrivateKeyPath, "crypto-key", "", "cypher key")
 
-	pathToConfig := flag.String("c", "", "Path to config file")
+	flag.StringVar(&config.ProfilerCPUFilePath, "t", "", "profiler cpu filename")
+
+	pathToConfig := flag.String("c", "", "CIDR for filtering requests")
 
 	flag.Parse()
 

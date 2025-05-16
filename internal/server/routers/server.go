@@ -51,6 +51,9 @@ func BuildServerRoutes(
 	// r.Use(middleware.Compress(5, "text/html", "application/json"))
 	r.Use(middlewares.CompressMiddleware)
 	r.Use(middlewares.Hash(logger, cfg.Key))
+	if cfg.TrustedSubnet != "" {
+		r.Use(middlewares.IPFilter(cfg.TrustedSubnet))
+	}
 
 	r.Mount("/debug", middleware.Profiler())
 

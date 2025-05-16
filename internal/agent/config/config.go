@@ -19,6 +19,7 @@ const defaultAddress string = "localhost:8080"
 type Config struct {
 	EndPoint       *flags.NetAddress // where agent will send metrics
 	Key            string            // hash key for sign sent data
+	GRPCEndPoint   *flags.NetAddress // where agent will send metrics via grpc
 	PublicKeyPath  string            // path to public key
 	ReportInterval int64             // how often data will be sent
 	PollInterval   int64             // how often metrics will be collected
@@ -28,16 +29,23 @@ type Config struct {
 type configFromSource struct {
 	EndPoint       string `json:"address" env:"ADDRESS"`
 	Key            string `json:"key" env:"KEY"`
+	GRPCEndPoint   string `json:"grpc_address" env:"GRPC_ADDRESS"`
 	PublicKeyPath  string `json:"crypto_key" env:"KEY_PATH"`
 	ReportInterval int64  `json:"report_interval" env:"REPORT_INTERVAL"`
 	PollInterval   int64  `json:"poll_interval" env:"POLL_INTERVAL"`
 	RateLimit      int64  `json:"rate_limit" env:"RATE_LIMIT"`
 }
 
-func applyConfigFromSource(source configFromSource, config *Config) error {
+func applyConfigFromSource(source *configFromSource, config *Config) error {
 	if source.EndPoint != "" {
 		if err := config.EndPoint.Set(source.EndPoint); err != nil {
 			return fmt.Errorf("failed to set endpoint address for agent: %w", err)
+		}
+	}
+
+	if source.GRPCEndPoint != "" {
+		if err := config.GRPCEndPoint.Set(source.GRPCEndPoint); err != nil {
+			return fmt.Errorf("failed to set grpc endpoint address for agent: %w", err)
 		}
 	}
 
@@ -111,7 +119,7 @@ func applyConfigFromJSON(pathToConfigFile string, config *Config) error {
 	if err := utils.GetConfigFromFile(pathToConfigFile, cfgFromJSON); err != nil {
 		return fmt.Errorf("error reading config from file: %w", err)
 	}
-	if err := applyConfigFromSource(*cfgFromJSON, config); err != nil {
+	if err := applyConfigFromSource(cfgFromJSON, config); err != nil {
 		return fmt.Errorf("error applying config from json-file: %w", err)
 	}
 
@@ -123,7 +131,7 @@ func applyConfigFromEnv(config *Config) error {
 	if err := env.Parse(cfgFromEnv); err != nil {
 		return fmt.Errorf("failed to parse agent envs: %w", err)
 	}
-	if err := applyConfigFromSource(*cfgFromEnv, config); err != nil {
+	if err := applyConfigFromSource(cfgFromEnv, config); err != nil {
 		return fmt.Errorf("failed to apply config from env: %w", err)
 	}
 	return nil
